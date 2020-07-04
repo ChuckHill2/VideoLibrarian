@@ -1,11 +1,10 @@
 ﻿using System.Reflection;
-using System.Runtime.InteropServices;
 
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 
-[assembly: AssemblyTitle("Browse, sort, filter, and play movies in your movie collections.")]
+[assembly: AssemblyTitle("Movie Guide - Browse, sort, filter, and play movies in your movie collections.")]
 [assembly: AssemblyDescription(@"Automatically download movie info for your movie collection to filter, sort, browse, and select movie to play.")]
 #if DEBUG
 [assembly: AssemblyConfiguration("DEBUG")]
@@ -18,5 +17,4 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
-[assembly: AssemblyVersion("2.2.1.0")]
-[assembly: AssemblyFileVersion("2.2.1.0")]
+[assembly: AssemblyVersion("2.2.2.0")]

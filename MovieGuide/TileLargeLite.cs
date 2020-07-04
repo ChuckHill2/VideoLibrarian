@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Drawing;
-using System.Drawing.Text;
 using System.IO;
 using System.Windows.Forms;
 

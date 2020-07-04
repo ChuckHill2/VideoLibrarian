@@ -1,10 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace MovieGuide
@@ -76,8 +72,11 @@ namespace MovieGuide
         {
             CheckDate = base.Checked ? (dtDate == DateTime.MinValue ? DateTime.Now : dtDate) : DateTime.MinValue;
 
-            var tile = this.FindParent<ITile>();
-            tile.MovieProps.Watched = CheckDate;
+            if (this.Enabled)
+            {
+                var tile = this.FindParent<ITile>();
+                tile.MovieProps.Watched = CheckDate;
+            }
 
             base.Image = base.Checked ? global::MovieGuide.ResourceCache.CheckboxChecked : global::MovieGuide.ResourceCache.CheckboxUnchecked;
             base.OnCheckedChanged(e);

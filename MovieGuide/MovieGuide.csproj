@@ -263,7 +263,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Resources\NReco.VideoInfo.dll" />
     <None Include="App.config" />
     <None Include="Resources\AboutBox.png" />
     <None Include="Resources\Add.png" />
@@ -307,6 +306,11 @@
       <ProductName>.NET Framework 3.5 SP1</ProductName>
       <Install>false</Install>
     </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\packages\NReco.VideoInfo.1.1.0\lib\net35\NReco.VideoInfo.dll">
+      <Link>Resources\NReco.VideoInfo.dll</Link>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

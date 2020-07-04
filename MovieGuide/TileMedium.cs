@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Windows.Forms;
 
 namespace MovieGuide
 {
@@ -16,8 +15,8 @@ namespace MovieGuide
                 ctrl.m_tblLayout.Visible = true;
                 ctrl.m_pbPoster.Visible = false;
 
-                ctrl.m_chkWatched.Checked = false;
-                ctrl.m_chkWatched.Enabled = false;
+                ctrl.m_chkWatched.Enabled = false; //Must be BEFORE setting CheckDate;
+                ctrl.m_chkWatched.CheckDate = DateTime.MinValue;
                 ctrl.m_pbImdbLink.Image = null;
             }
 
