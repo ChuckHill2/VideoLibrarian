@@ -455,7 +455,7 @@ namespace MovieGuide
                 mc = Regex.Matches(html, @"<div class='poster'><a href='(?<URL>\/title\/[^\/]+\/mediaviewer\/(?<ID>[0-9a-z]+)[^']+).+? src='(?<POSTER>[^']+)'", RegexOptions.Compiled | RegexOptions.IgnoreCase);
                 if (mc.Count > 0)
                 {
-                    var posterUrl = mc[0].Groups["POSTER"].Value;
+                    var posterUrl = mc[0].Groups["POSTER"].Value; //get the small poster image in the page, but we continue to look for a larger/better image.
                     var id = mc[0].Groups["ID"].Value;
                     var mediaViewerUrl = FileEx.GetAbsoluteUrl(data.Url, mc[0].Groups["URL"].Value);
 
@@ -474,10 +474,18 @@ namespace MovieGuide
                             //<meta itemprop='image' content='https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_SY500_CR0,0,364,500_AL_.jpg'/>
                             //<meta name='twitter:image' content='https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_SY500_CR0,0,364,500_AL_.jpg'/>
                             mc = Regex.Matches(html2, @"<meta (?:property='og:image'|itemprop='image'|name='twitter:image') content='(?<POSTER>[^']+)'", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-                            if (mc.Count > 0) posterUrl = mc[0].Groups["POSTER"].Value;
+                            foreach(Match m in mc)
+                            {
+                                var x = m.Groups["POSTER"].Value;
+                                //Value may contain "...\imdb_logo.png". All real posters are jpg files.
+                                if (!x.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)) continue;
+                                posterUrl = x;
+                                break;
+                            }
                         }
                     }
 
+                    //Now that we got the movie poster url, we download it.
                     MoviePosterUrl = posterUrl;
                     fn = Path.ChangeExtension(MoviePosterPath, FileEx.GetUrlExtension(posterUrl));
                     job = new FileEx.Job(data, posterUrl, fn);
