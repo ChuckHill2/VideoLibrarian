@@ -1,0 +1,26 @@
+# Requirements
+- Organize videos on computer by various properties (view, sort and filter).
+- View on gallery on a TV via HDMI. Must be large enough to see from the couch but also small enough to view a number of them on a single screen. 
+- Must support a LOT of videos (>1000) and be fast.
+- Must consist of a single executable. No "installation".
+- Properties must include things like name, description, genere, movie ratings, release date, etc.
+- Must be able to retrieve this information from the internet by itself.
+- Target audience is a normal computer user. Not a developer or computer expert.
+
+# High-level Design Choices
+* As a web page/javascript? Requires many files. No robust means to gather properties. Not user-friendly installation. Subject to vagaries of browers.
+* Target OS? Microsoft Windows. Just because it is what I know and what my laptop runs.
+* Client-Server (irrespective of language)? Again, not average-user-friendly, higher complexity, and lower maintanibility. Does user really want a server running all the time?
+* As a standalone app? Easy to run, just drop into folder and execute.
+* Language
+  + C++ - Workable, but unecessary complexity and more difficult to maintain.
+  + C# - Faster and easier to maintain. Has no performance bottlenecks that low-level C++ needs to overcome. Supporting Win7+. Natively supports requisite https and regex.
+    - WinForms? Can support large number of gallery items.
+    - WPF? Gallery cannot support large number videos.
+
+Resulting decision - .net winforms.
+
+# Low-level Design
+
+
+
