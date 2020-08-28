@@ -68,10 +68,10 @@ The full directory path (not including movie filename) must not exceed 245
 characters. Keep your folder names small if you have many directory levels. This
 is a Windows limitation.
 
-Each movie or TV series folder must contain zero or one movies and exactly one
-IMDB movie shortcut (.url, .website). All the other needed files will be
+Each movie or TV series folder must contain zero or one movie and exactly one
+IMDB movie shortcut (*.url). All the other needed files will be
 automatically generated upon demand. Any folders that do not contain a valid
-shortcut (.url, .website) will be ignored. See File-\>Status Log for details.
+internet shortcut (*.url) will be ignored. See File-\>Status Log for details.
 
 ### Generated Cache Files
 These cache files reside in the same folders as the shortcut files. They are 
@@ -85,13 +85,15 @@ unique to each shortcut.
 
 If any of these files are deleted, they will be recreated.
 
-### Retrieving IMDB Movie Shortcut Link
+### Retrieving IMDB Movie Internet Shortcut
 
-Go to <https://www.imdb.com/find?ref_=nv_sr_fn&q=&s=tt>
+Go to <https://www.imdb.com/find?s=tt>
 
 In the web page search box, enter the name of the movie. The results may find
 more than one entry. Verify by opening the relevant page. Click and drag the
-link from the Chrome or IE address bar to the folder with the matching movie.
+link from the Chrome, Firefox, or IE address bar to the folder with the matching 
+movie. Click and dragging URLs is not supported in MS Edge. Go figure. You will 
+have to create the files via copy and paste into a new shortcut file.
 
 ### First Time MovieGuide Startup
 
@@ -120,7 +122,7 @@ window, wrapping from left to right.
 The tiles come in 3 sizes, small, medium, and large. ‘Large’ displays all the
 information available, and ‘Small’ contains a subset because all the information
 will not fit. However many more small tiles will fit on a single page than large
-tiles. That is the tradeoff.
+tiles. That is the trade off.
 
 ### Changing the Default Movie Poster Image
 
@@ -232,7 +234,7 @@ Converter (freeware). It may be found at
 not as flexible or comprehensive as the VLC video player.
 
 If you run into conversion problems, K-Lite Codec Pack contains the most 
-comprehensive set of codecs http://www.codecguide.com/download_kl.htm 
+comprehensive set of codecs <http://www.codecguide.com/download_kl.htm> 
 
 #### Video Properties Viewer
 
@@ -248,9 +250,9 @@ container format is so popular. See: <https://mkvtoolnix.download>.
 
 ### Developer
 
-With the following excepions, no 3rd-party source code was used. It was entirely 
+With the following exceptions, no 3rd-party source code was used. It was entirely 
 hand-crafted and optimized. It was developed entirely within .Net Framework 4.5 
-Forms on Visual Studo 2019.
+Forms on Visual Studio 2019.
 
 #### 3rd Party Code
 
@@ -264,3 +266,29 @@ the default windows scroll bars are woefully inadequate.
 
 This is used to extract media info directly from the video files. It is only 
 used during movie information download.
+
+#### Design Considerations
+
+##### Requirements
+- Organize videos on computer by various properties (view, sort and filter).
+- View on gallery on a TV via HDMI. Must be large enough to see from the couch but also small enough to view a number of them on a single screen. 
+- Must support a LOT of videos (>1000) and be fast.
+- Must consist of a single executable. No "installation".
+- Properties must include things like name, description, genere, movie ratings, release date, etc.
+- Must be able to retrieve this information from the internet by itself.
+- Target audience is a normal computer user. Not a developer or computer expert.
+
+##### High-level Design Choices
+* As a web page/javascript? Requires many files. No robust means to gather properties. Not user-friendly installation. Subject to vagaries of browers.
+* Target OS? Microsoft Windows. Just because it is what I know and what my laptop runs.
+* Client-Server (irrespective of language)? Again, not average-user-friendly, higher complexity, and lower maintanibility. Does user really want a server running all the time?
+* As a standalone app? Easy to run, just drop into folder and execute.
+* Language
+  + C++ - Workable, but unecessary complexity and more difficult to maintain.
+  + C# - Faster and easier to maintain. Has no performance bottlenecks that low-level C++ needs to overcome. Supporting Win7+. Natively supports requisite https and regex.
+    - WinForms? Can support large number of gallery items.
+    - WPF? Gallery cannot support large number videos.
+
+Resulting decision - .net winforms.
+
+##### Low-level Design

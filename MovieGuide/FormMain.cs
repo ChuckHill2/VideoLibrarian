@@ -336,11 +336,10 @@ namespace MovieGuide
                         continue;
                     }
 
-
                     //Support Chrome and IE url shortcuts. Firefox does not have shortcut click'n drag from address bar. 
                     //There may be multiple shortcuts in a folder, but we may only list the folder once. 
                     var hs = new HashSet<string>();
-                    foreach (string f in Directory.EnumerateFiles(mf, "*.url", SearchOption.AllDirectories).Concat(Directory.EnumerateFiles(mf, "*.website", SearchOption.AllDirectories)))
+                    foreach (string f in Directory.EnumerateFiles(mf, "*.url", SearchOption.AllDirectories))
                     {
                         hs.Add(Path.GetDirectoryName(f));
                     }
