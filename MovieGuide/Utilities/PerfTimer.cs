@@ -98,7 +98,7 @@ namespace MovieGuide
         /// <param name="args">variable format args</param>
         public void LogPrint(string format, params object[] args)
         {
-            Log.Write("Performance: " + format + string.Format(": {0} ms", this.Count), args);
+            Log.Write(Severity.Verbose, "Performance: " + format + string.Format(": {0} ms", this.Count), args);
         }
 
         /// <summary>

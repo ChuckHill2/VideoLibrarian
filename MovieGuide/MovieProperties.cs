@@ -21,8 +21,8 @@ namespace MovieGuide
     /// </summary>
     public class MovieProperties
     {
-        private const string MovieExtensions = "|.3g2|.3gp|.3gp2|.3gpp|.amv|.asf|.avi|.bik|.bin|.crf|.divx|.drc|.dv|.dvr-ms|.evo|.f4v|.flv|.gvi|.gxf|.iso|.m1v|.m2v|.m2t|.m2ts|.m4v|.mkv|.mov|.mp2|.mp2v|.mp4|.mp4v|.mpe|.mpeg|.mpeg1|.mpeg2|.mpeg4|.mpg|.mpv2|.mts|.mtv|.mxf|.mxg|.nsv|.nuv|.ogg|.ogm|.ogv|.ogx|.ps|.rec|.rm|.rmvb|.rpl|.thp|.tod|.tp|.ts|.tts|.txd|.vob|.vro|.webm|.wm|.wmv|.wtv|.xesc|";
-        private const string ImageExtensions = "|.bmp|.dib|.rle|.emf|.gif|.jpg|.jpeg|.jpe|.jif|.jfif|.png|.tif|.tiff|.xif|.wmf|";
+        public const string MovieExtensions = "|.3g2|.3gp|.3gp2|.3gpp|.amv|.asf|.avi|.bik|.bin|.crf|.divx|.drc|.dv|.dvr-ms|.evo|.f4v|.flv|.gvi|.gxf|.iso|.m1v|.m2v|.m2t|.m2ts|.m4v|.mkv|.mov|.mp2|.mp2v|.mp4|.mp4v|.mpe|.mpeg|.mpeg1|.mpeg2|.mpeg4|.mpg|.mpv2|.mts|.mtv|.mxf|.mxg|.nsv|.nuv|.ogg|.ogm|.ogv|.ogx|.ps|.rec|.rm|.rmvb|.rpl|.thp|.tod|.tp|.ts|.tts|.txd|.vob|.vro|.webm|.wm|.wmv|.wtv|.xesc|";
+        public const string ImageExtensions = "|.bmp|.dib|.rle|.emf|.gif|.jpg|.jpeg|.jpe|.jif|.jfif|.png|.tif|.tiff|.xif|.wmf|";
         private Task _getMoviePropertyTask = null;
         private string _movieName = null;
         private string _moviePosterPath = null;
@@ -219,7 +219,7 @@ namespace MovieGuide
 
                 _dirty = true; //force save because this is new.
                 this.Serialize();
-                Log.Write("Added new movie \"{0}\" at {1}", this.FullMovieName, Path.GetDirectoryName(PropertiesPath));
+                Log.Write(Severity.None, "Added new movie \"{0}\" at {1}", this.FullMovieName, Path.GetDirectoryName(PropertiesPath));
             }
             else if (forceRefresh)
             {
@@ -583,7 +583,7 @@ namespace MovieGuide
                 }
                 catch(Exception ex)
                 {
-                    Log.Write("Error: GetMovieFileProperties(\"{0}\"): {1}", this.MoviePath??"null", ex.Message);
+                    Log.Write(Severity.Error, "GetMovieFileProperties(\"{0}\"): {1}", this.MoviePath??"null", ex.Message);
                 }
             }
             else //must be a TV Series root with no movie. Just child directories contining episode movies.
@@ -698,7 +698,7 @@ namespace MovieGuide
             return asp[index].Key;
         }
 
-        private static string GetUrlFromLink(string path)
+        public static string GetUrlFromLink(string path)
         {
             using(var sr = new StreamReader(path))
             {
@@ -780,78 +780,6 @@ namespace MovieGuide
             g.Dispose();
 
             return bmp;
-        }
-
-        /// <summary>
-        /// Find IMDB url from movie file name. Only works for well-formed file names 
-        /// where: 
-        /// (1) Feature movie filenames consist of moviename followed by a 4-digit release year (plus a lot of other stuff).
-        /// (2) Episodic TV series filenames consist of tv series name followed by season/episode in the form of S00E00. There is no release year.
-        /// </summary>
-        /// <remarks>
-        /// This cannot find the TV series root folder as this folder has no video file in it. 
-        /// TV series folders do not have to be heirarchical, so the parent folder is not 
-        /// necessarily the TV series root folder!
-        /// </remarks>
-        /// <param name="movieFileName">Full filename of video file.</param>
-        /// <returns>IMDB url or null if not found</returns>
-        public static string FindImdbUrl(string movieFileName)
-        {
-            MatchCollection mc;
-            var dir = Path.GetDirectoryName(movieFileName);
-            movieFileName = Path.GetFileName(movieFileName);
-
-            //Find TV Series episode url. Contains TV series name + season and episode (No year!)
-            mc = Regex.Matches(movieFileName, @"^(?<NAME>.+?)S(?<S>[0-9]{2,2})E(?<E>[0-9]{2,2})", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-            if (mc.Count > 0)
-            {
-                var name = mc[0].Groups["NAME"].Value.Replace('.', ' ').Trim();
-                var season = int.Parse(mc[0].Groups["S"].Value);
-                var episode = int.Parse(mc[0].Groups["E"].Value);
-
-                var fn = Path.Combine(Path.GetDirectoryName(dir), "FindUrl.htm");
-                var job = new FileEx.Job(null, $"https://www.imdb.com/search/title/?title={name}&title_type=tv_series&view=simple", fn);
-                if (FileEx.Download(job))
-                {
-                    var html2 = FileEx.ReadHtml(job.Filename);
-                    File.Delete(job.Filename); //no longer needed. extension already used for this cache file.
-                    mc = Regex.Matches(html2, @"<a href='\/title\/(?<TT>tt[0-9]+)\/", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-                    if (mc.Count == 0) return null;
-                    var episodesUrl = $"https://www.imdb.com/title/{mc[0].Groups["TT"].Value}/episodes?season={season}";
-                    job = new FileEx.Job(null, episodesUrl, fn);
-                    if (FileEx.Download(job))
-                    {
-                        html2 = FileEx.ReadHtml(job.Filename);
-                        File.Delete(job.Filename); //no longer needed. extension already used for this cache file.
-                        mc = Regex.Matches(html2, @"<a href='\/title\/(?<TT>tt[0-9]+)\/\?ref_=ttep_ep{episode}", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-                        if (mc.Count == 0) return null;
-                        return $"https://www.imdb.com/title/{mc[0].Groups["TT"].Value}/";
-                    }
-                }
-
-                return null;
-            }
-
-            //Find feature movie url. Contains movie name and release year.
-            mc = Regex.Matches(movieFileName, @"^(?<NAME>.+?)(?<YEAR>[0-9]{4,4})", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-            if (mc.Count > 0)
-            {
-                var name = mc[0].Groups["NAME"].Value.Replace('.', ' ').Trim();
-                if (int.TryParse(mc[0].Groups["YEAR"].Value, out int year) && year <= DateTime.Now.Year && year > 1900) name = $"{name} ({year})";
-
-                var fn = Path.Combine(Path.GetDirectoryName(dir), "FindUrl.htm");
-                var job = new FileEx.Job(null, $"https://www.imdb.com/find?q={name}&s=tt&exact=true", fn);
-                if (FileEx.Download(job))
-                {
-                    var html2 = FileEx.ReadHtml(job.Filename);
-                    File.Delete(job.Filename); //no longer needed. extension already used for this cache file.
-                    //<td class='result_text'><a href='/title/tt0796264/?ref_=fn_tt_tt_1'>Eureka</a>(2006) (TV Series)</td>
-                    mc = Regex.Matches(html2, @"<a href='\/title\/(?<TT>tt[0-9]+)\/", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-                    if (mc.Count > 0) return $"https://www.imdb.com/title/{mc[0].Groups["TT"].Value}/";
-                }
-            }
-
-            return null;
         }
 
         #region Serialization/Deserialization

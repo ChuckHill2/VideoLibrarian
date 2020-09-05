@@ -256,6 +256,9 @@
     <EmbeddedResource Include="Utilities\PleaseWait.resx">
       <DependentUpon>PleaseWait.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="..\Readme.md">
+      <Link>Resources\Readme.md</Link>
+    </EmbeddedResource>
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>

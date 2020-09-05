@@ -18,6 +18,16 @@ using System.Windows.Forms;
 
 namespace MovieGuide
 {
+    public enum Severity
+    {
+        None,    //No severity level written
+        Success, //Action successful, Color.Green
+        Error,   //Action failed, Color.Red
+        Warning, //Action failed but recovered, Color.Gold
+        Info,    //Action status, Color.Blue
+        Verbose  //Detailed action status, Color.Purple
+    }
+
     public static class Log
     {
         private static readonly string _logName = Path.ChangeExtension(Process.GetCurrentProcess().MainModule.FileName, ".log");
@@ -25,7 +35,9 @@ namespace MovieGuide
         private static StreamWriter LogStream = null;
         private static readonly object lockObj = new object();
 
-        public static void Write(string fmt, params object[] args)
+        public static event Action<Severity, string> MessageCapture;
+
+        public static void Write(Severity severity, string fmt, params object[] args)
         {
             if (fmt == null && LogStream == null) return; //Nothing to do
             if (fmt == null && LogStream != null) //Close
@@ -47,12 +59,13 @@ namespace MovieGuide
 
             if (LogStream != null) lock (lockObj)
             {
-#if DEBUG 
-                //Cleanup string and indent succeeding lines
-                if (args != null && args.Length > 0)
+                if (severity != Severity.None) LogStream.Write(severity.ToString() + ": ");
+#if DEBUG
+                    //Cleanup string and indent succeeding lines
+                    if (args != null && args.Length > 0)
                     fmt = string.Format(fmt, args);
                 fmt = fmt.Beautify(false, "    ").TrimStart();
-                LogStream.WriteLine(fmt); 
+                LogStream.WriteLine(fmt);
 #else
                 //Cleanup string and indent succeeding lines. But as this is release
                 //mode, exceptions show only the message not the entire call stack.
@@ -68,7 +81,8 @@ namespace MovieGuide
                 fmt = fmt.Beautify(false, "    ").TrimStart();
                 LogStream.WriteLine(fmt); 
 #endif
-                LogStream.BaseStream.Flush(); 
+                LogStream.BaseStream.Flush();
+                MessageCapture?.Invoke(severity, fmt);
             }
         }
     }

@@ -22,14 +22,14 @@ namespace MovieGuide
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new FormMain());
 
-            Log.Write(null); //closes the logger.
+            Log.Write(Severity.None, null); //closes the logger.
         }
 
         static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
             try
             {
-                Log.Write("Unhandled Exception: {0}", e.ExceptionObject.ToString());
+                Log.Write(Severity.Error, "Unhandled Exception: {0}", e.ExceptionObject.ToString());
                 //MessageBox.Show(e.ExceptionObject.ToString(), "MovieGuide - Unhandled Exception", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 //EventLog.WriteEntry("MovieGuide", "MovieGuide - Unhandled Exception\r\n" + e.ExceptionObject.ToString(), EventLogEntryType.Error);
             }
@@ -40,7 +40,7 @@ namespace MovieGuide
         {
             try
             {
-                Log.Write("Unhandled Thread Exception: {0}", e.Exception.ToString());
+                Log.Write(Severity.Error, "Unhandled Thread Exception: {0}", e.Exception.ToString());
                 //MessageBox.Show(e.Exception.ToString(), "MovieGuide - Unhandled Thread Exception", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 //EventLog.WriteEntry("MovieGuide", "MovieGuide - Unhandled Thread Exception\r\n" + e.Exception.ToString(), EventLogEntryType.Error);
             }
@@ -81,12 +81,12 @@ namespace MovieGuide
             {
                 if (asm == null)
                 {
-                    Log.Write("[Unresolved assembly: \"{0}\"]", args.Name);
-                    if (ex != null) Log.Write("Assembly Resolver Error: \"{0}\"", ex);
+                    Log.Write(Severity.Error, "Unresolved assembly: \"{0}\"", args.Name);
+                    if (ex != null) Log.Write(Severity.Error, "Assembly Resolver Error: \"{0}\"", ex);
                 }
                 else
                 {
-                    Log.Write("[Resolved assembly: \"{0}\"]", asm.IsDynamic ? asm.ToString() : asm.Location);
+                    Log.Write(Severity.Success, "Resolved assembly: \"{0}\"", asm.IsDynamic ? asm.ToString() : asm.Location);
                 }
             }
             return asm;

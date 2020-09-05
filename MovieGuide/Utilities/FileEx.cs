@@ -263,7 +263,7 @@ namespace MovieGuide
                     ((status == WebExceptionStatus.NameResolutionFailure || status == WebExceptionStatus.ConnectFailure) && !ResolvedHosts.Contains(uri.Host)) ||
                     ex.Message.Contains("URI formats are not supported"))
                 {
-                    Log.Write("Error: {0} ==> {1}: {2}", data.Url, Path.GetFileName(data.Filename), ex.Message);
+                    Log.Write(Severity.Error, "{0} ==> {1}: {2}", data.Url, Path.GetFileName(data.Filename), ex.Message);
                     return false;
                 }
 
@@ -275,7 +275,7 @@ namespace MovieGuide
                     }
                 }
 
-                Log.Write("Retry #{0}: {1} ==> {2}: {3}", data.Retries, data.Url, Path.GetFileName(data.Filename), ex.Message);
+                Log.Write(Severity.Warning, "Retry #{0}: {1} ==> {2}: {3}", data.Retries, data.Url, Path.GetFileName(data.Filename), ex.Message);
                 return Download(data);
                 #endregion Log Error and Maybe Retry Download
             }

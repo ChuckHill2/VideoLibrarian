@@ -62,7 +62,7 @@ namespace MovieGuide
 
             needsCacheRebuild = (data.DPIScaling != GDI.DpiScalingFactor());
             if (needsCacheRebuild)
-                Log.Write("Rebuilding image cache due to screen resolution change (aka DPI scaling).");
+                Log.Write(Severity.None, "Rebuilding image cache due to screen resolution change (aka DPI scaling).");
 
             if (data.Version != Assembly.GetExecutingAssembly().GetName().Version)
             {
@@ -131,7 +131,7 @@ namespace MovieGuide
         {
             mouseHook.Dispose();
             try { SaveState(); }
-            catch (Exception ex) { Log.Write("SaveState: {0}", ex); }
+            catch (Exception ex) { Log.Write(Severity.Error, "SaveState: {0}", ex); }
             PleaseWait.Show(this, "Saving Movie Info...", (state) =>
             {
                 try
@@ -142,7 +142,7 @@ namespace MovieGuide
                         if (p.Episodes != null) foreach (var p2 in p.Episodes) p2.Serialize();
                     }
                 }
-                catch (Exception ex) { Log.Write("Serializing MovieProperties: {0}", ex); }
+                catch (Exception ex) { Log.Write(Severity.Error, "Serializing MovieProperties: {0}", ex); }
             });
 
             base.OnFormClosing(e);
@@ -260,7 +260,7 @@ namespace MovieGuide
             }
 
             if (mp.Count > maxTiles)
-                Log.Write("Number of movies found ({0}) exceeds the {1} memory limit for {2}. Truncating list.", mp.Count, maxTiles, this.View);
+                Log.Write(Severity.Warning, "Number of movies found ({0}) exceeds the {1} memory limit for {2}. Truncating list.", mp.Count, maxTiles, this.View);
 
             Views.Add(key, view);
             if (mp == MovieProperties) 
@@ -332,7 +332,7 @@ namespace MovieGuide
                 {
                     if (!Directory.Exists(mf))
                     {
-                        Log.Write("Media folder {0} does not exist.", mf);
+                        Log.Write(Severity.Error, "Media folder {0} does not exist.", mf);
                         continue;
                     }
 
@@ -361,11 +361,11 @@ namespace MovieGuide
                         }
                         catch (Exception ex)
                         {
-                            Log.Write("Error: Movie property failed to load from {0}: {1}", d, ex.Message);
+                            Log.Write(Severity.Error, "Movie property failed to load from {0}: {1}", d, ex.Message);
                         }
                     }
 
-                    Log.Write("Info: {0} movie properties loaded from {1}", added, mf);
+                    Log.Write(Severity.Info, "{0} movie properties loaded from {1}", added, mf);
                 }
                 if (MovieProperties.Count == 0) return;
 
@@ -402,7 +402,7 @@ namespace MovieGuide
 
                 if (this.MaxLoadedProperties > 0 && MovieProperties.Count >= this.MaxLoadedProperties)
                 {
-                    Log.Write("Number of movies found ({0}) exceeds the {1} user limit MovieProperties. Truncating list.", MovieProperties.Count, this.MaxLoadedProperties);
+                    Log.Write(Severity.Warning, "Number of movies found ({0}) exceeds the {1} user limit MovieProperties. Truncating list.", MovieProperties.Count, this.MaxLoadedProperties);
                     MovieProperties.RemoveRange(this.MaxLoadedProperties, MovieProperties.Count - this.MaxLoadedProperties);
                 }
 
@@ -556,7 +556,7 @@ namespace MovieGuide
 
             foreach(var kv in views)
             {
-                Log.Write("Warning: Insufficient resources (USER Objects) for new view {0}. Deleting cached view {1}.", toString(newView), toString(kv.Key));
+                Log.Write(Severity.Warning, "Insufficient resources (USER Objects) for new view {0}. Deleting cached view {1}.", toString(newView), toString(kv.Key));
                 var gen = kv.Value.Tiles!=null && kv.Value.Tiles.Length > 0 ? GC.GetGeneration(kv.Value.Tiles[0]) : 0;
                 DisposeTiles(kv.Value.Tiles);
                 kv.Value.Tiles = null;
