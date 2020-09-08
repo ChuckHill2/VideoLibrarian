@@ -39,6 +39,9 @@
             // 
             // m_txtRoot
             // 
+            this.m_txtRoot.AccessibleDescription = "The folder starting point in the serch for\\nvideos without an associated IMDB sho" +
+    "rtcut. Add\\nfoldername via command-line argument, click-n-\\ndrag, or using open " +
+    "folder dialog to the right.";
             this.m_txtRoot.AllowDrop = true;
             this.m_txtRoot.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
@@ -48,12 +51,13 @@
             this.m_txtRoot.ReadOnly = true;
             this.m_txtRoot.Size = new System.Drawing.Size(601, 20);
             this.m_txtRoot.TabIndex = 1;
-            this.m_txtRoot.Text = "Select Root Folder";
+            this.m_txtRoot.Text = "Select folder search starting point...";
             this.m_txtRoot.DragDrop += new System.Windows.Forms.DragEventHandler(this.m_txtRoot_DragDrop);
             this.m_txtRoot.DragEnter += new System.Windows.Forms.DragEventHandler(this.m_txtRoot_DragEnter);
             // 
             // m_btn_SelectRoot
             // 
+            this.m_btn_SelectRoot.AccessibleDescription = "Select starting\\npoint folder.";
             this.m_btn_SelectRoot.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.m_btn_SelectRoot.Image = ((System.Drawing.Image)(resources.GetObject("m_btn_SelectRoot.Image")));
             this.m_btn_SelectRoot.Location = new System.Drawing.Point(613, 12);
@@ -80,6 +84,7 @@
             // 
             // m_btnGo
             // 
+            this.m_btnGo.AccessibleDescription = "Begin MovieGuide\\nfolder configuration.";
             this.m_btnGo.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.m_btnGo.Location = new System.Drawing.Point(479, 523);
             this.m_btnGo.Name = "m_btnGo";
@@ -91,6 +96,7 @@
             // 
             // m_btnCancel
             // 
+            this.m_btnCancel.AccessibleDescription = "Exit application.";
             this.m_btnCancel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.m_btnCancel.Location = new System.Drawing.Point(560, 523);
             this.m_btnCancel.Name = "m_btnCancel";
@@ -102,6 +108,7 @@
             // 
             // m_btnAbout
             // 
+            this.m_btnAbout.AccessibleDescription = "This application description\\nand instructions.";
             this.m_btnAbout.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.m_btnAbout.Location = new System.Drawing.Point(12, 523);
             this.m_btnAbout.Name = "m_btnAbout";

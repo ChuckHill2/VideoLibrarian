@@ -4,6 +4,7 @@ using System.IO;
 using System.Net;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;
 using Microsoft.Win32;
@@ -120,10 +121,12 @@ namespace MovieGuide
         /// Sometimes html quoting is done with single-quotes and sometimes with double-quotes.
         /// These fixups are all legal html and also make it easier to parse with Regex.
         /// </summary>
-        /// <param name="filename"></param>
+        /// <param name="filename">Name of HTML file to reformat.</param>
+        /// <param name="noScript">True to remove everything between script, style, and svg tags.</param>
         /// <returns></returns>
-        public static string ReadHtml(string filename)
+        public static string ReadHtml(string filename, bool noScript = false)
         {
+            string results = string.Empty;
             using (var reader = File.OpenText(filename))
             {
                 StringBuilder sb = new StringBuilder((int)reader.BaseStream.Length);
@@ -149,9 +152,17 @@ namespace MovieGuide
                     prev_c = c;
                 }
                 if (prev_c == ' ') sb.Length--;
-                return sb.ToString();
+                results = sb.ToString();
             }
+
+            if (noScript)
+            {
+                results = reNoScript.Replace(results, string.Empty);
+            }
+
+            return results;
         }
+        private static readonly Regex reNoScript = new Regex(@"(<script.+?</script>)|(<style.+?</style>)|(<svg.+?</svg>)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         /// <summary>
         /// Download a URL output into a local file.
