@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -358,7 +359,7 @@ namespace MovieFolderPrep
                 var name = mc[0].Groups["NAME"].Value.Replace('.', ' ').Trim();
                 var season = int.Parse(mc[0].Groups["S"].Value);
                 var episode = int.Parse(mc[0].Groups["E"].Value);
-                var series = mc[0].Groups["SERIES"].Value;
+                var series = mc[0].Groups["SERIES"].Value.ToUpper();
                 string tt;
 
                 if (TVSeries.TryGetValue(name, out tt) && tt == null) return null; //Series not found during a previous search 
@@ -373,22 +374,23 @@ namespace MovieFolderPrep
                     return imdbParts;
                 }
 
-                var job = new FileEx.Job(null, $"https://www.imdb.com/search/title/?title={name}&title_type=tv_series&view=simple", tempFileName);
+                var job = new FileEx.Job(null, $"https://www.imdb.com/search/title/?title={WebUtility.UrlEncode(name)}&title_type=tv_series&view=simple", tempFileName);
                 if (FileEx.Download(job))
                 {
                     var html2 = FileEx.ReadHtml(job.Filename, true);
                     File.Delete(job.Filename); //no longer needed.
 
-                    //<a href="/title/tt0796264/?ref_=adv_li_tt">Eureka</a><span class="lister-item-year text-muted unbold">(2006–2012)</span>
-                    mc = Regex.Matches(html2, @"<span class='lister-item-index.+?<a href='\/title\/(?<TT>tt[0-9]+)\/.+?>(?<NAME>[^<]+)<\/a><.+?lister-item-year .+?>(?<YEAR>[^<]+)<\/span>", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+                    //<span class='lister-item-header'><span class='lister-item-index unbold text-primary'>1.</span><span title='Colin Ferguson, Salli Richardson-Whitfield'><a href='/title/tt0796264/?ref_=adv_li_tt'>Eureka</a><span class='lister-item-year text-muted unbold'>(2006–2012)</span></span></span>
+                    mc = Regex.Matches(html2, @"<span class='lister-item-index.+?<a href='\/title\/(?<TT>tt[0-9]+)\/[^>]*>(?<NAME>[^<]+)<\/a><span class='lister-item-year[^>]*>(?<YEAR>\([0-9]{4,4}[^\)]*\))<\/span>", RegexOptions.Compiled | RegexOptions.IgnoreCase);
                     if (mc.Count == 0)
                     {
-                        job = new FileEx.Job(null, $"https://www.imdb.com/find?q={name}&s=tt", tempFileName); //try again, not so strict.
+                        job = new FileEx.Job(null, $"https://www.imdb.com/find?q={WebUtility.UrlEncode(name)}&s=tt", tempFileName); //try again, not so strict.
                         if (FileEx.Download(job))
                         {
                             html2 = FileEx.ReadHtml(job.Filename, true);
                             File.Delete(job.Filename); //no longer needed.
-                            mc = Regex.Matches(html2, @"class='result_text'><a href='\/?title\/(?<TT>tt[0-9]+)\/[^>]+>(?<NAME>[^<]+)<\/a>.*?(?<YEAR>[0-9]{4,4})", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+                            //<td class='result_text'><a href='/title/tt10488234/?ref_=fn_tt_tt_1'>Don't Look Deeper</a> (2020) (TV Series) </td>
+                            mc = Regex.Matches(html2, @"class='result_text'><a href='\/?title\/(?<TT>tt[0-9]+)\/[^>]+>(?<NAME>[^<]+)<\/a>.*?(?<YEAR>\([0-9]{4,4}[^\)]*\))", RegexOptions.Compiled | RegexOptions.IgnoreCase);
                         }
 
                         if (mc.Count == 0)
@@ -404,7 +406,7 @@ namespace MovieFolderPrep
                     if (fname2.StartsWith("The ", StringComparison.OrdinalIgnoreCase)) fname2 = fname2.Substring(4) + ", The";
                     else if (fname2.StartsWith("A ", StringComparison.OrdinalIgnoreCase)) fname2 = fname2.Substring(2) + ", A";
 
-                    TVSeries[name + ".MOVIENAME"] = string.Concat(fname, " ", mc[0].Groups["YEAR"].Value);
+                    TVSeries[name + ".MOVIENAME"] = string.Concat(fname, " ", mc[0].Groups["YEAR"].Value); 
                     TVSeries[name + ".FOLDERNAME"] = string.Concat(fname2, " ", mc[0].Groups["YEAR"].Value);
                     TVSeries[name] = mc[0].Groups["TT"].Value;
 
@@ -463,7 +465,7 @@ namespace MovieFolderPrep
                 var nameSimple = name;
                 if (int.TryParse(mc[0].Groups["YEAR"].Value, out int year) && year <= DateTime.Now.Year && year > 1900) name = $"{name} ({year})";
 
-                var job = new FileEx.Job(null, $"https://www.imdb.com/find?q={name}&s=tt&exact=true", tempFileName);
+                var job = new FileEx.Job(null, $"https://www.imdb.com/find?q={WebUtility.UrlEncode(name)}&s=tt&exact=true", tempFileName);
                 if (FileEx.Download(job))
                 {
                     var html2 = FileEx.ReadHtml(job.Filename, true);
@@ -472,7 +474,7 @@ namespace MovieFolderPrep
                     mc = Regex.Matches(html2, @"class='result_text'><a href='\/?title\/(?<TT>tt[0-9]+)\/[^>]+>(?<NAME>[^<]+)<\/a>.*?(?<YEAR>[0-9]{4,4})", RegexOptions.Compiled | RegexOptions.IgnoreCase);
                     if (mc.Count == 0)
                     {
-                        job = new FileEx.Job(null, $"https://www.imdb.com/find?q={nameSimple}&s=tt", tempFileName);  //try again, not so strict.
+                        job = new FileEx.Job(null, $"https://www.imdb.com/find?q={WebUtility.UrlEncode(nameSimple)}&s=tt", tempFileName);  //try again, not so strict.
                         if (FileEx.Download(job))
                         {
                             html2 = FileEx.ReadHtml(job.Filename, true);
@@ -507,10 +509,10 @@ namespace MovieFolderPrep
         }
 
         //Remove illegal file chars from downloaded movie name.
-        private static readonly Regex FixFilenameRE = new Regex($"[{Regex.Escape(new String(Path.GetInvalidFileNameChars()))}]", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        private static readonly Regex FixFilenameRE = new Regex($@"\s*[{Regex.Escape(new String(Path.GetInvalidFileNameChars()))}]\s*", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         private static string FixFilename(string fnameNotPath)
         {
-            return FixFilenameRE.Replace(fnameNotPath, "_");
+            return FixFilenameRE.Replace(fnameNotPath, "-");
         }
 
         private class ImdbParts
