@@ -24,7 +24,7 @@ namespace MovieFolderPrep
 
         public FormMain()
         {
-            Log.MessageCapture += SetStatus;
+            Log.MessageCapture += SetStatus;  //copy to status window low level logging errors from internet downloads.
 
             InitializeComponent();
 
@@ -289,7 +289,9 @@ namespace MovieFolderPrep
 
         private static List<string> OrphanedMovieList(string rootFolder)
         {
+            //We must have a realized list because we may be moving folders and files around causing unrealized enumerations to break.
             var list = new List<string>();
+
             //Enumerate all videos. Ignoring all videos with matching shortcuts.
             foreach (var f in Directory.EnumerateFiles(rootFolder, "*.*", SearchOption.AllDirectories))
             {
@@ -327,16 +329,11 @@ namespace MovieFolderPrep
         }
 
         /// <summary>
-        /// Find IMDB url from movie file name. Only works for well-formed file names 
+        /// Find IMDB url from movie file name. Only works for well-formed file names
         /// where: 
         /// (1) Feature movie filenames consist of moviename followed by a 4-digit release year (plus a lot of other stuff).
         /// (2) Episodic TV series filenames consist of tv series name followed by season/episode in the form of S00E00. There is no release year.
         /// </summary>
-        /// <remarks>
-        /// IMDB search failures:
-        ///   Babylon.A.D.2008.1080p.BrRip.x264.YIFY.mp4 => "Babylon A D (2008)" != "Babylon A.D. (2008)"
-        ///   Dont.Look.Deeper.S01E01.720p.QUIBI.WEBRip.x264-GalaxyTV.mkv => "Dont Look Deeper" != "Don't Look Deeper"
-        /// </remarks>
         /// <param name="movieFileName">Full filename of video file.</param>
         /// <returns>IMDB url or null if not found</returns>
         private ImdbParts FindImdbUrl(string movieFileFullPath)
@@ -344,12 +341,11 @@ namespace MovieFolderPrep
             var imdbParts = new ImdbParts();
 
             MatchCollection mc;
-            var tempFileName = Path.Combine(Path.GetTempPath(), "FindUrl.htm");
             var movieFileName = Path.GetFileName(movieFileFullPath);
+            var tempFileName = Path.Combine(Path.GetTempPath(), "FindUrl.htm");
 
             //-------------------------------------------------------------
             //Use https://regex101.com to validate the regex patterns. 
-            //See pattern match testing: https://regex101.com/r/aK6sB5/1
             //-------------------------------------------------------------
 
             //Find TV Series episode url. Contains TV series name + season and episode (No year!)
@@ -363,7 +359,6 @@ namespace MovieFolderPrep
                 string tt;
 
                 if (TVSeries.TryGetValue(name, out tt) && tt == null) return null; //Series not found during a previous search 
-
                 if (TVSeries.TryGetValue(string.Concat(name, ".", series), out tt))
                 {
                     imdbParts.Series = series;
@@ -374,72 +369,41 @@ namespace MovieFolderPrep
                     return imdbParts;
                 }
 
-                var job = new FileEx.Job(null, $"https://www.imdb.com/search/title/?title={WebUtility.UrlEncode(name)}&title_type=tv_series&view=simple", tempFileName);
+                var items = FindMovie(name, true);
+                if (items == null)
+                {
+                    TVSeries[name] = null;
+                    return null;
+                }
+
+                TVSeries[name + ".MOVIENAME"] = ToMovieName(items["NAME"], items["YEAR"]);
+                TVSeries[name + ".FOLDERNAME"] = ToFolderName(items["NAME"], items["YEAR"]);
+                TVSeries[name] = items["TT"];
+
+                var job = new FileEx.Job(null, $"https://www.imdb.com/title/{items["TT"]}/episodes?season={season}", tempFileName);
                 if (FileEx.Download(job))
                 {
-                    var html2 = FileEx.ReadHtml(job.Filename, true);
-                    File.Delete(job.Filename); //no longer needed.
+                    var html = FileEx.ReadHtml(job.Filename, true);
+                    File.Delete(job.Filename);
 
-                    //<span class='lister-item-header'><span class='lister-item-index unbold text-primary'>1.</span><span title='Colin Ferguson, Salli Richardson-Whitfield'><a href='/title/tt0796264/?ref_=adv_li_tt'>Eureka</a><span class='lister-item-year text-muted unbold'>(2006–2012)</span></span></span>
-                    mc = Regex.Matches(html2, @"<span class='lister-item-index.+?<a href='\/title\/(?<TT>tt[0-9]+)\/[^>]*>(?<NAME>[^<]+)<\/a><span class='lister-item-year[^>]*>(?<YEAR>\([0-9]{4,4}[^\)]*\))<\/span>", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+                    //<a href='/title/tt1060050/?ref_=ttep_ep13' title='A Night in Global Dynamics' itemprop='name'>A Night in Global Dynamics</a>
+                    mc = Regex.Matches(html, @"<a href='\/title\/(?<TT>tt[0-9]+)\/\?ref_=ttep_ep(?<EP>[0-9]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
                     if (mc.Count == 0)
                     {
-                        job = new FileEx.Job(null, $"https://www.imdb.com/find?q={WebUtility.UrlEncode(name)}&s=tt", tempFileName); //try again, not so strict.
-                        if (FileEx.Download(job))
-                        {
-                            html2 = FileEx.ReadHtml(job.Filename, true);
-                            File.Delete(job.Filename); //no longer needed.
-                            //<td class='result_text'><a href='/title/tt10488234/?ref_=fn_tt_tt_1'>Don't Look Deeper</a> (2020) (TV Series) </td>
-                            mc = Regex.Matches(html2, @"class='result_text'><a href='\/?title\/(?<TT>tt[0-9]+)\/[^>]+>(?<NAME>[^<]+)<\/a>.*?(?<YEAR>\([0-9]{4,4}[^\)]*\))", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-                        }
-
-                        if (mc.Count == 0)
-                        {
-                            TVSeries[name] = null;
-                            SetStatus(Severity.Error, $"No match for series \"{name}\".");
-                            return null;
-                        }
-                    }
-
-                    var fname = FixFilename(mc[0].Groups["NAME"].Value);
-                    var fname2 = fname;
-                    if (fname2.StartsWith("The ", StringComparison.OrdinalIgnoreCase)) fname2 = fname2.Substring(4) + ", The";
-                    else if (fname2.StartsWith("A ", StringComparison.OrdinalIgnoreCase)) fname2 = fname2.Substring(2) + ", A";
-
-                    TVSeries[name + ".MOVIENAME"] = string.Concat(fname, " ", mc[0].Groups["YEAR"].Value); 
-                    TVSeries[name + ".FOLDERNAME"] = string.Concat(fname2, " ", mc[0].Groups["YEAR"].Value);
-                    TVSeries[name] = mc[0].Groups["TT"].Value;
-
-                    job = new FileEx.Job(null, $"https://www.imdb.com/title/{mc[0].Groups["TT"].Value}/episodes?season={season}", tempFileName);
-                    if (FileEx.Download(job))
-                    {
-                        html2 = FileEx.ReadHtml(job.Filename, true);
-                        File.Delete(job.Filename); //no longer needed. extension already used for this cache file.
-
-                        //<a href='/title/tt1060050/?ref_=ttep_ep13' title='A Night in Global Dynamics' itemprop='name'>A Night in Global Dynamics</a>
-                        var mc2 = Regex.Matches(html2, @"<a href='\/title\/(?<TT>tt[0-9]+)\/\?ref_=ttep_ep(?<EP>[0-9]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-
-                        if (mc2.Count == 0)
-                        {
-                            SetStatus(Severity.Error, $"Unable to find any {fname} season {season} episodes.");
-                            return null;
-                        }
-
-                        foreach (Match m in mc2)
-                        {
-                            int.TryParse(m.Groups["EP"].Value, out int ep);
-                            TVSeries[$"{name}.S{season:00}E{ep:00}"] = m.Groups["TT"].Value;
-                        }
-                    }
-                    else
-                    {
-                        SetStatus(Severity.Error, $"Unable to reach IMDB episodes for {movieFileName}");
+                        SetStatus(Severity.Error, $"Unable to find any {TVSeries[name + ".MOVIENAME"]} season {season} episodes.");
                         return null;
+                    }
+
+                    foreach (Match m in mc)
+                    {
+                        int.TryParse(m.Groups["EP"].Value, out int ep);
+                        TVSeries[$"{name}.S{season:00}E{ep:00}"] = m.Groups["TT"].Value;
                     }
                 }
                 else
                 {
-                    SetStatus(Severity.Error, $"Unable to reach IMDB for {movieFileName}");
+                    SetStatus(Severity.Error, $"Unable to reach IMDB episodes for {movieFileName}");
+                    TVSeries[name] = null;
                     return null;
                 }
 
@@ -452,9 +416,6 @@ namespace MovieFolderPrep
                     if (TVSeries.TryGetValue(name + ".MOVIENAME", out tt)) imdbParts.MovieName = tt;
                     return imdbParts;
                 }
-
-                SetStatus(Severity.Error, $"Missing {string.Concat(name, " ", series)}");
-                return null;
             }
 
             //Find feature movie url. Contains movie name and release year.
@@ -462,67 +423,115 @@ namespace MovieFolderPrep
             if (mc.Count > 0)
             {
                 var name = mc[0].Groups["NAME"].Value.Replace('.', ' ').Trim();
-                var nameSimple = name;
                 if (int.TryParse(mc[0].Groups["YEAR"].Value, out int year) && year <= DateTime.Now.Year && year > 1900) name = $"{name} ({year})";
 
-                var job = new FileEx.Job(null, $"https://www.imdb.com/find?q={WebUtility.UrlEncode(name)}&s=tt&exact=true", tempFileName);
-                if (FileEx.Download(job))
-                {
-                    var html2 = FileEx.ReadHtml(job.Filename, true);
-                    File.Delete(job.Filename); //no longer needed.
-                    //<td class='result_text'><a href='/title/tt0796264/?ref_=fn_tt_tt_1'>Eureka</a>(2006)</td>
-                    mc = Regex.Matches(html2, @"class='result_text'><a href='\/?title\/(?<TT>tt[0-9]+)\/[^>]+>(?<NAME>[^<]+)<\/a>.*?(?<YEAR>[0-9]{4,4})", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-                    if (mc.Count == 0)
-                    {
-                        job = new FileEx.Job(null, $"https://www.imdb.com/find?q={WebUtility.UrlEncode(nameSimple)}&s=tt", tempFileName);  //try again, not so strict.
-                        if (FileEx.Download(job))
-                        {
-                            html2 = FileEx.ReadHtml(job.Filename, true);
-                            File.Delete(job.Filename); //no longer needed.
-                            mc = Regex.Matches(html2, @"class='result_text'><a href='\/?title\/(?<TT>tt[0-9]+)\/[^>]+>(?<NAME>[^<]+)<\/a>.*?(?<YEAR>[0-9]{4,4})", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-                        }
+                var items = FindMovie(name, false);
+                if (items == null) return null;
 
-                        if (mc.Count == 0)
-                        {
-                            SetStatus(Severity.Error, $"No match for \"{name}\".");
-                            return null;
-                        }
-                    }
+                imdbParts.MovieName = ToMovieName(items["NAME"], items["YEAR"]);
+                imdbParts.FolderName = ToFolderName(items["NAME"], items["YEAR"]);
+                imdbParts.ttMovie = items["TT"];
 
-                    name = FixFilename(mc[0].Groups["NAME"].Value);
-                    imdbParts.MovieName = string.Concat(name, " (", mc[0].Groups["YEAR"].Value,")");
-                    if (name.StartsWith("The ", StringComparison.OrdinalIgnoreCase)) name = name.Substring(4) + ", The";
-                    else if (name.StartsWith("A ", StringComparison.OrdinalIgnoreCase)) name = name.Substring(2) + ", A";
-                    imdbParts.FolderName = string.Concat(name, " (", mc[0].Groups["YEAR"].Value,")");
-                    imdbParts.ttMovie = mc[0].Groups["TT"].Value; //use index 0 as the first is likely correct.
-                    return imdbParts;
-                }
-                else
-                {
-                    SetStatus(Severity.Error, $"Unable to reach IMDB for {movieFileName}");
-                    return null;
-                }
+                return imdbParts;
             }
 
             SetStatus(Severity.Error, $"Unable to parse {movieFileName}");
             return null;
         }
 
-        //Remove illegal file chars from downloaded movie name.
-        private static readonly Regex FixFilenameRE = new Regex($@"\s*[{Regex.Escape(new String(Path.GetInvalidFileNameChars()))}]\s*", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-        private static string FixFilename(string fnameNotPath)
+        private static string ToMovieName(string name, string year)
         {
-            return FixFilenameRE.Replace(fnameNotPath, "-");
+            return string.Concat(name, " ", year);
+        }
+
+        private static string ToFolderName(string name, string year)
+        {
+            if (name.StartsWith("The ", StringComparison.OrdinalIgnoreCase)) name = name.Substring(4) + ", The";
+            else if (name.StartsWith("A ", StringComparison.OrdinalIgnoreCase)) name = name.Substring(2) + ", A";
+            return string.Concat(name, " ", year);
+        }
+
+        /// <summary>
+        /// Find true movie name, release year, and IMDB tt code based upon full or partial name.
+        /// </summary>
+        /// <param name="name">Suggested movie name. May or may not include release year.</param>
+        /// <param name="series">True if we are searching for feature movie or a series parent.</param>
+        /// <returns>Dictionary of (NAME, YEAR, and TT) or null if no match or other error.</returns>
+        private Dictionary<string,string> FindMovie(string name, bool series)
+        {
+            string html;
+            var tempFileName = Path.Combine(Path.GetTempPath(), "FindUrl.htm");
+
+            var job = new FileEx.Job(null, $"https://www.imdb.com/find?q={WebUtility.UrlEncode(name)}&s=tt&exact=true", tempFileName); //strict search
+            if (FileEx.Download(job))
+            {
+                html = FileEx.ReadHtml(job.Filename, true);
+                File.Delete(job.Filename); //no longer needed.
+                var items = ParseHtml(html, series);
+                if (items != null) return items;
+            }
+            else
+            {
+                SetStatus(Severity.Error, $"Unable to reach IMDB for {name}");
+                return null;
+            }
+
+            SetStatus(Severity.Warning, $"Exact search for \"{name}\" failed. Trying fuzzier search.");
+            //Try a fuzzier search w/o year part e.g. "(2020)". May find the wrong movie but it's better than nothing.
+            var i = name.IndexOf('(');
+            var fuzzyName = i == -1 ? name : name.Substring(0, i).TrimEnd();
+
+            job = new FileEx.Job(null, $"https://www.imdb.com/find?q={WebUtility.UrlEncode(fuzzyName)}&s=tt", tempFileName);  //try again, not so strict.
+            if (FileEx.Download(job))
+            {
+                html = FileEx.ReadHtml(job.Filename, true);
+                File.Delete(job.Filename); //no longer needed.
+                var items = ParseHtml(html, series);
+                if (items != null) return items;
+            }
+            else
+            {
+                SetStatus(Severity.Error, $"Unable to reach IMDB for {name}");
+                return null;
+            }
+
+            SetStatus(Severity.Error, $"No match for \"{name}\".");
+            return null;
+        }
+
+        private static readonly Regex reFindResult = new Regex(@"class='result_text'><a href='\/?title\/(?<TT>tt[0-9]+)\/[^>]+>(?<NAME>[^<]+)<\/a>.*?(?<YEAR>\([0-9]{4,4}[^\)]*\))(?:[^<]*(?<SERIES>Series))?", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        private static readonly Regex reInvalidFileNameChars = new Regex($@"\s*[{Regex.Escape(new String(Path.GetInvalidFileNameChars()))}]\s*", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        private static Dictionary<string, string> ParseHtml(string html, bool series)
+        {
+            //Find first found of series or non-series type:
+            //Examples:
+            //<td class='result_text'><a href='/title/tt8787802/?ref_=fn_tt_tt_1'>Away</a>(2020) (TV Series)</td>
+            //<td class='result_text'><a href='/title/tt8288450/?ref_=fn_tt_tt_2'>Away</a>(I) (2019)</td>
+            //<td class='result_text'><a href='/title/tt8288450/?ref_=fn_tt_tt_3'>Away</a>(2019)</td>
+            //<td class='result_text'><a href='/title/tt8288450/?ref_=fn_tt_tt_4'>Away</a>(2019- )</td>
+            //<td class='result_text'><a href='/title/tt12905120/?ref_=fn_tt_tt_5'>Away</a>(IV) (2019) (Short)</td>
+            //<td class='result_text'><a href='/title/tt3696720/?ref_=fn_tt_tt_1'>Ascension</a>(2014)(TV Mini-Series)</td>
+
+            var mc = reFindResult.Matches(html);
+            foreach(Match m in mc)
+            {
+                if (series && m.Groups["SERIES"].Value == string.Empty) continue;
+                if (!series && m.Groups["SERIES"].Value != string.Empty) continue;
+                return new Dictionary<string, string>()
+                {
+                    { "TT", m.Groups["TT"].Value },
+                    { "NAME", reInvalidFileNameChars.Replace(m.Groups["NAME"].Value, "-") },
+                    { "YEAR", m.Groups["YEAR"].Value }
+                };
+            }
+
+            return null; //no matches of the specified type
         }
 
         private class ImdbParts
         {
-            //The.Time.Machine.1992.1080p.WebRip.h264.AAC-ripper.mkv
-            //Glass 2019 1080p BluRay x264-DTS [MW].mkv
-            //Eureka.S01E01.720p.BluRay.X265-REWARD.mkv
-
             /// <summary>
-            /// Movie or TVSeries full name with illegal chars replaced with underscores.
+            /// Movie or TVSeries full name with illegal chars replaced with dashes.
             /// In addition, starting "The" and "A" articles moved to end for sorting purposes 
             /// e.g. "Time Machine, The (1992)" 
             /// Used for folder names.
@@ -530,7 +539,7 @@ namespace MovieFolderPrep
             public string FolderName { get; set; }
 
             /// <summary>
-            /// Movie or TVSeries full name with illegal chars replaced with underscores.
+            /// Movie or TVSeries full name with illegal chars replaced with dashes.
             /// Same as FolderName but without the article swap.
             /// e.g. "The Time Machine (1992)" 
             /// Used for shortcut names.
@@ -538,8 +547,8 @@ namespace MovieFolderPrep
             public string MovieName { get; set; }
 
             public string ttMovie { get; set; }    //Movie or TVSeries TT code e.g. "tt1234567"
-            public string Series { get; set; }     //Series episode e.g. "S01E01"
-            public string ttSeries { get; set; }   //Episode TT code e.g. "tt1234567"
+            public string Series { get; set; }     //Series episode e.g. "S01E01". Null if not an episode.
+            public string ttSeries { get; set; }   //Episode TT code e.g. "tt1234567" Null if not an episode.
         }
     }
 }
