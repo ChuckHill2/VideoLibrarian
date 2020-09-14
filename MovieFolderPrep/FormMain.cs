@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -13,7 +14,8 @@ namespace MovieFolderPrep
 {
     public partial class FormMain : Form
     {
-        private ToolTipHelp tt;
+        private ToolTipHelp tt; //Tooltip help manager
+        private string RootFolder; //Mainly used for stripping full filenames to make relative path for status msgs.
 
         //FindImdbUrl() cached TVSeries TT codes so we don't have to query the IMDB web page for every episode.
         private readonly Dictionary<string, string> TVSeries = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -67,7 +69,8 @@ namespace MovieFolderPrep
             }
 
             m_btnGo.Enabled = false; //don't allow user to click "Go" again.
-            var task = Task.Run(() => DoWork(m_txtRoot.Text)); //Do work asynchronously.
+            RootFolder = m_txtRoot.Text;
+            var task = Task.Run(() => DoWork()); //Do work asynchronously.
             //task.Wait(); task.Dispose(); //don't wait for completion. A success message will be displayed in the status window.
             return;
         }
@@ -177,104 +180,89 @@ namespace MovieFolderPrep
             m_rtfStatus.ScrollToCaret();
         }
 
-        private void DoWork(string rootFolder)
+        private void DoWork()
         {
             SetStatus(Severity.Success, "Started\n");
 
             try
             {
-                var previousFolder = rootFolder;
-                var prevNewFolder = rootFolder;
+                var previousFolder = RootFolder;
+                var prevNewFolder = RootFolder;
 
-                foreach (var f in OrphanedMovieList(rootFolder))
+                foreach (var f in UnprocessedMovieList(RootFolder))
                 {
                     var imdbParts = FindImdbUrl(f);
                     if (imdbParts == null) continue;
 
-                    SetStatus(Severity.Info, $"Moving \"{f.Replace(rootFolder+"\\", "")}\" => \"{(imdbParts.Series == null ? imdbParts.FolderName : imdbParts.FolderName + "\\" + imdbParts.Series)}\"");
+                    SetStatus(Severity.Info, $"Moving \"{f.Substring(RootFolder.Length)}\" => \"{(imdbParts.Series == null ? imdbParts.FolderName : imdbParts.FolderName + "\\" + imdbParts.Series)}\"");
 
                     var folder = Path.GetDirectoryName(f);
                     string newFolder;
-                    string shortcut;
+                    string oldPath;
+                    string newPath;
 
                     if (imdbParts.Series == null) //feature movie.
                     {
-                        if (folder == previousFolder || folder == rootFolder)
+                        if (folder == previousFolder || folder == RootFolder)
                         {
-                            var ff = f;  //need to check if there are more than one video in a folder.
-                            if (!File.Exists(ff)) ff = Path.Combine(prevNewFolder, Path.GetFileName(f));
-                            if (!File.Exists(ff)) { SetStatus(Severity.Error, $"Video {ff} not found."); continue; }
+                            oldPath = f;  //need to check if there are more than one video in a folder.
+                            if (!File.Exists(oldPath)) oldPath = Path.Combine(prevNewFolder, Path.GetFileName(oldPath));
+                            if (!File.Exists(oldPath)) { SetStatus(Severity.Error, $"Video {oldPath.Substring(RootFolder.Length)} not found."); continue; }
 
-                            newFolder = Path.Combine(rootFolder, imdbParts.FolderName);
-                            if (Directory.Exists(newFolder)) { SetStatus(Severity.Error, $"Folder {imdbParts.FolderName} already exists."); continue; }
-                            Directory.CreateDirectory(newFolder);
-                            File.WriteAllText(Path.Combine(newFolder, imdbParts.MovieName + ".url"), $"[InternetShortcut]\nURL=https://www.imdb.com/title/{imdbParts.ttMovie}/\n");
-                            File.Move(ff, Path.Combine(newFolder, Path.GetFileName(ff)));
+                            newFolder = Path.Combine(RootFolder, imdbParts.FolderName);
+                            newPath = Path.Combine(newFolder, Path.GetFileName(oldPath));
+                            if (!Directory.Exists(newFolder)) Directory.CreateDirectory(newFolder);
+                            CreateTTShortcut(Path.Combine(newFolder, imdbParts.MovieName + ".url"), imdbParts.ttMovie);
+                            MoveFile(oldPath, newPath);
                             previousFolder = folder;
                             prevNewFolder = newFolder;
-                            SetStatus($"Moved {imdbParts.FolderName}, https://www.imdb.com/title/{imdbParts.ttMovie}/");
                             continue;
                         }
 
                         newFolder = Path.Combine(Path.GetDirectoryName(folder), imdbParts.FolderName);
-                        if (folder != newFolder && Directory.Exists(newFolder)) { SetStatus(Severity.Error, $"Folder {imdbParts.FolderName} already exists."); continue; }
                         if (!Directory.Exists(newFolder)) Directory.Move(folder, newFolder);
-                        File.WriteAllText(Path.Combine(newFolder, imdbParts.MovieName + ".url"), $"[InternetShortcut]\nURL=https://www.imdb.com/title/{imdbParts.ttMovie}/\n");
-                        //File.Move(f, Path.Combine(newFolder, Path.GetFileName(f)));
+                        CreateTTShortcut(Path.Combine(newFolder, imdbParts.MovieName + ".url"), imdbParts.ttMovie);
                         previousFolder = folder;
                         prevNewFolder = newFolder;
-                        SetStatus($"Moved {imdbParts.FolderName}, https://www.imdb.com/title/{imdbParts.ttMovie}/");
                         continue;
                     }
                     else //TV Series Episode
                     {
-                        if (folder == previousFolder || folder == rootFolder)
+                        if (folder == previousFolder || folder == RootFolder)
                         {
-                            var ff = f;  //need to check if there are more than one video in a folder.
-                            if (!File.Exists(ff)) ff = Path.Combine(prevNewFolder, Path.GetFileName(f));
-                            if (!File.Exists(ff)) { SetStatus(Severity.Error, $"Video {ff} not found."); continue; }
+                            oldPath = f;  //need to check if there are more than one video in a folder.
+                            if (!File.Exists(oldPath)) oldPath = Path.Combine(prevNewFolder, Path.GetFileName(oldPath));
+                            if (!File.Exists(oldPath)) { SetStatus(Severity.Error, $"Video {oldPath.Substring(RootFolder.Length)} not found."); continue; }
 
                             newFolder = Path.Combine(folder, imdbParts.FolderName);
                             if (!Directory.Exists(newFolder)) Directory.CreateDirectory(newFolder);
-                            shortcut = Path.Combine(newFolder, imdbParts.MovieName + ".url");
-                            if (!File.Exists(shortcut))
-                            {
-                                foreach (var f2 in Directory.EnumerateFiles(newFolder, "*.url", SearchOption.TopDirectoryOnly)) File.Delete(f2);
-                                File.WriteAllText(shortcut, $"[InternetShortcut]\nURL=https://www.imdb.com/title/{imdbParts.ttMovie}/\n");
-                                SetStatus($"Set {imdbParts.FolderName} episodes root folder, https://www.imdb.com/title/{imdbParts.ttMovie}/");
-                            }
+                            CreateTTShortcut(Path.Combine(newFolder, imdbParts.MovieName + ".url"), imdbParts.ttMovie);
 
                             newFolder = Path.Combine(newFolder, imdbParts.Series);
-                            if (Directory.Exists(newFolder)) { SetStatus(Severity.Error, $"Folder {imdbParts.FolderName}/{imdbParts.Series} already exists."); continue; }
-                            Directory.CreateDirectory(newFolder);
-
-                            File.Move(ff, Path.Combine(newFolder, Path.GetFileName(ff)));
-                            File.WriteAllText(Path.Combine(newFolder, $"{imdbParts.MovieName}.{imdbParts.Series}.url"), $"[InternetShortcut]\nURL=https://www.imdb.com/title/{imdbParts.ttSeries}/\n");
+                            newPath = Path.Combine(newFolder, Path.GetFileName(oldPath));
+                            if (!Directory.Exists(newFolder)) Directory.CreateDirectory(newFolder);
+                            MoveFile(oldPath, newPath);
+                            CreateTTShortcut(Path.Combine(newFolder, $"{imdbParts.MovieName}.{imdbParts.Series}.url"), imdbParts.ttSeries);
                             previousFolder = folder;
                             prevNewFolder = newFolder;
-                            SetStatus($"Moved {imdbParts.FolderName} {imdbParts.Series}, https://www.imdb.com/title/{imdbParts.ttSeries}/");
                             continue;
                         }
 
                         newFolder = Path.Combine(Path.GetDirectoryName(folder), imdbParts.FolderName);
                         if (!Directory.Exists(newFolder)) Directory.Move(folder, newFolder);
-                        folder = newFolder;
-                        shortcut = Path.Combine(newFolder, imdbParts.MovieName + ".url");
-                        if (!File.Exists(shortcut))
-                        {
-                            foreach (var f2 in Directory.EnumerateFiles(newFolder, "*.url", SearchOption.TopDirectoryOnly)) File.Delete(f2);
-                            File.WriteAllText(shortcut, $"[InternetShortcut]\nURL=https://www.imdb.com/title/{imdbParts.ttMovie}/\n");
-                            SetStatus($"Set {imdbParts.FolderName} episodes root folder, https://www.imdb.com/title/{imdbParts.ttMovie}/");
-                        }
 
+                        folder = newFolder;
+                        CreateTTShortcut(Path.Combine(newFolder, imdbParts.MovieName + ".url"), imdbParts.ttMovie);
+
+                        oldPath = File.Exists(f) ? f : Path.Combine(folder, Path.GetFileName(f));
                         newFolder = Path.Combine(newFolder, imdbParts.Series);
-                        if (Directory.Exists(newFolder)) { SetStatus(Severity.Error, $"Folder {imdbParts.FolderName}/{imdbParts.Series} already exists."); continue; }
-                        Directory.CreateDirectory(newFolder);
-                        File.Move(Path.Combine(folder, Path.GetFileName(f)), Path.Combine(newFolder, Path.GetFileName(f)));
-                        File.WriteAllText(Path.Combine(newFolder, $"{imdbParts.MovieName}.{imdbParts.Series}.url"), $"[InternetShortcut]\nURL=https://www.imdb.com/title/{imdbParts.ttSeries}/\n");
+                        newPath = Path.Combine(newFolder, Path.GetFileName(oldPath));
+                        if (!Directory.Exists(newFolder)) Directory.CreateDirectory(newFolder);
+
+                        MoveFile(oldPath, newPath);
+                        CreateTTShortcut(Path.Combine(newFolder, $"{imdbParts.MovieName}.{imdbParts.Series}.url"), imdbParts.ttSeries);
                         previousFolder = folder;
                         prevNewFolder = newFolder;
-                        SetStatus($"Moved {imdbParts.FolderName} {imdbParts.Series}, https://www.imdb.com/title/{imdbParts.ttSeries}/");
                     }
                 }
             }
@@ -284,48 +272,99 @@ namespace MovieFolderPrep
                 return;
             }
 
+            SetStatus(string.Empty);
             SetStatus(Severity.Success, "Completed.");
         }
 
-        private static List<string> OrphanedMovieList(string rootFolder)
+        private void CreateTTShortcut(string filepath, string tt)
+        {
+            if (File.Exists(filepath)) return;
+
+            foreach (var f in Directory.EnumerateFiles(Path.GetDirectoryName(filepath), "*.url", SearchOption.TopDirectoryOnly))
+            {
+                var link = MovieProperties.GetUrlFromLink(f);
+                if (link == null) continue;
+                if (!link.ContainsI("imdb.com/title/tt")) continue;
+                File.Delete(f);
+            }
+
+            File.WriteAllText(filepath, $"[InternetShortcut]\nURL=https://www.imdb.com/title/{tt}/\n");
+            SetStatus($"Created shortcut {Path.GetFileNameWithoutExtension(filepath)} ==> https://www.imdb.com/title/{tt}/");
+        }
+
+        private static List<string> UnprocessedMovieList(string rootFolder)
         {
             //We must have a realized list because we may be moving folders and files around causing unrealized enumerations to break.
             var list = new List<string>();
 
             //Enumerate all videos. Ignoring all videos with matching shortcuts.
+
             foreach (var f in Directory.EnumerateFiles(rootFolder, "*.*", SearchOption.AllDirectories))
             {
                 if (MovieProperties.MovieExtensions.IndexOf(Path.GetExtension(f)) == -1) continue;
                 var folder = Path.GetDirectoryName(f);
-                //A video in the root folder is always valid even if there are other shortcuts in
+
+                //Special: if video is in a bracketed folder (or any of its child folders) the video is ignored. 
+                if (ReBracketed.IsMatch(folder + "\\")) continue;
+
+                //A video in the root folder is always unprocessed even if there are other shortcuts in
                 //the root folder, because we will be moving the video into its own folder anyway. 
-                if (folder != rootFolder) 
-                {
-                    var urlFound = false;
-                    foreach (var f2 in Directory.EnumerateFiles(folder, "*.url", SearchOption.TopDirectoryOnly))
-                    {
-                        var link = MovieProperties.GetUrlFromLink(f2);
-                        if (link == null) continue;
-                        if (link.ContainsI("imdb.com/title/tt"))
-                        {
-                            //It's OK if there is a TVSeries shortcut in a folder full of episode videos.
-                            var episodeCount = 0;
-                            foreach (var f3 in Directory.EnumerateFiles(folder, "*.*", SearchOption.TopDirectoryOnly))
-                            {
-                                if (MovieProperties.MovieExtensions.IndexOf(Path.GetExtension(f3)) == -1) continue;
-                                var mc = Regex.Matches(f3, @"[ \.]S[0-9]{2,2}E[0-9]{2,2}[ \.]", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-                                if (mc.Count > 0) episodeCount++;
-                            }
-                            if (episodeCount <= 1) { urlFound = true; break; } 
-                        }
-                    }
-                    if (urlFound) continue;
-                }
+                if (folder == rootFolder) { list.Add(f); continue; }
+
+                if (HasMatchingShortcut(folder)) continue;
 
                 list.Add(f);
             }
 
             return list;
+        }
+
+        //Bug in Regex.Escape(@"~`'!@#$%^&*(){}[].,;+_=-"). It doesn't escape ']'
+        private static readonly Regex ReBracketed = new Regex(@"\\[~`'!@\#\$%\^&\*\(\)\{}\[\]\.,;\+_=-][^~`'!@\#\$%\^&\*\(\)\{}\[\]\.,;\+_=-]+[~`'!@\#\$%\^&\*\(\)\{}\[\]\.,;\+_=-]\\", RegexOptions.Compiled);
+
+        private static bool HasMatchingShortcut(string folder)
+        {
+            var hasMatchingShortcut = false;
+            foreach (var f2 in Directory.EnumerateFiles(folder, "*.url", SearchOption.TopDirectoryOnly))
+            {
+                var link = MovieProperties.GetUrlFromLink(f2);
+                if (link == null) continue;
+                if (!link.ContainsI("imdb.com/title/tt")) continue;
+                hasMatchingShortcut = true;
+
+                //Ignore matching shortcut rule under these conditions...
+
+                //It's OK if there is a video in a TVSeries root. folder It's a TVSeries root folder if it contains S01E01 folders
+
+                var isTVSeriesRootFolder = Directory.EnumerateDirectories(folder).Any((f)=>Regex.IsMatch(f, @"\\S[0-9]{2,2}E[0-9]{2,2}\\?$", RegexOptions.Compiled | RegexOptions.IgnoreCase));
+                if (isTVSeriesRootFolder) { hasMatchingShortcut = false; break; }
+
+                //It's OK if there is a shortcut in a folder full of videos.
+                var kount = Directory.EnumerateFiles(folder).Count((f) => MovieProperties.MovieExtensions.IndexOf(Path.GetExtension(f)) != -1);
+                if (kount > 1) { hasMatchingShortcut = false; break; } //must be 2 or more
+
+                break; //if we get this far, we're done searching for shortcuts.
+            }
+
+            return hasMatchingShortcut;
+        }
+
+        private void MoveFile(string src, string dst)
+        {
+            if (!File.Exists(src)) { SetStatus(Severity.Warning, $"Source File {src.Substring(RootFolder.Length)} does not exist."); return; }
+            if (!File.Exists(dst)) File.Move(src, dst);
+            else { SetStatus(Severity.Warning, $"Destination File {dst.Substring(RootFolder.Length)} already exists."); return; }
+
+            if (Directory.EnumerateFiles(Path.GetDirectoryName(dst)).Count((f)=> MovieProperties.MovieExtensions.IndexOf(Path.GetExtension(f)) != -1) > 1)
+                SetStatus(Severity.Warning, $"Multiple movies in destination folder {Path.GetDirectoryName(dst).Substring(RootFolder.Length)}. There can only be one movie in a folder.");
+
+            var folder = Path.GetDirectoryName(src);
+
+            if (!Directory.Exists(folder) ||
+                Directory.EnumerateFiles(folder, "*", SearchOption.AllDirectories).Any((s) => !s.EndsWith("desktop.ini")))
+                return;
+
+            Directory.Delete(folder, true);
         }
 
         /// <summary>
@@ -369,7 +408,7 @@ namespace MovieFolderPrep
                     return imdbParts;
                 }
 
-                var items = FindMovie(name, true);
+                var items = GetMovieProperties(name, true);
                 if (items == null)
                 {
                     TVSeries[name] = null;
@@ -425,7 +464,7 @@ namespace MovieFolderPrep
                 var name = mc[0].Groups["NAME"].Value.Replace('.', ' ').Trim();
                 if (int.TryParse(mc[0].Groups["YEAR"].Value, out int year) && year <= DateTime.Now.Year && year > 1900) name = $"{name} ({year})";
 
-                var items = FindMovie(name, false);
+                var items = GetMovieProperties(name, false);
                 if (items == null) return null;
 
                 imdbParts.MovieName = ToMovieName(items["NAME"], items["YEAR"]);
@@ -457,7 +496,7 @@ namespace MovieFolderPrep
         /// <param name="name">Suggested movie name. May or may not include release year.</param>
         /// <param name="series">True if we are searching for feature movie or a series parent.</param>
         /// <returns>Dictionary of (NAME, YEAR, and TT) or null if no match or other error.</returns>
-        private Dictionary<string,string> FindMovie(string name, bool series)
+        private Dictionary<string, string> GetMovieProperties(string name, bool series)
         {
             string html;
             var tempFileName = Path.Combine(Path.GetTempPath(), "FindUrl.htm");
