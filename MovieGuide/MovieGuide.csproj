@@ -193,7 +193,6 @@
     <Compile Include="Utilities\MiniMessageBox.Designer.cs">
       <DependentUpon>MiniMessageBox.cs</DependentUpon>
     </Compile>
-    <Compile Include="Utilities\PEHeader.cs" />
     <Compile Include="Utilities\PerfTimer.cs" />
     <Compile Include="Utilities\PleaseWait.cs">
       <SubType>Form</SubType>

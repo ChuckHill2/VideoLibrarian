@@ -5,6 +5,8 @@ the movies in your movie folders and present it to you in a searchable fashion
 in order to select a movie to watch. This app is designed to be viewed on your
 TV via an HDMI connection to your laptop.
 
+*Note: All this information (plus more) is available in the application about box.*
+
 ## Prerequisites
 
 MovieGuide uses .NET 4.5. If you are using a version of Windows less than

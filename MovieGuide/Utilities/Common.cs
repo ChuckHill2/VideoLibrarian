@@ -194,6 +194,76 @@ namespace MovieGuide
             }
             return acceptablePattern;
         }
+
+        /// <summary>
+        /// Gets the build/link timestamp from the specified executable file header.
+        /// WARNING: When compiled in a .netcore application/library, the PE timestamp 
+        /// is NOT set with the the application link time. It contains some other non-
+        /// timestamp (hash?) value. To force the .netcore linker to embed the true 
+        /// timestamp as previously, add the csproj property 
+        /// "<Deterministic>False</Deterministic>".
+        /// </summary>
+        /// <param name="asm">Assembly to retrieve build date from</param>
+        /// <returns>The local DateTime that the specified assembly was built.</returns>
+        public static DateTime PEtimestamp(string filePath)
+        {
+            uint TimeDateStamp = 0;
+            using (FileStream stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            {
+                //Minimum possible executable file size.
+                if (stream.Length < 268) throw new BadImageFormatException("Not a PE file. File too small.", filePath);
+                //The first 2 bytes in file == IMAGE_DOS_SIGNATURE, 0x5A4D, or MZ.
+                if (stream.ReadByte() != 'M' || stream.ReadByte() != 'Z') throw new BadImageFormatException("Not a PE file. DOS Signature not found.", filePath);
+                stream.Position = 60; //offset of IMAGE_DOS_HEADER.e_lfanew
+                stream.Position = ReadUInt32(stream); // e_lfanew = 128
+                uint ntHeadersSignature = ReadUInt32(stream); // ntHeadersSignature == 17744 aka "PE\0\0"
+                if (ntHeadersSignature != 17744) throw new BadImageFormatException("Not a PE file. NT Signature not found.", filePath);
+                stream.Position += 4; //offset of IMAGE_FILE_HEADER.TimeDateStamp
+                TimeDateStamp = ReadUInt32(stream); //unix-style time_t value
+            }
+
+            DateTime returnValue = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddSeconds(TimeDateStamp);
+            returnValue = returnValue.ToLocalTime();
+
+            if (returnValue < new DateTime(2000, 1, 1) || returnValue > DateTime.Now)
+            {
+                //PEHeader link timestamp field is random junk because csproj property "Deterministic" == true
+                //so we just return the 2nd best "build" time (iffy, unreliable).
+                return File.GetCreationTime(filePath);
+            }
+
+            return returnValue;
+        }
+
+        /// <summary>
+        /// Gets the build/link timestamp from the specified assembly file header.
+        /// </summary>
+        /// <param name="asm">Assembly to retrieve build date from</param>
+        /// <returns>The local DateTime that the specified assembly was built.</returns>
+        public static DateTime PEtimestamp(this Assembly asm)
+        {
+            if (asm.IsDynamic)
+            {
+                //The assembly was dynamically built in-memory so the build date is Now. Besides, 
+                //accessing the location of a dynamically built assembly will throw an exception!
+                return DateTime.MinValue;
+            }
+
+            return PEtimestamp(asm.Location);
+        }
+
+        /// <summary>
+        /// Support utility exclusively for PEtimestamp()
+        /// </summary>
+        /// <param name="fs">File stream</param>
+        /// <returns>32-bit unsigned int at current offset</returns>
+        private static uint ReadUInt32(FileStream fs)
+        {
+            byte[] bytes = new byte[4];
+            fs.Read(bytes, 0, 4);
+            return BitConverter.ToUInt32(bytes, 0);
+        }
+
     }
 
     public static class CommonExtensions

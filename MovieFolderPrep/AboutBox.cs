@@ -22,7 +22,7 @@ namespace MovieFolderPrep
 
             this.Text = String.Format("About {0}", asm.Attribute<AssemblyProductAttribute>());
             this.labelProductName.Text = asm.Attribute<AssemblyTitleAttribute>();
-            this.labelVersion.Text = String.Format("Version {0}   {1:g}", asm.GetName().Version.ToString(), new PeHeader(asm.Location).TimeStamp);
+            this.labelVersion.Text = String.Format("Version {0}   {1:g}", asm.GetName().Version.ToString(), asm.PEtimestamp());
             this.labelCopyright.Text = asm.Attribute<AssemblyCopyrightAttribute>();
             //this.labelCompanyName.Text = asm.Attribute<AssemblyCompanyAttribute>();
             this.labelCompanyName.Text = String.Format("Build: {0}", asm.Attribute<AssemblyConfigurationAttribute>());
