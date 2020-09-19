@@ -32,12 +32,12 @@ directory as the executable.
 ## Movie Folder Setup
 
 Within your root movie folder, each movie/episode video must be in a separate
-folder with a matching IMDB movie shortcut (.url, .website). A TV series root
+folder with a matching IMDB movie shortcut (.url). A TV series root
 folder contains only the main IMDB TV series shortcut as it just refers to all
 the episodes. The folders may be arranged in any way you see fit so long as the
-full directory path (not filenames) does not exceed 245 characters. Any
+full directory path (not filenames) does not exceed 245 characters (This is a Windows limitation). Any
 additional files in these folders are ignored. Upon startup, this application
-will add additional cache files to these folders.
+will add additional cache files to these folders. See File-\>Status Log for details.
 
 As an example, your folders may be arranged as follows:
 <pre>
@@ -58,20 +58,15 @@ moviesRoot
 └── tvSeriesN
 </pre>
 
-**anyname.mp4** refers to the sole movie file in this directory. It may be in 
+*anyname.mp4* refers to the sole movie file in this directory. It may be in 
 any video format (e.g. asf, avi, flv, mkv, mov, mp4, mpg, wmv, etc.). Note that 
 the TV series root folders do not contain a movie file, just the url.<br />
-**anyname.url** refers to an IMDB shortcut file to the IMDB page of the 
+*anyname.url* refers to an IMDB shortcut file to the IMDB page of the 
 associated movie.
 
-The full directory path (not including movie filename) must not exceed 245
-characters. Keep your folder names small if you have many directory levels. This
-is a Windows limitation.
-
-Each movie or TV series folder must contain zero or one movie and exactly one
-IMDB movie shortcut (*.url). All the other needed files will be
-automatically generated upon demand. Any folders that do not contain a valid
-internet shortcut (*.url) will be ignored. See File-\>Status Log for details.
+### Semi-automatic Movie Layout Configurator
+The utility *MovieFolderPrep.exe* may be used to perform a first pass at setting up the movie folders. 
+This utility must reside in the same folder as *MovieGuide.exe*. Click on *About* for documentation on how to use it.
 
 ### Generated Cache Files
 These cache files reside in the same folders as the shortcut files. They are 
@@ -93,7 +88,7 @@ In the web page search box, enter the name of the movie. The results may find
 more than one entry. Verify by opening the relevant page. Click and drag the
 link from the Chrome, Firefox, or IE address bar to the folder with the matching 
 movie. Click and dragging URLs is not supported in MS Edge. Go figure. You will 
-have to create the files via copy and paste into a new shortcut file.
+have to create the new shortcuts via copy and paste.
 
 ### First Time MovieGuide Startup
 
@@ -139,27 +134,24 @@ can be scaled without any loss of image quality.
 ### Changing/Correcting Movie Information
 
 The movie information is all stored in the xml file, tt1234567.xml. Most of the
-elements are descriptive and can be changed as necessary.
+elements are descriptive and can be changed as necessary. If you make any changes, you must delete the tt\*.png cache files so these files
+can be regenerated with your new changes.
 
-Special notes:
-
-If element EpisodeCount is greater than zero, the movie information refers to a
+##### Special notes:
+If element *EpisodeCount* is greater than zero, the movie information refers to a
 TV series. A movie in this folder is ignored. Child episode subfolders contain
 the video files.
 
-If element Season is greater than zero, the movie information refers to a TV
+If element *Season* is greater than zero, the movie information refers to a TV
 series episode.
 
-Element Episode may be any integer but must be unique within the series.
+Element *Episode* may be any integer but must be unique within the series.
 
-The episode ‘MovieName’ field consists of the series name and episode name. The
-two names are delimited by Unicode dash (" \\xAD ", with spaces), NOT a regular
-ansi dash ‘-‘. They look alike. If necessary, just copy the ‘dash’ from another
-episode. This was done to distinguish between regular dashes in the movie or
+The episode *MovieName* element consists of 2 parts, the series name and episode name <small>(ex. \<*MovieName*\>Eureka - Pilot\</*MovieName*\>)</small>. 
+The two names are delimited by a soft hyphen (" \\xAD ", with spaces), <u>not</u> a regular
+minus-hyphen ‘-‘ character. They look alike. If necessary, just copy the ‘dash’ from another
+episode. This was done to distinguish between regular dashes as part of the movie or
 episode names.
-
-If you make any changes, you must delete the tt\*.png cache files so these files
-can be regenerated with your new changes.
 
 ### Features
 
@@ -288,7 +280,23 @@ used during movie information download.
   + C# - Faster and easier to maintain. Has no performance bottlenecks that low-level C++ needs to overcome. Supporting Win7+. Natively supports requisite https and regex.
     - WinForms? Can support large number of gallery items.
     - WPF? Gallery cannot support large number videos.
-
-Resulting decision - .net winforms.
+* Build Environment
+  + .NET Core - Must include requisite .NET assemblies with installation.
+  + .NET Framework - .NET 4.5 must be installed on Win 7. Already included on Win 8 and Win 10. May create monolithic executable.
+  
+Resulting decision - .net Framework winforms
 
 ##### Low-level Design
+* Enumerate folder tree by IMDB shortcuts (not movies). 
+  + TV Series folder does not have a video even though episode folders do.
+  + IMDB shortcuts are the definitive files needed to retrieve and cache the movie properties. Video file names cannot be reliably parsed and used to find the movie on IMDB.
+* Created custom FlowLayoutPanel because winforms built-in FlowLayoutPanel control is not designed for galleries.
+  + Does not support virtual windows > 32768 pixels because Win32 scrollbars do not support scrolling > 32768.
+  + Does not support child panels (e.g. tiles)
+  + Does not support large number of controls (very very slow).
+* Cannot have large number of repeating panels with many controls (gallery) due to limited limited number of windows handles (an OS resource) allowed per application. Created panels/tiles consisting of background image containing no more than 2 real controls.
+  
+
+
+
+

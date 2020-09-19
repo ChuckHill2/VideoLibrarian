@@ -292,6 +292,8 @@ namespace MovieFolderPrep
             SetStatus($"Created shortcut {Path.GetFileNameWithoutExtension(filepath)} ==> https://www.imdb.com/title/{tt}/");
         }
 
+        //Bug in Regex.Escape(@"~`'!@#$%^&*(){}[].,;+_=-"). It doesn't escape ']'
+        private static readonly Regex ReBracketed = new Regex(@"\\[~`'!@\#\$%\^&\*\(\)\{}\[\]\.,;\+_=-][^~`'!@\#\$%\^&\*\(\)\{}\[\]\.,;\+_=-]+[~`'!@\#\$%\^&\*\(\)\{}\[\]\.,;\+_=-]\\", RegexOptions.Compiled);
         private static List<string> UnprocessedMovieList(string rootFolder)
         {
             //We must have a realized list because we may be moving folders and files around causing unrealized enumerations to break.
@@ -318,9 +320,6 @@ namespace MovieFolderPrep
 
             return list;
         }
-
-        //Bug in Regex.Escape(@"~`'!@#$%^&*(){}[].,;+_=-"). It doesn't escape ']'
-        private static readonly Regex ReBracketed = new Regex(@"\\[~`'!@\#\$%\^&\*\(\)\{}\[\]\.,;\+_=-][^~`'!@\#\$%\^&\*\(\)\{}\[\]\.,;\+_=-]+[~`'!@\#\$%\^&\*\(\)\{}\[\]\.,;\+_=-]\\", RegexOptions.Compiled);
 
         private static bool HasMatchingShortcut(string folder)
         {
@@ -480,13 +479,16 @@ namespace MovieFolderPrep
 
         private static string ToMovieName(string name, string year)
         {
+            //'year' is already enclosed in parentheses (e.g. "(2020)") 
             return string.Concat(name, " ", year);
         }
 
         private static string ToFolderName(string name, string year)
         {
+            //Put articles to the back so sorting is more sensible.
             if (name.StartsWith("The ", StringComparison.OrdinalIgnoreCase)) name = name.Substring(4) + ", The";
             else if (name.StartsWith("A ", StringComparison.OrdinalIgnoreCase)) name = name.Substring(2) + ", A";
+            //'year' is already enclosed in parentheses (e.g. "(2020)") 
             return string.Concat(name, " ", year);
         }
 
