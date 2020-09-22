@@ -246,7 +246,7 @@ namespace MovieGuide
             {
                 //The assembly was dynamically built in-memory so the build date is Now. Besides, 
                 //accessing the location of a dynamically built assembly will throw an exception!
-                return DateTime.MinValue;
+                return DateTime.Now;
             }
 
             return PEtimestamp(asm.Location);

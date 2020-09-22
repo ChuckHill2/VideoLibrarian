@@ -1,4 +1,5 @@
-﻿using System;
+﻿//#define OfflineDebugging  //enable saving/restoring TVSeries dictionary cache in debug mode.
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -8,7 +9,12 @@ using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Xml.Serialization;
 using MovieGuide;
+
+//-------------------------------------------------------------
+// Use https://regex101.com to validate the regex patterns. 
+//-------------------------------------------------------------
 
 namespace MovieFolderPrep
 {
@@ -17,10 +23,10 @@ namespace MovieFolderPrep
         private ToolTipHelp tt; //Tooltip help manager
         private string RootFolder; //Mainly used for stripping full filenames to make relative path for status msgs.
 
-        //FindImdbUrl() cached TVSeries TT codes so we don't have to query the IMDB web page for every episode.
-        private readonly Dictionary<string, string> TVSeries = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        //FindImdbUrl() Cached Movie and TVSeries TT codes so we don't have to query the IMDB web page for every episode.
+        private readonly Dictionary<string, string> TVSeries;
 
-        private readonly string Empty_txtRootText = null;  //for m_btnGo_Click()
+        private readonly string Empty_txtRootText = null;  //for m_btnGo_Click() if user entered the starting/root folder
         private readonly Font RegularFont;  //for SetStatus()
         private readonly Font BoldFont;
 
@@ -47,6 +53,8 @@ namespace MovieFolderPrep
 
             RegularFont = m_rtfStatus.Font; //for SetStatus() 
             BoldFont = new Font(m_rtfStatus.Font, FontStyle.Bold);
+
+            TVSeries = DebugImportCache(); //If offline debugging enabled, will also overwrite m_txtRoot.Text
         }
 
         private void m_btnAbout_Click(object sender, EventArgs e)
@@ -68,8 +76,8 @@ namespace MovieFolderPrep
                 return;
             }
 
-            m_btnGo.Enabled = false; //don't allow user to click "Go" again.
-            RootFolder = m_txtRoot.Text;
+            m_btnGo.Enabled = false;             //don't allow user to click "Go" again.
+            RootFolder = m_txtRoot.Text;         //save for DoWork() and all its child methods.
             var task = Task.Run(() => DoWork()); //Do work asynchronously.
             //task.Wait(); task.Dispose(); //don't wait for completion. A success message will be displayed in the status window.
             return;
@@ -82,7 +90,7 @@ namespace MovieFolderPrep
 
         private void m_btnSelectRoot_Click(object sender, EventArgs e)
         {
-            var dir = FolderSelectDialog.Show(this, "Select Movie/Media Folder");
+            var dir = FolderSelectDialog.Show(this, "Select Movie/Media Folder", m_txtRoot.Text == Empty_txtRootText ? null : m_txtRoot.Text);
             if (dir == null) return;
             m_txtRoot.Text = dir;
         }
@@ -186,6 +194,7 @@ namespace MovieFolderPrep
 
             try
             {
+                //folders may have been renamed, so we have to adjust for that. The UnprocessedMovieList is in sorted order so saving the previous folder is good enough.
                 var previousFolder = RootFolder;
                 var prevNewFolder = RootFolder;
 
@@ -196,74 +205,32 @@ namespace MovieFolderPrep
 
                     SetStatus(Severity.Info, $"Moving \"{f.Substring(RootFolder.Length)}\" => \"{(imdbParts.Series == null ? imdbParts.FolderName : imdbParts.FolderName + "\\" + imdbParts.Series)}\"");
 
-                    var folder = Path.GetDirectoryName(f);
-                    string newFolder;
-                    string oldPath;
-                    string newPath;
+                    var oldPath = f;  //Need to determine if underlying folder was renamed on a previous loop.
+                    if (!File.Exists(oldPath)) oldPath = Path.Combine(prevNewFolder, Path.GetFileName(oldPath));
+                    if (!File.Exists(oldPath)) { SetStatus(Severity.Error, $"Video {oldPath.Substring(RootFolder.Length)} not found."); continue; }
 
-                    if (imdbParts.Series == null) //feature movie.
+                    var folder = Path.GetDirectoryName(oldPath);
+
+                    var i = folder.IndexOf("\\" + imdbParts.FolderName);
+                    var newFolder = Path.Combine(i == -1 ? (folder==RootFolder ? folder : Path.GetDirectoryName(folder)) : folder.Substring(0, i), imdbParts.FolderName);
+                    var newPath = Path.Combine(newFolder, Path.GetFileName(oldPath));
+
+                    if (folder == previousFolder || folder == prevNewFolder || folder == RootFolder) { CreateFolder(newFolder); MoveFile(oldPath, newPath); }
+                    else { MoveFolder(folder, newFolder);  }
+                    if (!File.Exists(oldPath)) oldPath = Path.Combine(newFolder, Path.GetFileName(oldPath));
+                    CreateTTShortcut(Path.Combine(newFolder, imdbParts.MovieName + ".url"), imdbParts.ttMovie);
+
+                    if (imdbParts.Series != null) //TV Series Episode
                     {
-                        if (folder == previousFolder || folder == RootFolder)
-                        {
-                            oldPath = f;  //need to check if there are more than one video in a folder.
-                            if (!File.Exists(oldPath)) oldPath = Path.Combine(prevNewFolder, Path.GetFileName(oldPath));
-                            if (!File.Exists(oldPath)) { SetStatus(Severity.Error, $"Video {oldPath.Substring(RootFolder.Length)} not found."); continue; }
-
-                            newFolder = Path.Combine(RootFolder, imdbParts.FolderName);
-                            newPath = Path.Combine(newFolder, Path.GetFileName(oldPath));
-                            if (!Directory.Exists(newFolder)) Directory.CreateDirectory(newFolder);
-                            CreateTTShortcut(Path.Combine(newFolder, imdbParts.MovieName + ".url"), imdbParts.ttMovie);
-                            MoveFile(oldPath, newPath);
-                            previousFolder = folder;
-                            prevNewFolder = newFolder;
-                            continue;
-                        }
-
-                        newFolder = Path.Combine(Path.GetDirectoryName(folder), imdbParts.FolderName);
-                        if (!Directory.Exists(newFolder)) Directory.Move(folder, newFolder);
-                        CreateTTShortcut(Path.Combine(newFolder, imdbParts.MovieName + ".url"), imdbParts.ttMovie);
-                        previousFolder = folder;
-                        prevNewFolder = newFolder;
-                        continue;
-                    }
-                    else //TV Series Episode
-                    {
-                        if (folder == previousFolder || folder == RootFolder)
-                        {
-                            oldPath = f;  //need to check if there are more than one video in a folder.
-                            if (!File.Exists(oldPath)) oldPath = Path.Combine(prevNewFolder, Path.GetFileName(oldPath));
-                            if (!File.Exists(oldPath)) { SetStatus(Severity.Error, $"Video {oldPath.Substring(RootFolder.Length)} not found."); continue; }
-
-                            newFolder = Path.Combine(folder, imdbParts.FolderName);
-                            if (!Directory.Exists(newFolder)) Directory.CreateDirectory(newFolder);
-                            CreateTTShortcut(Path.Combine(newFolder, imdbParts.MovieName + ".url"), imdbParts.ttMovie);
-
-                            newFolder = Path.Combine(newFolder, imdbParts.Series);
-                            newPath = Path.Combine(newFolder, Path.GetFileName(oldPath));
-                            if (!Directory.Exists(newFolder)) Directory.CreateDirectory(newFolder);
-                            MoveFile(oldPath, newPath);
-                            CreateTTShortcut(Path.Combine(newFolder, $"{imdbParts.MovieName}.{imdbParts.Series}.url"), imdbParts.ttSeries);
-                            previousFolder = folder;
-                            prevNewFolder = newFolder;
-                            continue;
-                        }
-
-                        newFolder = Path.Combine(Path.GetDirectoryName(folder), imdbParts.FolderName);
-                        if (!Directory.Exists(newFolder)) Directory.Move(folder, newFolder);
-
-                        folder = newFolder;
-                        CreateTTShortcut(Path.Combine(newFolder, imdbParts.MovieName + ".url"), imdbParts.ttMovie);
-
-                        oldPath = File.Exists(f) ? f : Path.Combine(folder, Path.GetFileName(f));
-                        newFolder = Path.Combine(newFolder, imdbParts.Series);
-                        newPath = Path.Combine(newFolder, Path.GetFileName(oldPath));
-                        if (!Directory.Exists(newFolder)) Directory.CreateDirectory(newFolder);
-
+                        var newSeriesFolder = Path.Combine(newFolder, imdbParts.Series);
+                        newPath = Path.Combine(newSeriesFolder, Path.GetFileName(oldPath));
+                        CreateFolder(newSeriesFolder);
                         MoveFile(oldPath, newPath);
-                        CreateTTShortcut(Path.Combine(newFolder, $"{imdbParts.MovieName}.{imdbParts.Series}.url"), imdbParts.ttSeries);
-                        previousFolder = folder;
-                        prevNewFolder = newFolder;
+                        CreateTTShortcut(Path.Combine(newSeriesFolder, $"{imdbParts.MovieName}.{imdbParts.Series}.url"), imdbParts.ttSeries);
                     }
+
+                    previousFolder = folder;
+                    prevNewFolder = newFolder;
                 }
             }
             catch (Exception ex)
@@ -272,6 +239,7 @@ namespace MovieFolderPrep
                 return;
             }
 
+            DebugExportCache();
             SetStatus(string.Empty);
             SetStatus(Severity.Success, "Completed.");
         }
@@ -280,6 +248,7 @@ namespace MovieFolderPrep
         {
             if (File.Exists(filepath)) return;
 
+            //Delete all other IMDB shortcuts
             foreach (var f in Directory.EnumerateFiles(Path.GetDirectoryName(filepath), "*.url", SearchOption.TopDirectoryOnly))
             {
                 var link = MovieProperties.GetUrlFromLink(f);
@@ -294,7 +263,7 @@ namespace MovieFolderPrep
 
         //Bug in Regex.Escape(@"~`'!@#$%^&*(){}[].,;+_=-"). It doesn't escape ']'
         private static readonly Regex ReBracketed = new Regex(@"\\[~`'!@\#\$%\^&\*\(\)\{}\[\]\.,;\+_=-][^~`'!@\#\$%\^&\*\(\)\{}\[\]\.,;\+_=-]+[~`'!@\#\$%\^&\*\(\)\{}\[\]\.,;\+_=-]\\", RegexOptions.Compiled);
-        private static List<string> UnprocessedMovieList(string rootFolder)
+        private static IEnumerable<string> UnprocessedMovieList(string rootFolder)
         {
             //We must have a realized list because we may be moving folders and files around causing unrealized enumerations to break.
             var list = new List<string>();
@@ -318,7 +287,7 @@ namespace MovieFolderPrep
                 list.Add(f);
             }
 
-            return list;
+            return list.OrderBy(m=>m);
         }
 
         private static bool HasMatchingShortcut(string folder)
@@ -348,21 +317,30 @@ namespace MovieFolderPrep
             return hasMatchingShortcut;
         }
 
+        private void CreateFolder(string dst)
+        {
+            if (!Directory.Exists(dst)) Directory.CreateDirectory(dst);
+        }
+        private void MoveFolder(string src, string dst)
+        {
+            if (Directory.Exists(src) && !Directory.Exists(dst)) Directory.Move(src, dst);
+        }
         private void MoveFile(string src, string dst)
         {
-            if (!File.Exists(src)) { SetStatus(Severity.Warning, $"Source File {src.Substring(RootFolder.Length)} does not exist."); return; }
+            if (src == dst) return;
+            if (!File.Exists(src)) { SetStatus(Severity.Error, $"Source File {src.Substring(RootFolder.Length)} does not exist."); return; }
             if (!File.Exists(dst)) File.Move(src, dst);
-            else { SetStatus(Severity.Warning, $"Destination File {dst.Substring(RootFolder.Length)} already exists."); return; }
+            else { SetStatus(Severity.Error, $"Source file {src.Substring(RootFolder.Length)} already exists in {Path.GetDirectoryName(dst).Substring(RootFolder.Length)}."); return; }
 
+            //Verify that destination folder contains only one movie
             if (Directory.EnumerateFiles(Path.GetDirectoryName(dst)).Count((f)=> MovieProperties.MovieExtensions.IndexOf(Path.GetExtension(f)) != -1) > 1)
                 SetStatus(Severity.Warning, $"Multiple movies in destination folder {Path.GetDirectoryName(dst).Substring(RootFolder.Length)}. There can only be one movie in a folder.");
 
+            //Delete empty folders
             var folder = Path.GetDirectoryName(src);
-
             if (!Directory.Exists(folder) ||
                 Directory.EnumerateFiles(folder, "*", SearchOption.AllDirectories).Any((s) => !s.EndsWith("desktop.ini")))
                 return;
-
             Directory.Delete(folder, true);
         }
 
@@ -382,37 +360,30 @@ namespace MovieFolderPrep
             var movieFileName = Path.GetFileName(movieFileFullPath);
             var tempFileName = Path.Combine(Path.GetTempPath(), "FindUrl.htm");
 
-            //-------------------------------------------------------------
-            //Use https://regex101.com to validate the regex patterns. 
-            //-------------------------------------------------------------
-
-            //Find TV Series episode url. Contains TV series name + season and episode (No year!)
-            mc = Regex.Matches(movieFileName, @"^(?<NAME>.+?)(?<SERIES>S(?<S>[0-9]{2,2})E(?<E>[0-9]{2,2}))", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            //Find TV Series episode url. Contains TV series name + (maybe) year + season and episode
+            mc = Regex.Matches(movieFileName, @"^(?<NAME>.+?)([ \.]?\(?(?<YEAR>[12][09][0-9][0-9])[ \.])?(?<SERIES>S(?<S>[0-9]{2,2})E(?<E>[0-9]{2,2}))", RegexOptions.Compiled | RegexOptions.IgnoreCase);
             if (mc.Count > 0)
             {
                 var name = mc[0].Groups["NAME"].Value.Replace('.', ' ').Trim();
+                //if (int.TryParse(mc[0].Groups["YEAR"].Value, out int year) && year <= DateTime.Now.Year && year > 1900) name = $"{name} ({year})";
                 var season = int.Parse(mc[0].Groups["S"].Value);
                 var episode = int.Parse(mc[0].Groups["E"].Value);
                 var series = mc[0].Groups["SERIES"].Value.ToUpper();
                 string tt;
 
-                if (TVSeries.TryGetValue(name, out tt) && tt == null) return null; //Series not found during a previous search 
-                if (TVSeries.TryGetValue(string.Concat(name, ".", series), out tt))
+                if (TVSeries.TryGetValue(name, out tt))
                 {
-                    imdbParts.Series = series;
-                    imdbParts.ttSeries = tt;
-                    if (TVSeries.TryGetValue(name, out tt)) imdbParts.ttMovie = tt;
+                    if (tt == null) return null; //Series not found during a previous search 
+                    imdbParts.ttMovie = tt;
                     if (TVSeries.TryGetValue(name + ".FOLDERNAME", out tt)) imdbParts.FolderName = tt;
                     if (TVSeries.TryGetValue(name + ".MOVIENAME", out tt)) imdbParts.MovieName = tt;
+                    if (TVSeries.TryGetValue(string.Concat(name, ".", series), out tt)) imdbParts.ttSeries = tt;
+                    imdbParts.Series = series;
                     return imdbParts;
                 }
 
                 var items = GetMovieProperties(name, true);
-                if (items == null)
-                {
-                    TVSeries[name] = null;
-                    return null;
-                }
+                if (items == null)  { TVSeries[name] = null; return null; }
 
                 TVSeries[name + ".MOVIENAME"] = ToMovieName(items["NAME"], items["YEAR"]);
                 TVSeries[name + ".FOLDERNAME"] = ToFolderName(items["NAME"], items["YEAR"]);
@@ -445,30 +416,50 @@ namespace MovieFolderPrep
                     return null;
                 }
 
-                if (TVSeries.TryGetValue(string.Concat(name, ".", series), out tt))
+                if (TVSeries.TryGetValue(name, out tt))
                 {
-                    imdbParts.Series = series;
-                    imdbParts.ttSeries = tt;
-                    if (TVSeries.TryGetValue(name, out tt)) imdbParts.ttMovie = tt;
+                    if (tt == null) return null; //Series not found during a previous search 
+                    imdbParts.ttMovie = tt;
                     if (TVSeries.TryGetValue(name + ".FOLDERNAME", out tt)) imdbParts.FolderName = tt;
                     if (TVSeries.TryGetValue(name + ".MOVIENAME", out tt)) imdbParts.MovieName = tt;
+                    if (TVSeries.TryGetValue(string.Concat(name, ".", series), out tt)) imdbParts.ttSeries = tt;
+                    imdbParts.Series = series;
                     return imdbParts;
                 }
+
+                return null;
             }
 
-            //Find feature movie url. Contains movie name and release year.
+            //Find feature movie url. Contains movie name and release year only.
             mc = Regex.Matches(movieFileName, @"^(?<NAME>.+?)(?<YEAR>[0-9]{4,4})", RegexOptions.Compiled | RegexOptions.IgnoreCase);
             if (mc.Count > 0)
             {
                 var name = mc[0].Groups["NAME"].Value.Replace('.', ' ').Trim();
                 if (int.TryParse(mc[0].Groups["YEAR"].Value, out int year) && year <= DateTime.Now.Year && year > 1900) name = $"{name} ({year})";
 
+                if (TVSeries.TryGetValue(name, out var tt)) //Offline debugging
+                {
+                    if (tt == null) return null;
+                    imdbParts.ttMovie = tt;
+                    if (TVSeries.TryGetValue(name + ".FOLDERNAME", out tt)) imdbParts.FolderName = tt;
+                    if (TVSeries.TryGetValue(name + ".MOVIENAME", out tt)) imdbParts.MovieName = tt;
+                    return imdbParts;
+                }
+
                 var items = GetMovieProperties(name, false);
-                if (items == null) return null;
+                if (items == null)
+                {
+                    TVSeries[name] = null; //Offline debugging
+                    return null;
+                }
 
                 imdbParts.MovieName = ToMovieName(items["NAME"], items["YEAR"]);
                 imdbParts.FolderName = ToFolderName(items["NAME"], items["YEAR"]);
                 imdbParts.ttMovie = items["TT"];
+
+                TVSeries[name + ".MOVIENAME"] = imdbParts.MovieName; //Offline debugging
+                TVSeries[name + ".FOLDERNAME"] = imdbParts.FolderName;
+                TVSeries[name] = imdbParts.ttMovie;
 
                 return imdbParts;
             }
@@ -482,7 +473,6 @@ namespace MovieFolderPrep
             //'year' is already enclosed in parentheses (e.g. "(2020)") 
             return string.Concat(name, " ", year);
         }
-
         private static string ToFolderName(string name, string year)
         {
             //Put articles to the back so sorting is more sensible.
@@ -575,7 +565,7 @@ namespace MovieFolderPrep
             /// Movie or TVSeries full name with illegal chars replaced with dashes.
             /// In addition, starting "The" and "A" articles moved to end for sorting purposes 
             /// e.g. "Time Machine, The (1992)" 
-            /// Used for folder names.
+            /// This is used for folder names.
             /// </summary>
             public string FolderName { get; set; }
 
@@ -583,13 +573,75 @@ namespace MovieFolderPrep
             /// Movie or TVSeries full name with illegal chars replaced with dashes.
             /// Same as FolderName but without the article swap.
             /// e.g. "The Time Machine (1992)" 
-            /// Used for shortcut names.
+            /// This is used for shortcut names.
             /// </summary>
             public string MovieName { get; set; }
 
-            public string ttMovie { get; set; }    //Movie or TVSeries TT code e.g. "tt1234567"
+            public string ttMovie { get; set; }    //Movie or TVSeries IMDB TT code e.g. "tt1234567"
+
             public string Series { get; set; }     //Series episode e.g. "S01E01". Null if not an episode.
-            public string ttSeries { get; set; }   //Episode TT code e.g. "tt1234567" Null if not an episode.
+
+            public string ttSeries { get; set; }   //IMDB Episode TT code e.g. "tt1234567" Null if not an episode.
         }
+
+        #region Offline Debugging
+        //In Debug mode and 'OfflineDebugging' defined at top of file, these 
+        //methods save the temporary 'TVSeries' cache upon close and restores it
+        //upon startup so repeated debugging may occur without internet access.
+        //Useful for debugging all the different ways movies and their folders 
+        //are arranged.
+
+        public class TVSeriesCache //exclusively for serialization only.
+        {
+            public string SelectedFolder { get; set; }
+
+            public List<DictEntry> Items { get; set; }
+
+            public class DictEntry
+            {
+                [XmlAttribute] public string Key { get; set; }
+                [XmlAttribute] public string Value { get; set; }
+            }
+        }
+
+        private void DebugExportCache()
+        {
+#if (DEBUG && OfflineDebugging)
+            try
+            {
+                if (TVSeries.Count == 0 || RootFolder == null) return;
+                var fn = Path.ChangeExtension(Process.GetCurrentProcess().MainModule.FileName, ".Cache.xml");
+                SetStatus(Severity.Verbose, $"Debugging: Saving TVSeries dictionary to {fn}");
+                XmlIO.Serialize(new TVSeriesCache { SelectedFolder = RootFolder, Items = TVSeries.Select((kv) => new TVSeriesCache.DictEntry { Key = kv.Key, Value = kv.Value }).OrderBy((kv)=>kv.Key).ToList() }, fn);
+            }
+            catch(Exception ex)
+            {
+                SetStatus(Severity.Error, "Debugging: Saving TVSeries dictionary to {0}", ex);
+            }
+#endif
+        }
+
+        private Dictionary<string, string> DebugImportCache()
+        {
+#if (DEBUG && OfflineDebugging)
+            try
+            {
+                var fn = Path.ChangeExtension(Process.GetCurrentProcess().MainModule.FileName, ".Cache.xml");
+                if (File.Exists(fn))
+                {
+                    SetStatus(Severity.Verbose, $"Debugging: Restoring TVSeries dictionary from {fn}");
+                    var cache = XmlIO.Deserialize<TVSeriesCache>(fn);
+                    m_txtRoot.Text = cache.SelectedFolder;
+                    return cache.Items.ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.OrdinalIgnoreCase);
+                }
+            }
+            catch (Exception ex)
+            {
+                SetStatus(Severity.Error, "Debugging: Restoring TVSeries dictionary from {0}", ex);
+            }
+#endif
+            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        }
+        #endregion  //Offline Debugging
     }
 }
