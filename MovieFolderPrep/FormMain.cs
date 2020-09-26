@@ -345,10 +345,7 @@ namespace MovieFolderPrep
         }
 
         /// <summary>
-        /// Find IMDB url from movie file name. Only works for well-formed file names
-        /// where: 
-        /// (1) Feature movie filenames consist of moviename followed by a 4-digit release year (plus a lot of other stuff).
-        /// (2) Episodic TV series filenames consist of tv series name followed by season/episode in the form of S00E00. There is no release year.
+        /// Find IMDB url from movie file name. Only works for well-formed file names.
         /// </summary>
         /// <param name="movieFileName">Full filename of video file.</param>
         /// <returns>IMDB url or null if not found</returns>
@@ -361,23 +358,59 @@ namespace MovieFolderPrep
             var tempFileName = Path.Combine(Path.GetTempPath(), "FindUrl.htm");
 
             //Find TV Series episode url. Contains TV series name + (maybe) year + season and episode
-            mc = Regex.Matches(movieFileName, @"^(?<NAME>.+?)([ \.]?\(?(?<YEAR>[12][09][0-9][0-9])[ \.])?(?<SERIES>S(?<S>[0-9]{2,2})E(?<E>[0-9]{2,2}))", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+            //Possible Episode Filename Permutations:
+            //  Ascension S01E01 Chapter 1 (2014) 720p.mp4
+            //  BrainDead.S01E01.1080p.AMZN.WEB-DL.DD5.1.H.264-SiGMA.mkv
+            //  Eureka (2006) - S05E02 - The Real Thing (1080p BluRay x265 Panda).mkv
+            //  The.Expanse.2017.S02E03.1080p.H.265.mkv
+            //  The Expanse (2018) S03E07 1008p.mp4
+            //  The.Flash.2014.S01E01.HDTV.x264-LOL.mp4
+            //  For All Mankind (2019) S01E01 720p.ATVP.WEB-DL.DDP5.1.H.265-TOMMY.mkv
+            //  Fringe (2008) - S01E04 - The Arrival (1080p BluRay x265 Silence).mkv
+            //  Lexx S03E07.mkv
+            //  **PATTERNRESET0 - needed when testing on regex101.com
+            //  The Man In The High Castle S01E01.mp4
+            //  Threshold.1x01.720p.HDTV.H.265-aljasPOD.mkv
+            //  01 Utopia - Episode 1.1 Mystery 2013 Eng Subs 720p [H264-mp4].mp4
+            var pattern = @"
+                ^(?:[0-9]{1,2}[ \.-]+)?
+                (?<NAME>.+?)
+                (?:[ \.\(]*(?<YEAR1>[0-9]{4,4})[ \.\)-]*)?
+                (?:
+                (?:S(?<S1>[0-9]{2,2})E(?<E1>[0-9]{2,2}))|
+                (?:(?<S2>[0-9]{1,2})x(?<E2>[0-9]{1,2}))|
+                (?:[ \.-]+Episode[ \.](?<S3>[0-9]{1,2})\.(?<E3>[0-9]{1,2}))
+                )
+                [^0-9]+(?<YEAR2>[0-9]{4,4})?
+                ";
+
+            mc = Regex.Matches(movieFileName, pattern, RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace);
             if (mc.Count > 0)
             {
                 var name = mc[0].Groups["NAME"].Value.Replace('.', ' ').Trim();
-                //if (int.TryParse(mc[0].Groups["YEAR"].Value, out int year) && year <= DateTime.Now.Year && year > 1900) name = $"{name} ({year})";
-                var season = int.Parse(mc[0].Groups["S"].Value);
-                var episode = int.Parse(mc[0].Groups["E"].Value);
-                var series = mc[0].Groups["SERIES"].Value.ToUpper();
+
+                if (int.TryParse(mc[0].Groups["YEAR1"].Value, out int year) && year <= DateTime.Now.Year && year > 1900) name = $"{name} ({year})";
+                else if (int.TryParse(mc[0].Groups["YEAR2"].Value, out year) && year <= DateTime.Now.Year && year > 1900) name = $"{name} ({year})";
+
+                if (!int.TryParse(mc[0].Groups["S1"].Value, out int season))
+                    if (!int.TryParse(mc[0].Groups["S2"].Value, out season))
+                        int.TryParse(mc[0].Groups["S3"].Value, out season);
+
+                if (!int.TryParse(mc[0].Groups["E1"].Value, out int episode))
+                    if (!int.TryParse(mc[0].Groups["E2"].Value, out episode))
+                        int.TryParse(mc[0].Groups["E3"].Value, out episode);
+
+                var series = $"S{season:00}E{episode:00}";
                 string tt;
 
-                if (TVSeries.TryGetValue(name, out tt))
+                if (TVSeries.TryGetValue(string.Concat(name, ".", series), out tt))
                 {
-                    if (tt == null) return null; //Series not found during a previous search 
-                    imdbParts.ttMovie = tt;
+                    imdbParts.ttSeries = tt;
                     if (TVSeries.TryGetValue(name + ".FOLDERNAME", out tt)) imdbParts.FolderName = tt;
                     if (TVSeries.TryGetValue(name + ".MOVIENAME", out tt)) imdbParts.MovieName = tt;
-                    if (TVSeries.TryGetValue(string.Concat(name, ".", series), out tt)) imdbParts.ttSeries = tt;
+                    if (TVSeries.TryGetValue(name, out tt)) imdbParts.ttMovie = tt;
+                    if (tt == null) return null; //Series not found during a previous search 
                     imdbParts.Series = series;
                     return imdbParts;
                 }
@@ -416,13 +449,13 @@ namespace MovieFolderPrep
                     return null;
                 }
 
-                if (TVSeries.TryGetValue(name, out tt))
+                if (TVSeries.TryGetValue(string.Concat(name, ".", series), out tt))
                 {
-                    if (tt == null) return null; //Series not found during a previous search 
-                    imdbParts.ttMovie = tt;
+                    imdbParts.ttSeries = tt;
                     if (TVSeries.TryGetValue(name + ".FOLDERNAME", out tt)) imdbParts.FolderName = tt;
                     if (TVSeries.TryGetValue(name + ".MOVIENAME", out tt)) imdbParts.MovieName = tt;
-                    if (TVSeries.TryGetValue(string.Concat(name, ".", series), out tt)) imdbParts.ttSeries = tt;
+                    if (TVSeries.TryGetValue(name, out tt)) imdbParts.ttMovie = tt;
+                    if (tt == null) return null; //Series not found during a previous search 
                     imdbParts.Series = series;
                     return imdbParts;
                 }
@@ -430,8 +463,8 @@ namespace MovieFolderPrep
                 return null;
             }
 
-            //Find feature movie url. Contains movie name and release year only.
-            mc = Regex.Matches(movieFileName, @"^(?<NAME>.+?)(?<YEAR>[0-9]{4,4})", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            //Find feature movie url. Contains movie name and release year only. No season/episode
+            mc = Regex.Matches(movieFileName, @"^(?<NAME>.+?)\(?(?<YEAR>[0-9]{4,4})", RegexOptions.Compiled | RegexOptions.IgnoreCase);
             if (mc.Count > 0)
             {
                 var name = mc[0].Groups["NAME"].Value.Replace('.', ' ').Trim();
