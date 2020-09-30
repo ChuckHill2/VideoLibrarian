@@ -203,7 +203,7 @@ namespace MovieFolderPrep
                     var imdbParts = FindImdbUrl(f);
                     if (imdbParts == null) continue;
 
-                    SetStatus(Severity.Info, $"Moving \"{f.Substring(RootFolder.Length)}\" => \"{(imdbParts.Series == null ? imdbParts.FolderName : imdbParts.FolderName + "\\" + imdbParts.Series)}\"");
+                    SetStatus(Severity.Info, $"Moving \"{f.Substring(RootFolder.Length)}\" => \"\\{imdbParts.FolderName}{(imdbParts.Series == null ? "" : "\\" + imdbParts.Series)}\\\"");
 
                     var oldPath = f;  //Need to determine if underlying folder was renamed on a previous loop.
                     if (!File.Exists(oldPath)) oldPath = Path.Combine(prevNewFolder, Path.GetFileName(oldPath));
@@ -358,8 +358,7 @@ namespace MovieFolderPrep
             var tempFileName = Path.Combine(Path.GetTempPath(), "FindUrl.htm");
 
             //Find TV Series episode url. Contains TV series name + (maybe) year + season and episode
-
-            //Possible Episode Filename Permutations:
+            //Possible Filename Permutations:
             //  Ascension S01E01 Chapter 1 (2014) 720p.mp4
             //  BrainDead.S01E01.1080p.AMZN.WEB-DL.DD5.1.H.264-SiGMA.mkv
             //  Eureka (2006) - S05E02 - The Real Thing (1080p BluRay x265 Panda).mkv
@@ -464,11 +463,32 @@ namespace MovieFolderPrep
             }
 
             //Find feature movie url. Contains movie name and release year only. No season/episode
-            mc = Regex.Matches(movieFileName, @"^(?<NAME>.+?)\(?(?<YEAR>[0-9]{4,4})", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            //Possible Filename Permutations:
+            //  Ad.Astra.2019.1080p.WEBRip.x264-[YTS.LT].mkv
+            //  6.Underground.2019.1080p.WEBRip.x264-[YTS.LT].mp4
+            //  The Chair to Everywhere (2019) 720p HDRip x264 - [SHADOW].mp4
+            //  John.Wick.Chapter.3.-.Parabellum.2019.1080p.WEBRip.x264-[YTS.LT].mp4
+            //  Guardians.Of.The.Galaxy.Vol..2.2017.1080p.BluRay.x264-[YTS.AG].mp4
+            //  Lara Croft Tomb Raider 2001 1080p DTS.H.265-PHD.mkv
+            //  2001 A Space Odyssey (1968) 1080p.mp4
+            //  10,000 BC (2008) 1080p.mp4
+            //  1492 - Conquest of Paradise (1992) 1080p.mp4
+            //  2036 - Origin Unknown (2018) 1080p.mp4
+            //  Space.1999.The.End.1981.1080p.WEBRip.x264-[YTS.LT].mkv
+            //  Space.1999.1981.1080p.WEBRip.x264-[YTS.LT].mkv
+            var pattern2 = @"
+                ^(?<NAME>.+?)\(?(?<YEAR>[0-9]{4,4})
+                (?:(?<NAME2>.+?)\(?(?<YEAR2>[0-9]{4,4}))?
+                ";
+
+            mc = Regex.Matches(movieFileName, pattern2, RegexOptions.Compiled | RegexOptions.IgnorePatternWhitespace);
             if (mc.Count > 0)
             {
                 var name = mc[0].Groups["NAME"].Value.Replace('.', ' ').Trim();
-                if (int.TryParse(mc[0].Groups["YEAR"].Value, out int year) && year <= DateTime.Now.Year && year > 1900) name = $"{name} ({year})";
+                var name2 = mc[0].Groups["NAME"].Value.Replace('.', ' ').Trim();
+                name2 = name2 == string.Empty ? name2 : " " + name2;
+                if (int.TryParse(mc[0].Groups["YEAR2"].Value, out int year) && year <= DateTime.Now.Year && year > 1900) name = $"{name} {mc[0].Groups["YEAR2"].Value}{name2} ({year})";
+                else if (int.TryParse(mc[0].Groups["YEAR"].Value, out year) && year <= DateTime.Now.Year && year > 1900) name = $"{name} ({year})";
 
                 if (TVSeries.TryGetValue(name, out var tt)) //Offline debugging
                 {
