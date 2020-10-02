@@ -271,6 +271,7 @@
     <None Include="Resources\CheckboxChecked.png" />
     <None Include="Resources\CheckboxUnchecked.png" />
     <None Include="Resources\CheckMark16.png" />
+    <None Include="Resources\ClearText.png" />
     <None Include="Resources\Close16.png" />
     <None Include="Resources\CopyToClipboard.png" />
     <None Include="Resources\DetailedTileBackground.png" />

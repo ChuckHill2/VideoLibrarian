@@ -6,6 +6,15 @@ using System.Xml.Serialization;
 
 namespace MovieGuide
 {
+    public enum ContainsLocation //where to look for substring
+    {
+        Anywhere,
+        MovieName,
+        Plot,
+        Crew
+    }
+
+    [XmlInclude(typeof(ContainsLocation))]
     public class FilterProperties
     {
         //All possible values
@@ -18,6 +27,8 @@ namespace MovieGuide
         [XmlIgnore] public static bool HasWatched { get; private set; }
 
         //Current Values
+        public string ContainsSubstring { get; set; }
+        public ContainsLocation ContainsLocation { get; set; }
         public FilterValue[] Genres { get; set; }
         public FilterValue[] Classes { get; set; }
         public int StartYear { get; set; }
@@ -101,7 +112,36 @@ namespace MovieGuide
                 return changed;
             }
 
-            foreach(var tile in tiles)
+            Func<MovieProperties, bool> hasContainsValue = (m) => true;
+            if (!string.IsNullOrWhiteSpace(this.ContainsSubstring))
+            {
+                switch (this.ContainsLocation)
+                {
+                    case ContainsLocation.Anywhere:
+                        hasContainsValue = (m) => 
+                            m.MovieName.ContainsI(this.ContainsSubstring) ||
+                            m.Plot.ContainsI(this.ContainsSubstring) ||
+                            m.Summary.ContainsI(this.ContainsSubstring) ||
+                            m.Cast.ContainsI(this.ContainsSubstring) ||
+                            m.Creators.ContainsI(this.ContainsSubstring) ||
+                            m.Directors.ContainsI(this.ContainsSubstring);
+                        break;
+                    case ContainsLocation.MovieName:
+                        hasContainsValue = (m) => m.MovieName.ContainsI(this.ContainsSubstring);
+                        break;
+                    case ContainsLocation.Plot:
+                        hasContainsValue = (m) => m.Plot.ContainsI(this.ContainsSubstring) ||
+                            m.Summary.ContainsI(this.ContainsSubstring);
+                        break;
+                    case ContainsLocation.Crew:
+                        hasContainsValue = (m) => m.Cast.ContainsI(this.ContainsSubstring) ||
+                            m.Creators.ContainsI(this.ContainsSubstring) ||
+                            m.Directors.ContainsI(this.ContainsSubstring);
+                        break;
+                }
+            }
+
+            foreach (var tile in tiles)
             {
                 var hasGenre = tile.MovieProps.Genre.Any(s => this.Genres.Any(t => t.Name == s));
                 var hasClass = this.Classes.Any(t => t.Name == tile.MovieProps.MovieClass);
@@ -110,13 +150,12 @@ namespace MovieGuide
                 var hasWatched = Watched == null || Watched == (tile.MovieProps.Watched!=DateTime.MinValue);
 
                 bool ch = tile.IsVisible;
-                tile.IsVisible = hasGenre && hasClass && hasYear && hasRating && hasWatched;
+                tile.IsVisible = hasGenre && hasClass && hasYear && hasRating && hasWatched && hasContainsValue(tile.MovieProps);
                 if (ch != tile.IsVisible) changed = true;
             }
 
             return changed;
         }
-
 
         [XmlRoot("Value")]
         public struct FilterValue
@@ -149,6 +188,4 @@ namespace MovieGuide
             }
         }
     }
-
-
 }

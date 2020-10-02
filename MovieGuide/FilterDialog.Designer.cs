@@ -51,6 +51,11 @@
             this.m_btnOK = new System.Windows.Forms.Button();
             this.m_btnCancel = new System.Windows.Forms.Button();
             this.m_chkDisabled = new System.Windows.Forms.CheckBox();
+            this.m_grpContains = new System.Windows.Forms.GroupBox();
+            this.m_btnContainsClear = new System.Windows.Forms.Button();
+            this.m_txtContains = new System.Windows.Forms.TextBox();
+            this.m_lbIn = new System.Windows.Forms.Label();
+            this.m_cbIn = new System.Windows.Forms.ComboBox();
             this.m_grpGenre.SuspendLayout();
             this.m_grpVideoType.SuspendLayout();
             this.m_grpRating.SuspendLayout();
@@ -58,6 +63,7 @@
             this.m_grpReleaseYear.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.m_numReleaseTo)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.m_numReleaseFrom)).BeginInit();
+            this.m_grpContains.SuspendLayout();
             this.SuspendLayout();
             // 
             // m_clbVideoType
@@ -141,7 +147,7 @@
             this.m_chkUnrated.AutoSize = true;
             this.m_chkUnrated.BackColor = System.Drawing.Color.Transparent;
             this.m_chkUnrated.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F);
-            this.m_chkUnrated.Location = new System.Drawing.Point(10, 77);
+            this.m_chkUnrated.Location = new System.Drawing.Point(10, 73);
             this.m_chkUnrated.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.m_chkUnrated.Name = "m_chkUnrated";
             this.m_chkUnrated.Size = new System.Drawing.Size(127, 21);
@@ -192,7 +198,7 @@
             this.m_grpGenre.Controls.Add(this.m_btnGenreSelectNone);
             this.m_grpGenre.Controls.Add(this.m_btnGenreSelectAll);
             this.m_grpGenre.Controls.Add(this.m_clbGenre);
-            this.m_grpGenre.Location = new System.Drawing.Point(18, 18);
+            this.m_grpGenre.Location = new System.Drawing.Point(16, 91);
             this.m_grpGenre.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.m_grpGenre.Name = "m_grpGenre";
             this.m_grpGenre.Padding = new System.Windows.Forms.Padding(4, 5, 4, 5);
@@ -274,7 +280,7 @@
             this.m_grpVideoType.Controls.Add(this.m_clbVideoType);
             this.m_grpVideoType.Controls.Add(this.m_btnVtypeSelectAll);
             this.m_grpVideoType.Controls.Add(this.m_btnVtypeSelectNone);
-            this.m_grpVideoType.Location = new System.Drawing.Point(240, 18);
+            this.m_grpVideoType.Location = new System.Drawing.Point(238, 91);
             this.m_grpVideoType.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.m_grpVideoType.Name = "m_grpVideoType";
             this.m_grpVideoType.Padding = new System.Windows.Forms.Padding(4, 5, 4, 5);
@@ -287,7 +293,7 @@
             // 
             this.m_grpRating.Controls.Add(this.m_chkUnrated);
             this.m_grpRating.Controls.Add(this.m_cbRating);
-            this.m_grpRating.Location = new System.Drawing.Point(477, 18);
+            this.m_grpRating.Location = new System.Drawing.Point(475, 91);
             this.m_grpRating.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.m_grpRating.Name = "m_grpRating";
             this.m_grpRating.Padding = new System.Windows.Forms.Padding(4, 5, 4, 5);
@@ -301,7 +307,7 @@
             this.m_grpWatch.Controls.Add(this.m_radWatched);
             this.m_grpWatch.Controls.Add(this.m_radUnwatched);
             this.m_grpWatch.Controls.Add(this.m_radBothWatched);
-            this.m_grpWatch.Location = new System.Drawing.Point(477, 262);
+            this.m_grpWatch.Location = new System.Drawing.Point(475, 335);
             this.m_grpWatch.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.m_grpWatch.Name = "m_grpWatch";
             this.m_grpWatch.Padding = new System.Windows.Forms.Padding(4, 5, 4, 5);
@@ -316,7 +322,7 @@
             this.m_grpReleaseYear.Controls.Add(this.m_numReleaseFrom);
             this.m_grpReleaseYear.Controls.Add(this.label1);
             this.m_grpReleaseYear.Controls.Add(this.label2);
-            this.m_grpReleaseYear.Location = new System.Drawing.Point(477, 134);
+            this.m_grpReleaseYear.Location = new System.Drawing.Point(475, 207);
             this.m_grpReleaseYear.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.m_grpReleaseYear.Name = "m_grpReleaseYear";
             this.m_grpReleaseYear.Padding = new System.Windows.Forms.Padding(4, 5, 4, 5);
@@ -399,7 +405,7 @@
             // 
             this.m_btnOK.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.m_btnOK.DialogResult = System.Windows.Forms.DialogResult.OK;
-            this.m_btnOK.Location = new System.Drawing.Point(397, 419);
+            this.m_btnOK.Location = new System.Drawing.Point(395, 482);
             this.m_btnOK.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.m_btnOK.Name = "m_btnOK";
             this.m_btnOK.Size = new System.Drawing.Size(112, 34);
@@ -412,7 +418,7 @@
             // 
             this.m_btnCancel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.m_btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.m_btnCancel.Location = new System.Drawing.Point(519, 419);
+            this.m_btnCancel.Location = new System.Drawing.Point(517, 482);
             this.m_btnCancel.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.m_btnCancel.Name = "m_btnCancel";
             this.m_btnCancel.Size = new System.Drawing.Size(112, 34);
@@ -425,7 +431,7 @@
             // 
             this.m_chkDisabled.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.m_chkDisabled.AutoSize = true;
-            this.m_chkDisabled.Location = new System.Drawing.Point(20, 424);
+            this.m_chkDisabled.Location = new System.Drawing.Point(18, 487);
             this.m_chkDisabled.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.m_chkDisabled.Name = "m_chkDisabled";
             this.m_chkDisabled.Size = new System.Drawing.Size(162, 24);
@@ -434,12 +440,73 @@
             this.m_chkDisabled.UseVisualStyleBackColor = true;
             this.m_chkDisabled.CheckedChanged += new System.EventHandler(this.m_chkDisabled_CheckedChanged);
             // 
+            // m_grpContains
+            // 
+            this.m_grpContains.Controls.Add(this.m_btnContainsClear);
+            this.m_grpContains.Controls.Add(this.m_txtContains);
+            this.m_grpContains.Controls.Add(this.m_lbIn);
+            this.m_grpContains.Controls.Add(this.m_cbIn);
+            this.m_grpContains.Location = new System.Drawing.Point(16, 12);
+            this.m_grpContains.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.m_grpContains.Name = "m_grpContains";
+            this.m_grpContains.Padding = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.m_grpContains.Size = new System.Drawing.Size(613, 69);
+            this.m_grpContains.TabIndex = 23;
+            this.m_grpContains.TabStop = false;
+            this.m_grpContains.Text = "Contains Text";
+            // 
+            // m_btnContainsClear
+            // 
+            this.m_btnContainsClear.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.m_btnContainsClear.BackColor = System.Drawing.Color.AliceBlue;
+            this.m_btnContainsClear.BackgroundImage = global::MovieGuide.Properties.Resources.ClearText;
+            this.m_btnContainsClear.BackgroundImageLayout = System.Windows.Forms.ImageLayout.None;
+            this.m_btnContainsClear.FlatAppearance.BorderSize = 0;
+            this.m_btnContainsClear.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.m_btnContainsClear.ForeColor = System.Drawing.Color.DarkGray;
+            this.m_btnContainsClear.Location = new System.Drawing.Point(410, 30);
+            this.m_btnContainsClear.Name = "m_btnContainsClear";
+            this.m_btnContainsClear.Size = new System.Drawing.Size(24, 24);
+            this.m_btnContainsClear.TabIndex = 12;
+            this.m_btnContainsClear.UseVisualStyleBackColor = false;
+            this.m_btnContainsClear.Click += new System.EventHandler(this.m_btnContainsClear_Click);
+            // 
+            // m_txtContains
+            // 
+            this.m_txtContains.BackColor = System.Drawing.Color.AliceBlue;
+            this.m_txtContains.Location = new System.Drawing.Point(9, 29);
+            this.m_txtContains.Name = "m_txtContains";
+            this.m_txtContains.Size = new System.Drawing.Size(427, 26);
+            this.m_txtContains.TabIndex = 11;
+            // 
+            // m_lbIn
+            // 
+            this.m_lbIn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.m_lbIn.AutoSize = true;
+            this.m_lbIn.Location = new System.Drawing.Point(442, 32);
+            this.m_lbIn.Name = "m_lbIn";
+            this.m_lbIn.Size = new System.Drawing.Size(21, 20);
+            this.m_lbIn.TabIndex = 10;
+            this.m_lbIn.Text = "in";
+            // 
+            // m_cbIn
+            // 
+            this.m_cbIn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.m_cbIn.BackColor = System.Drawing.Color.AliceBlue;
+            this.m_cbIn.FormattingEnabled = true;
+            this.m_cbIn.Location = new System.Drawing.Point(468, 29);
+            this.m_cbIn.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.m_cbIn.Name = "m_cbIn";
+            this.m_cbIn.Size = new System.Drawing.Size(134, 28);
+            this.m_cbIn.TabIndex = 9;
+            // 
             // FilterDialog
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.CancelButton = this.m_btnCancel;
-            this.ClientSize = new System.Drawing.Size(652, 474);
+            this.ClientSize = new System.Drawing.Size(644, 530);
+            this.Controls.Add(this.m_grpContains);
             this.Controls.Add(this.m_chkDisabled);
             this.Controls.Add(this.m_btnCancel);
             this.Controls.Add(this.m_btnOK);
@@ -453,7 +520,7 @@
             this.MaximizeBox = false;
             this.MaximumSize = new System.Drawing.Size(660, 800);
             this.MinimizeBox = false;
-            this.MinimumSize = new System.Drawing.Size(660, 502);
+            this.MinimumSize = new System.Drawing.Size(660, 569);
             this.Name = "FilterDialog";
             this.ShowIcon = false;
             this.ShowInTaskbar = false;
@@ -469,6 +536,8 @@
             this.m_grpReleaseYear.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.m_numReleaseTo)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.m_numReleaseFrom)).EndInit();
+            this.m_grpContains.ResumeLayout(false);
+            this.m_grpContains.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -499,5 +568,10 @@
         private System.Windows.Forms.Button m_btnOK;
         private System.Windows.Forms.Button m_btnCancel;
         private System.Windows.Forms.CheckBox m_chkDisabled;
+        private System.Windows.Forms.GroupBox m_grpContains;
+        private System.Windows.Forms.TextBox m_txtContains;
+        private System.Windows.Forms.Label m_lbIn;
+        private System.Windows.Forms.ComboBox m_cbIn;
+        private System.Windows.Forms.Button m_btnContainsClear;
     }
 }

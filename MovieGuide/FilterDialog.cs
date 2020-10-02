@@ -34,6 +34,8 @@ namespace MovieGuide
 
             this.SuspendLayout();
 
+            m_cbIn.DataSource = Enum.GetValues(typeof(ContainsLocation));
+
             m_clbGenre.Items.Clear();
             m_clbGenre.Items.AddRange(FilterProperties.AvailableGenres.Select(m=>(object)m).ToArray());
             m_clbGenre.DisplayMember = "FriendlyName";
@@ -44,6 +46,8 @@ namespace MovieGuide
 
             if (OriginalFilter == null) //Use default filters
             {
+                m_cbIn.SelectedItem = ContainsLocation.Anywhere;
+
                 for (int i = 0; i < m_clbGenre.Items.Count; i++) m_clbGenre.SetItemChecked(i, true);
                 for (int i = 0; i < m_clbVideoType.Items.Count; i++) m_clbVideoType.SetItemChecked(i, true);
 
@@ -56,7 +60,6 @@ namespace MovieGuide
                 m_cbRating.SelectedIndex = m_cbRating.Items.Count-1;
                 m_chkUnrated.Checked = (FilterProperties.MinRating==0);
 
-
                 m_numReleaseFrom.Value = m_numReleaseTo.Minimum = m_numReleaseFrom.Minimum = FilterProperties.MinYear;
                 m_numReleaseTo.Value = m_numReleaseFrom.Maximum = m_numReleaseTo.Maximum = FilterProperties.MaxYear; 
 
@@ -67,6 +70,9 @@ namespace MovieGuide
                 this.ResumeLayout();
                 return;
             }
+
+            m_txtContains.Text = filter.ContainsSubstring ?? string.Empty;
+            m_cbIn.SelectedItem = filter.ContainsLocation;
 
             var comparer = new EqualityComparer<FilterProperties.FilterValue>((x, y) => x.Name.Equals(y.Name, StringComparison.Ordinal));
             for (int i = 0; i < m_clbGenre.Items.Count; i++)
@@ -162,6 +168,9 @@ namespace MovieGuide
         {
             var fp = new FilterProperties();
 
+            fp.ContainsSubstring  = m_txtContains.Text;
+            fp.ContainsLocation = (ContainsLocation)m_cbIn.SelectedItem;
+
             var list = new List<FilterProperties.FilterValue>(m_clbGenre.Items.Count);
             for (int i = 0; i < m_clbGenre.Items.Count; i++)
             {
@@ -194,11 +203,17 @@ namespace MovieGuide
         {
             bool enabled = !m_chkDisabled.Checked;
 
+            m_grpContains.Enabled = enabled;
             m_grpGenre.Enabled = enabled;
             m_grpRating.Enabled = enabled;
             m_grpVideoType.Enabled = enabled;
             m_grpReleaseYear.Enabled = enabled;
             m_grpWatch.Enabled = enabled;
+        }
+
+        private void m_btnContainsClear_Click(object sender, EventArgs e)
+        {
+            m_txtContains.Clear();
         }
     }
 }

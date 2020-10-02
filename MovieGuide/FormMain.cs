@@ -321,6 +321,11 @@ namespace MovieGuide
 
             EnableMenuBar(mp == null || mp == MovieProperties);
             m_miBack.Enabled = (mp != null && mp != MovieProperties);
+
+            if (CurrentViewTiles.Tiles.Length > 0 && !CurrentViewTiles.Tiles.Any(m => m.IsVisible))
+            {
+                MiniMessageBox.Show(this, "Oops! The filter is too restrictive.\nPlease try again.", "Movie Filtering", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
         }
 
         public void LoadMovieInfo()
