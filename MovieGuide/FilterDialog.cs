@@ -189,6 +189,7 @@ namespace MovieGuide
 
             var szRating = (string)m_cbRating.SelectedItem ?? (FilterProperties.MinRating.ToString() + "+");
             fp.Rating = int.Parse(szRating.Replace("+",""));
+            fp.IncludeUnrated = m_chkUnrated.Checked;
 
             fp.StartYear = (int)m_numReleaseFrom.Value;
             fp.EndYear = (int)m_numReleaseTo.Value;

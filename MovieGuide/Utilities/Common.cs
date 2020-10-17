@@ -285,7 +285,37 @@ namespace MovieGuide
             return s;
         }
 
-        public static bool IsNullOrEmpty(this string s) { return string.IsNullOrWhiteSpace(s); }
+        /// <summary>
+        /// Strip one or more whitspace chars (including newlines) and replace with a single space char.
+        /// </summary>
+        /// <param name="s">String to operate upon</param>
+        /// <returns>fixed up single-line string</returns>
+        public static string Squeeze(this string s)
+        {
+            if (s.IsNullOrEmpty()) return string.Empty;
+            //This is 2.6x faster than ""return Regex.Replace(s.Trim(), "[\r\n \t]+", " ");""
+            StringBuilder sb = new StringBuilder(s.Length);
+            char prev = ' ';
+            for (int i = 0; i < s.Length; i++)
+            {
+                char c = s[i];
+                if (c > 0 && c < 32) c = ' ';
+                if (prev == ' ' && prev == c) continue;
+                prev = c;
+                sb.Append(c);
+            }
+            if (prev == ' ') sb.Length = sb.Length - 1;
+            return sb.ToString();
+        }
+
+        public static bool IsNullOrEmpty(this string s, bool lookForWhitespace=false) 
+        {
+            //return string.IsNullOrWhiteSpace(s);
+            if (s == null) return true;
+            if (s.Length==0) return true;
+            if (lookForWhitespace && s.All(c=>c==' ')) return true;
+            return false;
+        }
 
         public static int IndexOf<T>(this IList<T> list, Func<T, bool> match) where T : class
         {
@@ -318,6 +348,95 @@ namespace MovieGuide
             }
             return string.Empty;
         }
+
+        /// <summary>
+        /// Perform action upon each item in enumerable loop, ascending.
+        /// </summary>
+        /// <typeparam name="T">Type of item in enumeration</typeparam>
+        /// <param name="source">Enumerable array</param>
+        /// <param name="action">Action to perform on each item in enumeration. Return true to continue to next item or false to break enumeration</param>
+        public static void ForEach<T>(this IEnumerable<T> source, Action<T> action)
+        {
+            if (source == null) return;
+
+            if (source is IList<T> list)
+            {
+                var k = list.Count;
+                for (int i = 0; i < k; i++)
+                {
+                    action(list[i]);
+                    k = list.Count;
+                }
+            }
+            else
+            {
+                foreach (var v in source) action(v);
+            }
+        }
+
+        /// <summary>
+        /// Perform action upon each item in enumerable loop, descending (reverse order).
+        /// Useful when the count of items may change.
+        /// </summary>
+        /// <typeparam name="T">Type of item in enumeration</typeparam>
+        /// <param name="source">Enumerable array</param>
+        /// <param name="action">Action to perform on each item in enumeration. Return true to continue to next item or false to break enumeration</param>
+        public static void ForEachDesc<T>(this IEnumerable<T> source, Func<T,bool> action)
+        {
+            //Action on sequence items is performed in descending order just in case elements are removed by the action.
+            //Equivalant to: foreach (var v in source.Reverse()) action(v); but more efficient.
+
+            if (source is IList<T> list)
+            {
+                for (int i = list.Count - 1; i >= 0; i--)
+                    if (!action(list[i])) break;
+            }
+            else if (source is ICollection<T> collection)
+            {
+                var length = collection.Count;
+                if (length == 0) return;
+                T[] array = new T[length];
+                collection.CopyTo(array, 0);
+
+                for (int i = length - 1; i >= 0; i--)
+                    if (!action(array[i])) break;
+            }
+            else
+            {
+                T[] array = null;
+                int length = 0;
+                foreach (T element in source)
+                {
+                    if (array == null) array = new T[4];
+                    else if (array.Length == length)
+                    {
+                        T[] elementArray = new T[checked(length * 2)];
+                        Array.Copy((Array)array, 0, (Array)elementArray, 0, length);
+                        array = elementArray;
+                    }
+                    array[length] = element;
+                    ++length;
+                }
+
+                for (int i = length - 1; i >= 0; i--)
+                    if (!action(array[i])) break;
+            }
+        }
+
+        /// <summary>
+        /// Create a shallow copy of any object. Nested class objects
+        /// are not duplicated. They are just referenced again.
+        /// Object does not need to be marked as [Serializable].
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="obj">Object to copy</param>
+        /// <returns>copy of object</returns>
+        public static T MemberwiseClone<T>(this T obj)
+        {
+            if (obj == null) return default(T);
+            return (T)MemberwiseCloneMethod.Invoke(obj, new object[0]);
+        }
+        private static readonly MethodInfo MemberwiseCloneMethod = typeof(Object).GetMethod("MemberwiseClone", BindingFlags.Instance | BindingFlags.NonPublic, null, new Type[0], null);
     }
 
     public static class FormsExtensions

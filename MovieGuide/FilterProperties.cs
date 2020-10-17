@@ -146,7 +146,7 @@ namespace MovieGuide
                 var hasGenre = tile.MovieProps.Genre.Any(s => this.Genres.Any(t => t.Name == s));
                 var hasClass = this.Classes.Any(t => t.Name == tile.MovieProps.MovieClass);
                 var hasYear = tile.MovieProps.Year >= StartYear && tile.MovieProps.Year <= EndYear;
-                var hasRating = tile.MovieProps.MovieRating >= Rating || (Rating == 0 && IncludeUnrated);
+                var hasRating = tile.MovieProps.MovieRating >= Rating || (tile.MovieProps.MovieRating < 1 && IncludeUnrated);
                 var hasWatched = Watched == null || Watched == (tile.MovieProps.Watched!=DateTime.MinValue);
 
                 bool ch = tile.IsVisible;

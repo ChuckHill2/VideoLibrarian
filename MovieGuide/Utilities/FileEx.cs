@@ -112,7 +112,8 @@ namespace MovieGuide
             dt = File.GetLastWriteTime(filename);
             if (dt < dtMin) dtMin = dt;
 
-            return dtMin;
+            //Forget hi-precision and DateTimeKind. It just complicates comparisons. This is more than good enough.
+            return new DateTime(dtMin.Year, dtMin.Month, dtMin.Day, dtMin.Hour, dtMin.Minute, 0);
         }
 
         /// <summary>

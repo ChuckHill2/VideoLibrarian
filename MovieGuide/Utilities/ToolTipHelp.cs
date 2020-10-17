@@ -37,39 +37,41 @@ namespace MovieGuide
 
         }
 
-        void m_ToolTips_Popup(object sender, PopupEventArgs e)
-        {
-            string tip = e.AssociatedControl.AccessibleDescription.Replace("\\n", Environment.NewLine);
+        #region OwnerDrawn ToolTips
+        //void m_ToolTips_Popup(object sender, PopupEventArgs e)
+        //{
+        //    string tip = e.AssociatedControl.AccessibleDescription.Replace("\\n", Environment.NewLine);
 
-            Form AssociatedForm = null;
-            for(var c = e.AssociatedControl; c != null; c = c.Parent) AssociatedForm = c as Form;
+        //    Form AssociatedForm = null;
+        //    for(var c = e.AssociatedControl; c != null; c = c.Parent) AssociatedForm = c as Form;
 
-            Graphics g = Graphics.FromHwnd(AssociatedForm.Handle);
-            var font = new Font("Microsoft Sans Serif", 11.0f, FontStyle.Regular, GraphicsUnit.World);
-            var sizeF = g.MeasureString(tip, font, AssociatedForm.ClientSize.Width - 20);
-            e.ToolTipSize = Size.Add(sizeF.ToSize(),new Size(10,10));
-            font.Dispose();
-            g.Dispose();
-        }
+        //    Graphics g = Graphics.FromHwnd(AssociatedForm.Handle);
+        //    var font = new Font("Microsoft Sans Serif", 11.0f, FontStyle.Regular, GraphicsUnit.World);
+        //    var sizeF = g.MeasureString(tip, font, AssociatedForm.ClientSize.Width - 20);
+        //    e.ToolTipSize = Size.Add(sizeF.ToSize(),new Size(10,10));
+        //    font.Dispose();
+        //    g.Dispose();
+        //}
 
-        void m_ToolTips_Draw(object sender, DrawToolTipEventArgs e)
-        {
-            Graphics g = e.Graphics;
-            g.SmoothingMode = SmoothingMode.AntiAlias;
-            g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+        //void m_ToolTips_Draw(object sender, DrawToolTipEventArgs e)
+        //{
+        //    Graphics g = e.Graphics;
+        //    g.SmoothingMode = SmoothingMode.AntiAlias;
+        //    g.InterpolationMode = InterpolationMode.HighQualityBicubic;
 
-            var b = new LinearGradientBrush(e.Bounds, Color.Lavender, Color.SkyBlue, 45f);
-            g.FillRectangle(b, e.Bounds);
-            //FillRoundedRectangle(g, b, e.Bounds, 20);
-            b.Dispose();
+        //    var b = new LinearGradientBrush(e.Bounds, Color.Lavender, Color.SkyBlue, 45f);
+        //    g.FillRectangle(b, e.Bounds);
+        //    //FillRoundedRectangle(g, b, e.Bounds, 20);
+        //    b.Dispose();
 
-            g.DrawRectangle(Pens.LightSlateGray, Rectangle.Inflate(e.Bounds, -2, -2));
-            //DrawRoundedRectangle(g, Pens.LightSlateGray, Rectangle.Inflate(e.Bounds, 0, 0), 20);
+        //    g.DrawRectangle(Pens.LightSlateGray, Rectangle.Inflate(e.Bounds, -2, -2));
+        //    //DrawRoundedRectangle(g, Pens.LightSlateGray, Rectangle.Inflate(e.Bounds, 0, 0), 20);
 
-            var font = new Font("Microsoft Sans Serif", 11.0f, FontStyle.Regular, GraphicsUnit.World);
-            g.DrawString(e.ToolTipText, font, Brushes.Black, e.Bounds.X + 5, e.Bounds.Y + 5);
-            font.Dispose();
-        }
+        //    var font = new Font("Microsoft Sans Serif", 11.0f, FontStyle.Regular, GraphicsUnit.World);
+        //    g.DrawString(e.ToolTipText, font, Brushes.Black, e.Bounds.X + 5, e.Bounds.Y + 5);
+        //    font.Dispose();
+        //}
+        #endregion
 
         private void setToolTipEventHandlers(System.Windows.Forms.Control.ControlCollection collection)
         {
@@ -89,6 +91,9 @@ namespace MovieGuide
 
         public static void ShowTempToolTip(Control c, string msg, ToolTipIcon icon)
         {
+            //Info in auto-dispose:
+            //https://stackoverflow.com/questions/13387982/c-sharp-winforms-how-to-know-detect-if-tooltip-is-being-displayed-shown?rq=1
+
             if (m_TempTip == null)
             {
                 m_TempTip = new ToolTip();

@@ -361,8 +361,7 @@ namespace MovieGuide
                             MovieProperties.Add(p);
                             added++;
 
-                            if (needsCacheRebuild) //DPI changed
-                                foreach (var f in Directory.EnumerateFiles(d, "tt*.png", SearchOption.TopDirectoryOnly)) { File.Delete(f); }
+                            if (needsCacheRebuild) TileBase.PurgeTileImages(d); //DPI changed
                         }
                         catch (Exception ex)
                         {

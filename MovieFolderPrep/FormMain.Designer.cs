@@ -29,19 +29,20 @@
         private void InitializeComponent()
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FormMain));
-            this.m_txtRoot = new System.Windows.Forms.TextBox();
+            this.m_txtRoot = new MovieFolderPrep.LabeledTextBox();
             this.m_btn_SelectRoot = new System.Windows.Forms.Button();
             this.m_rtfStatus = new System.Windows.Forms.RichTextBox();
             this.m_btnGo = new System.Windows.Forms.Button();
             this.m_btnCancel = new System.Windows.Forms.Button();
             this.m_btnAbout = new System.Windows.Forms.Button();
+            this.m_btnManualConfig = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // m_txtRoot
             // 
-            this.m_txtRoot.AccessibleDescription = "The folder starting point in the serch for\\nvideos without an associated IMDB sho" +
-    "rtcut. Add\\nfoldername via command-line argument, click-n-\\ndrag, or using open " +
-    "folder dialog to the right.";
+            this.m_txtRoot.AccessibleDescription = "The folder starting point in the search for\\nvideos without an associated IMDB sh" +
+    "ortcut. Add\\nfoldername via command-line argument, click-n-\\ndrag, or using open" +
+    " folder dialog to the right.";
             this.m_txtRoot.AllowDrop = true;
             this.m_txtRoot.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
@@ -51,7 +52,7 @@
             this.m_txtRoot.ReadOnly = true;
             this.m_txtRoot.Size = new System.Drawing.Size(601, 20);
             this.m_txtRoot.TabIndex = 1;
-            this.m_txtRoot.Text = "Select folder search starting point...";
+            this.m_txtRoot.TextLabel = "Select folder search starting point...";
             this.m_txtRoot.DragDrop += new System.Windows.Forms.DragEventHandler(this.m_txtRoot_DragDrop);
             this.m_txtRoot.DragEnter += new System.Windows.Forms.DragEventHandler(this.m_txtRoot_DragEnter);
             // 
@@ -118,18 +119,32 @@
             this.m_btnAbout.UseVisualStyleBackColor = true;
             this.m_btnAbout.Click += new System.EventHandler(this.m_btnAbout_Click);
             // 
+            // m_btnManualConfig
+            // 
+            this.m_btnManualConfig.AccessibleDescription = "Create/edit properties for a single video.";
+            this.m_btnManualConfig.Anchor = System.Windows.Forms.AnchorStyles.Bottom;
+            this.m_btnManualConfig.AutoSize = true;
+            this.m_btnManualConfig.Location = new System.Drawing.Point(232, 523);
+            this.m_btnManualConfig.Name = "m_btnManualConfig";
+            this.m_btnManualConfig.Size = new System.Drawing.Size(117, 23);
+            this.m_btnManualConfig.TabIndex = 6;
+            this.m_btnManualConfig.Text = "Edit Video Properties";
+            this.m_btnManualConfig.UseVisualStyleBackColor = true;
+            this.m_btnManualConfig.Click += new System.EventHandler(this.m_btnManualConfig_Click);
+            // 
             // FormMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(647, 558);
+            this.Controls.Add(this.m_btnManualConfig);
             this.Controls.Add(this.m_btnAbout);
             this.Controls.Add(this.m_btnCancel);
             this.Controls.Add(this.m_btnGo);
             this.Controls.Add(this.m_rtfStatus);
             this.Controls.Add(this.m_btn_SelectRoot);
             this.Controls.Add(this.m_txtRoot);
-            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
+            this.Icon = global::MovieFolderPrep.Properties.Resources.favicon;
             this.MinimumSize = new System.Drawing.Size(278, 141);
             this.Name = "FormMain";
             this.Text = "MovieGuide Folder Preparation";
@@ -140,12 +155,13 @@
 
         #endregion
 
-        private System.Windows.Forms.TextBox m_txtRoot;
+        private MovieFolderPrep.LabeledTextBox m_txtRoot;
         private System.Windows.Forms.Button m_btn_SelectRoot;
         private System.Windows.Forms.RichTextBox m_rtfStatus;
         private System.Windows.Forms.Button m_btnGo;
         private System.Windows.Forms.Button m_btnCancel;
         private System.Windows.Forms.Button m_btnAbout;
+        private System.Windows.Forms.Button m_btnManualConfig;
     }
 }
 

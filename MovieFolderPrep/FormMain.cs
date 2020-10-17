@@ -26,7 +26,6 @@ namespace MovieFolderPrep
         //FindImdbUrl() Cached Movie and TVSeries TT codes so we don't have to query the IMDB web page for every episode.
         private readonly Dictionary<string, string> TVSeries;
 
-        private readonly string Empty_txtRootText = null;  //for m_btnGo_Click() if user entered the starting/root folder
         private readonly Font RegularFont;  //for SetStatus()
         private readonly Font BoldFont;
 
@@ -37,8 +36,6 @@ namespace MovieFolderPrep
             InitializeComponent();
 
             tt = new ToolTipHelp(this); //must be after InitializeComponent()
-
-            Empty_txtRootText = m_txtRoot.Text; //to detect if root folder has been set
 
             //Optionally get root folder from command-line
             var args = Environment.GetCommandLineArgs();
@@ -62,17 +59,22 @@ namespace MovieFolderPrep
             AboutBox.Show(this);
         }
 
+        private void m_btnManualConfig_Click(object sender, EventArgs e)
+        {
+            ManualMovieConfig.Show(this, m_txtRoot.Text);
+        }
+
         private void m_btnGo_Click(object sender, EventArgs e)
         {
-            if (m_txtRoot.Text == Empty_txtRootText)
+            if (m_txtRoot.Text == string.Empty)
             {
-                MiniMessageBox.Show(this, "Root folder has\nnot yet been set.", Empty_txtRootText, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MiniMessageBox.Show(this, "Root folder has\nnot yet been set.", m_txtRoot.TextLabel, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
             if (!Directory.Exists(m_txtRoot.Text))
             {
-                MiniMessageBox.Show(this, "Root folder\ndoes not exist", Empty_txtRootText, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MiniMessageBox.Show(this, "Root folder\ndoes not exist", m_txtRoot.TextLabel, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
@@ -90,7 +92,8 @@ namespace MovieFolderPrep
 
         private void m_btnSelectRoot_Click(object sender, EventArgs e)
         {
-            var dir = FolderSelectDialog.Show(this, "Select Movie/Media Folder", m_txtRoot.Text == Empty_txtRootText ? null : m_txtRoot.Text);
+            var initialDirectory = m_txtRoot.Text=="" || !Directory.Exists(m_txtRoot.Text) ? Environment.GetFolderPath(Environment.SpecialFolder.MyVideos) : m_txtRoot.Text;
+            var dir = FolderSelectDialog.Show(this, "Select Movie/Media Folder", initialDirectory);
             if (dir == null) return;
             m_txtRoot.Text = dir;
         }
@@ -244,20 +247,27 @@ namespace MovieFolderPrep
             SetStatus(Severity.Success, "Completed.");
         }
 
-        private void CreateTTShortcut(string filepath, string tt)
+        public void CreateTTShortcut(string filepath, string tt)
         {
             if (File.Exists(filepath)) return;
 
             //Delete all other IMDB shortcuts
             foreach (var f in Directory.EnumerateFiles(Path.GetDirectoryName(filepath), "*.url", SearchOption.TopDirectoryOnly))
             {
-                var link = MovieProperties.GetUrlFromLink(f);
+                var link = MovieProperties.GetUrlFromShortcut(f);
                 if (link == null) continue;
-                if (!link.ContainsI("imdb.com/title/tt")) continue;
+                if (!link.ContainsI("imdb.com/title/tt") && !link.StartsWith("file:///")) continue;
                 File.Delete(f);
             }
 
-            File.WriteAllText(filepath, $"[InternetShortcut]\nURL=https://www.imdb.com/title/{tt}/\n");
+            if (tt==MovieProperties.EmptyTitleID)
+            {
+                File.WriteAllText(filepath, $"[InternetShortcut]\nURL={new Uri(Path.GetDirectoryName(filepath))}\nIconIndex=129\nIconFile=C:\\Windows\\System32\\SHELL32.dll\nAuthor=MovieGuide.exe");
+            }
+            else
+            {
+                File.WriteAllText(filepath, $"[InternetShortcut]\nURL=https://www.imdb.com/title/{tt}/\nAuthor=MovieGuide.exe");
+            }
             SetStatus($"Created shortcut {Path.GetFileNameWithoutExtension(filepath)} ==> https://www.imdb.com/title/{tt}/");
         }
 
@@ -272,7 +282,7 @@ namespace MovieFolderPrep
 
             foreach (var f in Directory.EnumerateFiles(rootFolder, "*.*", SearchOption.AllDirectories))
             {
-                if (MovieProperties.MovieExtensions.IndexOf(Path.GetExtension(f)) == -1) continue;
+                if (!MovieProperties.IsVideoFile(f)) continue;
                 var folder = Path.GetDirectoryName(f);
 
                 //Special: if video is in a bracketed folder (or any of its child folders) the video is ignored. 
@@ -295,7 +305,7 @@ namespace MovieFolderPrep
             var hasMatchingShortcut = false;
             foreach (var f2 in Directory.EnumerateFiles(folder, "*.url", SearchOption.TopDirectoryOnly))
             {
-                var link = MovieProperties.GetUrlFromLink(f2);
+                var link = MovieProperties.GetUrlFromShortcut(f2);
                 if (link == null) continue;
                 if (!link.ContainsI("imdb.com/title/tt")) continue;
                 hasMatchingShortcut = true;
@@ -308,7 +318,7 @@ namespace MovieFolderPrep
                 if (isTVSeriesRootFolder) { hasMatchingShortcut = false; break; }
 
                 //It's OK if there is a shortcut in a folder full of videos.
-                var kount = Directory.EnumerateFiles(folder).Count((f) => MovieProperties.MovieExtensions.IndexOf(Path.GetExtension(f)) != -1);
+                var kount = Directory.EnumerateFiles(folder).Count((f) => MovieProperties.IsVideoFile(f));
                 if (kount > 1) { hasMatchingShortcut = false; break; } //must be 2 or more
 
                 break; //if we get this far, we're done searching for shortcuts.
@@ -333,7 +343,7 @@ namespace MovieFolderPrep
             else { SetStatus(Severity.Error, $"Source file {src.Substring(RootFolder.Length)} already exists in {Path.GetDirectoryName(dst).Substring(RootFolder.Length)}."); return; }
 
             //Verify that destination folder contains only one movie
-            if (Directory.EnumerateFiles(Path.GetDirectoryName(dst)).Count((f)=> MovieProperties.MovieExtensions.IndexOf(Path.GetExtension(f)) != -1) > 1)
+            if (Directory.EnumerateFiles(Path.GetDirectoryName(dst)).Count((f)=> MovieProperties.IsVideoFile(f)) > 1)
                 SetStatus(Severity.Warning, $"Multiple movies in destination folder {Path.GetDirectoryName(dst).Substring(RootFolder.Length)}. There can only be one movie in a folder.");
 
             //Delete empty folders
@@ -349,7 +359,7 @@ namespace MovieFolderPrep
         /// </summary>
         /// <param name="movieFileName">Full filename of video file.</param>
         /// <returns>IMDB url or null if not found</returns>
-        private ImdbParts FindImdbUrl(string movieFileFullPath)
+        public ImdbParts FindImdbUrl(string movieFileFullPath)
         {
             var imdbParts = new ImdbParts();
 
@@ -357,8 +367,8 @@ namespace MovieFolderPrep
             var movieFileName = Path.GetFileName(movieFileFullPath);
             var tempFileName = Path.Combine(Path.GetTempPath(), "FindUrl.htm");
 
-            //Find TV Series episode url. Contains TV series name + (maybe) year + season and episode
-            //Possible Filename Permutations:
+            // Find TV Series episode url. Contains TV series name + (maybe) year + season and episode
+            // Possible Filename Permutations:
             //  Ascension S01E01 Chapter 1 (2014) 720p.mp4
             //  BrainDead.S01E01.1080p.AMZN.WEB-DL.DD5.1.H.264-SiGMA.mkv
             //  Eureka (2006) - S05E02 - The Real Thing (1080p BluRay x265 Panda).mkv
@@ -372,8 +382,9 @@ namespace MovieFolderPrep
             //  The Man In The High Castle S01E01.mp4
             //  Threshold.1x01.720p.HDTV.H.265-aljasPOD.mkv
             //  01 Utopia - Episode 1.1 Mystery 2013 Eng Subs 720p [H264-mp4].mp4
+            //  50.States.Of.Fright.S01E01.720p.QUIBI.WEBRip.x264-GalaxyTV.mkv
             var pattern = @"
-                ^(?:[0-9]{1,2}[ \.-]+)?
+                ^(?:[0-9]{1,2}[ -]+)?
                 (?<NAME>.+?)
                 (?:[ \.\(]*(?<YEAR1>[0-9]{4,4})[ \.\)-]*)?
                 (?:
@@ -462,8 +473,8 @@ namespace MovieFolderPrep
                 return null;
             }
 
-            //Find feature movie url. Contains movie name and release year only. No season/episode
-            //Possible Filename Permutations:
+            // Find feature movie url. Contains movie name and release year only. No season/episode
+            // Possible Filename Permutations:
             //  Ad.Astra.2019.1080p.WEBRip.x264-[YTS.LT].mkv
             //  6.Underground.2019.1080p.WEBRip.x264-[YTS.LT].mp4
             //  The Chair to Everywhere (2019) 720p HDRip x264 - [SHADOW].mp4
@@ -612,7 +623,7 @@ namespace MovieFolderPrep
             return null; //no matches of the specified type
         }
 
-        private class ImdbParts
+        public class ImdbParts
         {
             /// <summary>
             /// Movie or TVSeries full name with illegal chars replaced with dashes.

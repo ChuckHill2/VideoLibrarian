@@ -117,26 +117,18 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
-  <data name="AboutBox" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\AboutBox.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  <assembly alias="System.Drawing" name="System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
+  <data name="m_btnSelectMovieFolder.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+    <value>
+        iVBORw0KGgoAAAANSUhEUgAAAA8AAAAPCAYAAAA71pVKAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAO
+        wwAADsMBx2+oZAAAABp0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuMTFH80I3AAAAu0lEQVQ4T2MY
+        eHC42+w/MoYKEwZrc1T+owOQGFQaNzjcavb/x4sZYPzhxoT/Ly50/H9woOL/jQ0F/0Fy6BiqDQL2tBr9
+        //HhBFEYpBaqDQL21AM1v9hAFJ4Xr4CqeQtI84MFKHhtkT5RmGFtkfb/H0C/wjBI8McDYBjgwaBwAWte
+        CgzVHzc6wBisEcrGheEaQWBevOz/HxcqIBovNODFKBpBoD9IEqqxAi/G0AgD89LU/xODocoHHDAwAADu
+        23YfF+ovWAAAAABJRU5ErkJggg==
+</value>
   </data>
-  <data name="favicon" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\favicon.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="FileSave16Black" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\FileSave16Black.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="FileSave16Gray" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\FileSave16Gray.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="File_Video_16" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\File-Video-16.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
-  <data name="Readme" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\Readme.rtf;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;Windows-1252</value>
-  </data>
-  <data name="SelectFolder" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\SelectFolder.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  <data name="m_txtPosterUrl.AccessibleDescription" xml:space="preserve">
+    <value>The location of the associated movie poster image. It may be local on this\ncomputer or on the internet. The larger this image is the better as it will be as\nit will automatically be scaled up or down depending on the screen resolution.</value>
   </data>
 </root>

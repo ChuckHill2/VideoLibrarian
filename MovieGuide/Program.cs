@@ -60,21 +60,25 @@ namespace MovieGuide
 
             try
             {
-                asm = AppDomain.CurrentDomain.GetAssemblies().FirstOrDefault(a => (a.IsDynamic ? false : string.Compare(Path.GetFileNameWithoutExtension(a.Location), asmName.Name, true) == 0));
+                var loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
+                asm = loadedAssemblies.FirstOrDefault(a => (a.IsDynamic ? false : string.Compare(Path.GetFileNameWithoutExtension(a.Location), asmName.Name, true) == 0));
                 if (asm != null) return asm;
 
-                string fullpath = null;
-                if (asmName.Name.EqualsI("NReco.VideoInfo"))
+                //Dig deeper. Look for embedded assembly resource only within OUR assemblies.
+                var dllname = $".{asmName.Name}.dll";
+                foreach (Assembly a in loadedAssemblies)
                 {
-                    Assembly a = Assembly.GetEntryAssembly();
-                    string resname = string.Format(".{0}.dll", asmName.Name);
-                    resname = a.GetManifestResourceNames().FirstOrDefault(m => m.EndsWith(resname, StringComparison.InvariantCultureIgnoreCase));
-                    if (resname == null) return null;
-                    fullpath = Path.Combine(Path.GetDirectoryName(a.Location), asmName.Name + ".dll");
-                    using (var fs = File.OpenWrite(fullpath)) a.GetManifestResourceStream(resname).CopyTo(fs);
-                }
+                    if (a.IsDynamic) continue;
+                    if (a.Location.ContainsI("Microsoft.NET")) continue; //Exclude microsoft .net assemblies
 
-                if (fullpath != null) asm = Assembly.LoadFrom(fullpath);
+                    var resname = a.GetManifestResourceNames().FirstOrDefault(m => m.EndsWith(dllname, StringComparison.InvariantCultureIgnoreCase));
+                    if (resname == null) continue;
+
+                    var fullpath = Path.Combine(Path.GetDirectoryName(a.Location), dllname);
+                    using (var fs = File.OpenWrite(fullpath)) a.GetManifestResourceStream(resname).CopyTo(fs);
+                    asm = Assembly.LoadFrom(fullpath);
+                    break;
+                }
             }
             catch (Exception e) { ex = e; }
             finally
