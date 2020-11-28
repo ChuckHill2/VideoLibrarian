@@ -239,6 +239,7 @@ namespace MovieGuide
                 File.SetLastWriteTime(data.Filename, lastModified);
 
                 ext = GetDefaultExtension(mimetype, ext);
+                if (ext == ".html") ext = ".htm";
 
                 if (!ext.EqualsI(Path.GetExtension(data.Filename)))
                 {
