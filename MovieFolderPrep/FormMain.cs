@@ -251,6 +251,15 @@ namespace MovieFolderPrep
         {
             if (File.Exists(filepath)) return;
 
+            //One cannot use the website favicon for the shortcut icon directly from the website url. It must be downloaded to a local file before it can be used!
+            var favicon = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonPictures), "favicon_imdb.ico");
+            if (!File.Exists(favicon))
+            {
+                var job = new FileEx.Job(null, "https://www.imdb.com/favicon.ico", favicon);
+                FileEx.Download(job);
+                if (!favicon.Equals(job.Filename)) File.Move(job.Filename, favicon);
+            }
+
             //Delete all other IMDB shortcuts
             foreach (var f in Directory.EnumerateFiles(Path.GetDirectoryName(filepath), "*.url", SearchOption.TopDirectoryOnly))
             {
@@ -262,11 +271,11 @@ namespace MovieFolderPrep
 
             if (tt==MovieProperties.EmptyTitleID)
             {
-                File.WriteAllText(filepath, $"[InternetShortcut]\nURL={new Uri(Path.GetDirectoryName(filepath))}\nIconIndex=129\nIconFile=C:\\Windows\\System32\\SHELL32.dll\nAuthor=MovieGuide.exe");
+                File.WriteAllText(filepath, $"[InternetShortcut]\r\nURL={new Uri(Path.GetDirectoryName(filepath))}\r\nIconIndex=129\r\nIconFile=C:\\Windows\\System32\\SHELL32.dll\r\nAuthor=MovieGuide.exe");
             }
             else
             {
-                File.WriteAllText(filepath, $"[InternetShortcut]\nURL=https://www.imdb.com/title/{tt}/\nAuthor=MovieGuide.exe");
+                File.WriteAllText(filepath, $"[InternetShortcut]\r\nURL=https://www.imdb.com/title/{tt}/ \r\nIconFile={favicon}\r\nIconIndex=0\r\nHotKey=0\r\nIDList=\r\nAuthor=MovieGuide.exe");
             }
             SetStatus($"Created shortcut {Path.GetFileNameWithoutExtension(filepath)} ==> https://www.imdb.com/title/{tt}/");
         }

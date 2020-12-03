@@ -175,8 +175,7 @@ namespace MovieGuide
         public static bool Download(Job data)
         {
             #region Initialize Static Variables
-            const string UserAgent = @"Mozilla/5.0 (Windows NT 6.1; WOW64; rv:39.0) Gecko/20100101 Firefox/39.0"; //DO NOT include "User-Agent: " prefix!
-            Func<WebClient, string> ResponseUrl = web => ((HttpWebResponse)typeof(WebClient).GetField("m_WebResponse", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(web)).ResponseUri.AbsoluteUri;
+            const string UserAgent = @"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:83.0) Gecko/20100101 Firefox/83.0"; //DO NOT include "User-Agent: " prefix!
             Func<string, string, string> GetDefaultExtension = (mimeType, defalt) =>
             {
                 if (mimeType.IsNullOrEmpty()) return defalt;
@@ -210,7 +209,7 @@ namespace MovieGuide
                 else
                     ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls | SecurityProtocolType.Ssl3;
 
-                using (var web = new WebClient())
+                using (var web = new MyWebClient())
                 {
                     web.Headers[HttpRequestHeader.UserAgent] = UserAgent;
                     if (!data.Referer.IsNullOrEmpty()) web.Headers[HttpRequestHeader.Referer] = data.Referer;
@@ -220,7 +219,7 @@ namespace MovieGuide
 
                     web.DownloadFile(data.Url, data.Filename);
 
-                    data.Url = ResponseUrl(web); //update url to what the Web server thinks it is.
+                    data.Url = web.ResponseUrl; //update url to what the Web server thinks it is.
                     string cookie = web.ResponseHeaders[HttpResponseHeader.SetCookie];
                     if (!cookie.IsNullOrEmpty()) data.Cookie = cookie;
                     if (!DateTime.TryParse(web.ResponseHeaders[HttpResponseHeader.LastModified] ?? string.Empty, out lastModified)) lastModified = DateTime.Now;
@@ -291,6 +290,29 @@ namespace MovieGuide
                 Log.Write(Severity.Warning, "Retry #{0}: {1} ==> {2}: {3}", data.Retries, data.Url, Path.GetFileName(data.Filename), ex.Message);
                 return Download(data);
                 #endregion Log Error and Maybe Retry Download
+            }
+        }
+
+        private class MyWebClient : WebClient
+        {
+            public WebRequest Request { get; private set; }
+            public WebResponse Response { get; private set; }
+            public string ResponseUrl => this.Response?.ResponseUri?.AbsoluteUri;
+
+            protected override WebResponse GetWebResponse(WebRequest request)
+            {
+                Request = request;
+                Response = base.GetWebResponse(request);
+                return Response;
+            }
+
+            protected override WebRequest GetWebRequest(Uri address)
+            {
+                Request = base.GetWebRequest(address);
+                HttpWebRequest request = Request as HttpWebRequest;
+                //Allow this API to decompress output.
+                request.AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip;
+                return request;
             }
         }
 
