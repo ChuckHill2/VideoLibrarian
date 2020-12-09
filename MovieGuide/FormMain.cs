@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 using System.Windows.Forms;
 
 namespace MovieGuide
@@ -328,6 +329,8 @@ namespace MovieGuide
             }
         }
 
+        private static readonly string BracketChars = Regex.Escape(@"~`'!@#$%^&*.,;+_=-"); // []{}() are not ignored. Note: This doesn't escape ']' or '}' anyway.
+        private static readonly Regex reIgnoredFolder = new Regex($@"\\[{BracketChars}][^{BracketChars}]+[{BracketChars}]\\", RegexOptions.Compiled);
         public void LoadMovieInfo()
         {
             //This may take awhile. Don't lock up the UI.
@@ -346,7 +349,13 @@ namespace MovieGuide
                     var hs = new HashSet<string>();
                     foreach (string f in Directory.EnumerateFiles(mf, "*.url", SearchOption.AllDirectories))
                     {
-                        hs.Add(Path.GetDirectoryName(f));
+                        var folder = Path.GetDirectoryName(f);
+                        if (folder == mf) continue; //ignore shortcuts in the root folder
+
+                        //Special: if shortcut is in a bracketed folder (or any of its child folders) the video is ignored. 
+                        if (reIgnoredFolder.IsMatch(folder+"\\")) continue;
+
+                        hs.Add(folder);
                     }
 
                     int added = 0;

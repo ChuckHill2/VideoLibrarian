@@ -19,7 +19,7 @@ You may download and install .NET 4.5 from:
 
 ## Installation
 
-Copy MovieGuide.exe to any new or existing writeable directory. That's it!
+Copy MovieGuide.exe to any new or existing writable directory. That's it!
 
 Upon execution, MovieGuide.exe will create additional files in the same
 directory as the executable.
@@ -268,17 +268,17 @@ used during movie information download.
 - View on gallery on a TV via HDMI. Must be large enough to see from the couch but also small enough to view a number of them on a single screen. 
 - Must support a LOT of videos (>1000) and be fast.
 - Must consist of a single executable. No "installation".
-- Properties must include things like name, description, genere, movie ratings, release date, etc.
+- Properties must include things like name, description, genre, movie ratings, release date, etc.
 - Must be able to retrieve this information from the internet by itself.
 - Target audience is a normal computer user. Not a developer or computer expert.
 
 ##### High-level Design Choices
-* As a web page/javascript? Requires many files. No robust means to gather properties. Not user-friendly installation. Subject to vagaries of browers.
+* As a web page/javascript? Requires many files. No robust means to gather properties. Not user-friendly installation. Subject to vagaries of browsers.
 * Target OS? Microsoft Windows. Just because it is what I know and what my laptop runs.
-* Client-Server (irrespective of language)? Again, not average-user-friendly, higher complexity, and lower maintanibility. Does user really want a server running all the time?
+* Client-Server (irrespective of language)? Again, not average-user-friendly, higher complexity, and lower maintainability. Does user really want a server running all the time?
 * As a standalone app? Easy to run, just drop into folder and execute.
 * Language
-  + C++ - Workable, but unecessary complexity and more difficult to maintain.
+  + C++ - Workable, but unnecessary complexity and more difficult to maintain.
   + C# - Faster and easier to maintain. Has no performance bottlenecks that low-level C++ needs to overcome. Supporting Win7+. Natively supports requisite https and regex.
     - WinForms? Can support large number of gallery items.
     - WPF? Gallery cannot support large number videos.
@@ -286,12 +286,14 @@ used during movie information download.
   + .NET Core - Must include requisite .NET assemblies with installation.
   + .NET Framework - .NET 4.5 must be installed on Win 7. Already included on Win 8 and Win 10. May create monolithic executable.
   
-Resulting decision - .net Framework winforms
+Resulting decision - .net Framework Winforms
 
 ##### Low-level Design
 * Enumerate folder tree by IMDB shortcuts (not movies). 
   + TV Series folder does not have a video even though episode folders do.
-  + IMDB shortcuts are the definitive files needed to retrieve and cache the movie properties. Video file names cannot be reliably parsed and used to find the movie on IMDB.
+  + Folders bracketed by '!' are ignored. Useful for unformatted folders that may have IMDB shortcuts for other purposes. 
+  + Shortcuts in the root folders are ignored.
+  + IMDB shortcuts are the definitive files needed to retrieve and cache the movie properties. Video file names cannot be reliably parsed and used to find the movie on IMDB. See *MovieFolderPrep.exe*. 
 * Created custom FlowLayoutPanel because winforms built-in FlowLayoutPanel control is not designed for galleries.
   + Does not support virtual windows > 32768 pixels because Win32 scrollbars do not support scrolling > 32768.
   + Does not support child panels (e.g. tiles)

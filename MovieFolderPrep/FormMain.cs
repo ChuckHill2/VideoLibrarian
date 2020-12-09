@@ -250,8 +250,10 @@ namespace MovieFolderPrep
         public void CreateTTShortcut(string filepath, string tt)
         {
             if (File.Exists(filepath)) return;
+            //http://www.lyberty.com/encyc/articles/tech/dot_url_format_-_an_unofficial_guide.html
 
             //One cannot use the website favicon for the shortcut icon directly from the website url. It must be downloaded to a local file before it can be used!
+            //https://docs.microsoft.com/en-us/answers/questions/120626/internet-shortcut-url-file-no-longer-supports-remo.html
             var favicon = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonPictures), "favicon_imdb.ico");
             if (!File.Exists(favicon))
             {
