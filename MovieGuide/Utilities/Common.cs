@@ -111,6 +111,11 @@ namespace MovieGuide
         }
     }
 
+    /// <summary>
+    /// Generic Equality comparer, so a new unique Equality comparer does not need to be hand crafted.  
+    /// For methods that require an IEqualityComparer to be passed.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     public class EqualityComparer<T> : IEqualityComparer, IEqualityComparer<T>
     {
         private Func<T, T, bool> _equals;
