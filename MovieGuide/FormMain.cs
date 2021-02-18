@@ -51,7 +51,10 @@ namespace MovieGuide
             mouseHook.MouseLeave += mouseHook_MouseLeave;
 
             FormMainProperties data = FormMainProperties.Deserialize();
-            this.DesktopBounds = data.DesktopBounds;
+
+            //this.DesktopBounds = data.DesktopBounds;
+            this.Tag = (Rectangle)data.DesktopBounds; //Set AFTER all tiles have been loaded. See LoadTiles()
+
             this.Settings = data.Settings;
             this.View =  data.View;
             this.SortKeys = new SortProperties(data.SortKey);
@@ -286,6 +289,21 @@ namespace MovieGuide
             {
                 CurrentViewTiles = GetView(title, mp);
             });
+
+            if (this.Tag != null) //Set in FormMain_Load()
+            {
+                //Now restore the last instance's size and position.
+                var screen = Screen.FromControl(this).WorkingArea;
+                var bounds = (Rectangle)this.Tag;
+                this.Tag = null;
+                if (bounds.Width >= screen.Width && bounds.Height >= screen.Height)
+                {
+                    this.DesktopBounds = screen;
+                    this.WindowState = FormWindowState.Maximized;
+                }
+                else this.DesktopBounds = bounds;
+                Application.DoEvents(); //let resized window background paint itself to avoid flickering because the following will still take a second. 
+            }
 
             m_flowPanel.SuspendLayout();
             for (int i = 0; i < 2; i++)

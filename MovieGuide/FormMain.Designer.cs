@@ -62,7 +62,7 @@
             this.m_miAbout});
             this.m_MenuStrip.Location = new System.Drawing.Point(0, 0);
             this.m_MenuStrip.Name = "m_MenuStrip";
-            this.m_MenuStrip.Size = new System.Drawing.Size(454, 28);
+            this.m_MenuStrip.Size = new System.Drawing.Size(389, 28);
             this.m_MenuStrip.TabIndex = 1;
             this.m_MenuStrip.Text = "menuStrip1";
             // 
@@ -92,7 +92,7 @@
             // 
             this.m_miSettings.Image = global::MovieGuide.Properties.Resources.Settings16;
             this.m_miSettings.Name = "m_miSettings";
-            this.m_miSettings.Size = new System.Drawing.Size(170, 26);
+            this.m_miSettings.Size = new System.Drawing.Size(164, 26);
             this.m_miSettings.Text = "Settings…";
             this.m_miSettings.Click += new System.EventHandler(this.m_miSettings_Click);
             // 
@@ -100,20 +100,20 @@
             // 
             this.m_miStatusLog.Image = global::MovieGuide.Properties.Resources.Notepad16;
             this.m_miStatusLog.Name = "m_miStatusLog";
-            this.m_miStatusLog.Size = new System.Drawing.Size(170, 26);
+            this.m_miStatusLog.Size = new System.Drawing.Size(164, 26);
             this.m_miStatusLog.Text = "Status Log...";
             this.m_miStatusLog.Click += new System.EventHandler(this.m_miStatusLog_Click);
             // 
             // m_miDivider1
             // 
             this.m_miDivider1.Name = "m_miDivider1";
-            this.m_miDivider1.Size = new System.Drawing.Size(167, 6);
+            this.m_miDivider1.Size = new System.Drawing.Size(161, 6);
             // 
             // m_miExit
             // 
             this.m_miExit.Image = global::MovieGuide.Properties.Resources.Close16;
             this.m_miExit.Name = "m_miExit";
-            this.m_miExit.Size = new System.Drawing.Size(170, 26);
+            this.m_miExit.Size = new System.Drawing.Size(164, 26);
             this.m_miExit.Text = "Exit";
             this.m_miExit.Click += new System.EventHandler(this.m_miExit_Click);
             // 
@@ -178,7 +178,7 @@
             this.m_flowPanel.Location = new System.Drawing.Point(0, 28);
             this.m_flowPanel.Margin = new System.Windows.Forms.Padding(0);
             this.m_flowPanel.Name = "m_flowPanel";
-            this.m_flowPanel.Size = new System.Drawing.Size(454, 159);
+            this.m_flowPanel.Size = new System.Drawing.Size(389, 159);
             this.m_flowPanel.TabIndex = 0;
             // 
             // FormMain
@@ -186,7 +186,7 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.AutoValidate = System.Windows.Forms.AutoValidate.Disable;
-            this.ClientSize = new System.Drawing.Size(454, 187);
+            this.ClientSize = new System.Drawing.Size(389, 187);
             this.Controls.Add(this.m_flowPanel);
             this.Controls.Add(this.m_MenuStrip);
             this.Icon = global::MovieGuide.Properties.Resources.favicon;
