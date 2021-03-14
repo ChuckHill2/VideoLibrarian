@@ -239,6 +239,7 @@ namespace MovieGuide
 
                 ext = GetDefaultExtension(mimetype, ext);
                 if (ext == ".html") ext = ".htm";
+                if (ext == ".jfif") ext = ".jpg";
 
                 if (!ext.EqualsI(Path.GetExtension(data.Filename)))
                 {

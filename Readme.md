@@ -3,23 +3,22 @@
 This is a standalone Windows app that will automatically download information for all
 the movies in your movie folders and present it to you in a searchable fashion
 in order to select a movie to watch. This app is designed to be viewed on your
-TV via an HDMI connection to your laptop.
+TV via an HDMI connection to your laptop (e.g. larger fonts).
 
 *Note: All this information (plus more) is available in the application about box.*
 
 ## Prerequisites
 
-MovieGuide uses .NET 4.5. If you are using a version of Windows less than
-Windows 8, then you must first install .NET 4.5. If you attempt to run this
-utility and .NET 4.5 is NOT installed, this application will fail to run.
+MovieGuide uses .NET 4.5. If you are using Windows 7 or earlier, then you must first install .NET 4.5. If you attempt to run this utility and .NET 4.5 is NOT installed, this application will fail to run.
 
-You may download and install .NET 4.5 from:
-
+You may download and install .NET 4.5 from:<br />
 <http://www.microsoft.com/en-us/download/details.aspx?id=30653>
 
 ## Installation
 
-Copy MovieGuide.exe to any new or existing writable directory. That's it!
+Copy MovieGuide.exe to any new or existing writable directory.
+Copy the optional companion utility MovieFolderPrep.exe to the same folder in order to help setup the movie folders.
+That's it!
 
 Upon execution, MovieGuide.exe will create additional files in the same
 directory as the executable.
@@ -67,8 +66,10 @@ the TV series root folders do not contain a movie file, just the url.<br />
 associated movie.
 
 ### Semi-automatic Movie Layout Configurator
-The utility *MovieFolderPrep.exe* may be used to perform a first pass at setting up the movie folders. 
-This utility must reside in the same folder as *MovieGuide.exe*. Click on *About* for documentation on how to use it.
+The utility *MovieFolderPrep.exe* may be used to set up the movie and TV series folders for you. It is not perfect because it attempts to discern the true movie name from the movie file name and may occasionally get it wrong.
+MovieFolderPrep.exe must reside in the same folder as *MovieGuide.exe*. 
+MovieFolderPrep.exe will automatically create or update the movie folder tree described above. It also includes a movie information editor to customize the information retrieved from IMDB.
+Click on *About* for additional documentation on how to use it.
 
 ### Generated Cache Files
 These cache files reside in the same folders as the shortcut files. They are 
@@ -88,9 +89,8 @@ Go to <https://www.imdb.com/find?s=tt>
 
 In the web page search box, enter the name of the movie. The results may find
 more than one entry. Verify by opening the relevant page. Click and drag the
-link from the Chrome, Firefox, or IE address bar to the folder with the matching 
-movie. Click and dragging URLs is not supported in MS Edge. Go figure. You will 
-have to create the new shortcuts via copy and paste.
+link from the Chrome, Firefox, or Edge address bar to the folder with the matching 
+movie.
 
 ### First Time MovieGuide Startup
 
@@ -98,7 +98,7 @@ When starting MovieGuide for the first time, the root folder(s) containing the
 movies has not yet been set in MovieGuide.
 
 Open the File-\>Settings dialog to enter your root movie folders (you may have
-more than one).
+more than one root movie folder).
 
 When OK is pressed, the movie information will start to be downloaded from the
 internet. Depending on the number of movies you have, this may take from minutes
@@ -262,6 +262,8 @@ This is used to extract media info directly from the video files. It is only
 used during movie information download.
 
 #### Design Considerations
+
+The UI design was inspired by [SimpleMovieCatalog](https://github.com/damienlangg/SimpleMovieCatalog) and various torrent servers.
 
 ##### Requirements
 - Organize videos on computer by various properties (view, sort and filter).
