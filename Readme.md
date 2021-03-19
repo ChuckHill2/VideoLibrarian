@@ -30,6 +30,8 @@ directory as the executable.
 -   **NReco.VideoInfo.dll** – Used to extract information from the video file.
 -   **ffprobe.exe** – Used to extract information from the video file.
 
+Note: Upon first run, Norton Antivirus (or any other AV app) may block MovieGuide and MovieFolderPrep for suspicious activity as they both query IMDB.com for movie info. Be sure to allow these within your antivirus app. Malicious hackers make it so difficult these days...
+
 ## Movie Folder Setup
 
 Within your root movie folder, each movie/episode video must be in a separate
