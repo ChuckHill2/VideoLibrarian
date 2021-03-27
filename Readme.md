@@ -135,11 +135,13 @@ embedded. Also for backup, you should also update the poster url in the XML
 file. The ideal image ratio is 250x365 pixels. Larger images are better so they
 can be scaled without any loss of image quality.
 
+### Adding/Changing/Removing/Reorganizing Movies
+
+Because MovieGuide is based directly on the files within the folders, the movie folders may be added, moved, renamed, or deleted at any time without any ill effect. This is the added management flexibility at the cost of some startup performance. For restart performance, a database _could_ have been used but it would have created a lot of restrictions regarding file management and a lot of problems maintaining synchronization between the database and actual movies. I opted for ease-of-use versus a small increase in startup speed.
+
 ### Changing/Correcting Movie Information
 
-The movie information is all stored in the xml file, tt1234567.xml. Most of the
-elements are descriptive and can be changed as necessary. If you make any changes, you must delete the tt\*.png cache files so these files
-can be regenerated with your new changes.
+The movie information is all stored in the xml file, tt1234567.xml. Most of the elements are descriptive and can be changed as necessary. If you make any changes, you must delete the tt\*.png cache files so these files can be regenerated with your new changes.
 
 ##### Special notes:
 If element *EpisodeCount* is greater than zero, the movie information refers to a
@@ -302,7 +304,7 @@ Resulting decision - .net Framework Winforms
   + Does not support virtual windows > 32768 pixels because Win32 scrollbars do not support scrolling > 32768.
   + Does not support child panels (e.g. tiles)
   + Does not support large number of controls (very very slow).
-* Cannot have large number of repeating panels with many controls (gallery) due to limited limited number of windows handles (an OS resource) allowed per application. Created panels/tiles consisting of background image containing no more than 2 real controls.
+* Cannot have large number of repeating panels with many controls (gallery) due to limited limited number of windows handles (an OS resource) allowed per application. For efficiency, created panels/tiles consisting of background image containing no more than 2 real controls. As a result, MovieGuide can support up to 3200 movies (TV Series count as one movie).
   
 
 
