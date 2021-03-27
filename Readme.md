@@ -201,6 +201,16 @@ episode names.
     (Large tiles only). Click anywhere on the full screen image exits the
     fullscreen mode. Useful when sitting on the couch.
 
+### Screenshots
+
+![MovieGuide large tile view](ReadmeImages/TilesLarge.jpg)
+
+![MovieGuide medium tile view](ReadmeImages/TilesMedium.jpg)
+
+![MovieGuide small tile view](ReadmeImages/TilesSmall.jpg)
+
+![Filter and Sort Dialogs](ReadmeImages/FilterSortDialogs.png)
+
 ### Recommended Tools
 
 These are 3rd party tools that enhance the video management experience. They are
