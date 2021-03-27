@@ -1,4 +1,4 @@
-# A Movie Guide for All Your Movies
+# A Movie Organizer for All Your Movies
 
 This is a standalone Windows app that will automatically download information for all
 the movies in your movie folders and present it to you in a searchable fashion
