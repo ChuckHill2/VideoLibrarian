@@ -209,7 +209,8 @@ episode names.
 
 ![MovieGuide small tile view](ReadmeImages/TilesSmall.jpg)
 
-![Filter and Sort Dialogs](ReadmeImages/FilterSortDialogs.png)
+![Filter and Sort Dialogs](ReadmeImages/FilterSortDialogs.png)<br />
+Filter dialog values are computed from the enumerated movies. Sorting may be performed using multiple keys.
 
 ### Recommended Tools
 
