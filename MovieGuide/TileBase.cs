@@ -70,12 +70,12 @@ namespace MovieGuide
         private int CurrentVirtualIndex = -1;
 
         /// <summary>
-        /// Add a rectangle to be treated aa a virtual control (e.g. clickable area).
+        /// Add a rectangle to be treated as a virtual control (e.g. clickable area).
         /// </summary>
         /// <param name="bounds">Virtual rectangle bounds to add.</param>
         /// <param name="click">Virtual rectangle mouse click handler.</param>
         /// <param name="text">Optional virtual rectangle text.</param>
-        /// <param name="font">Font used to draw text.</param>
+        /// <param name="font">Optional font used to draw text (if any).</param>
         protected void AddVirtualControl(RectangleRef bounds, EventHandler click, string text=null, Font font=null)
         {
             if (text != null && font == null) throw new ArgumentNullException("Font cannot be null when Text is a valid string.");
@@ -181,6 +181,18 @@ namespace MovieGuide
             }
 
             base.OnMouseClick(e);
+        }
+
+        protected override void OnPaintBackground(PaintEventArgs e)
+        {
+            //Manually paint background on large tiles to stop flickering when moving cursor off the poster (only large tiles have a background image).
+            if (this.BackgroundImage != null)
+            {
+                var rc = this.ClientRectangle;
+                rc.Intersect(e.ClipRectangle);
+                e.Graphics.DrawImage(this.BackgroundImage, rc, rc, GraphicsUnit.Pixel);
+            }
+            //base.OnPaintBackground(e);
         }
 
         protected override void OnPaint(PaintEventArgs e)

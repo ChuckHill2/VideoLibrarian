@@ -52,14 +52,14 @@ namespace MovieGuide
         {
             private static readonly FieldInfo fiX = typeof(Control).GetField("x", BindingFlags.Instance | BindingFlags.NonPublic);
             private static readonly FieldInfo fiY = typeof(Control).GetField("y", BindingFlags.Instance | BindingFlags.NonPublic);
-            private static readonly FieldInfo fiWidth = typeof(Control).GetField("width", BindingFlags.Instance | BindingFlags.NonPublic);
-            private static readonly FieldInfo fiHeight = typeof(Control).GetField("height", BindingFlags.Instance | BindingFlags.NonPublic);
-            private static readonly FieldInfo fiClientWidth = typeof(Control).GetField("clientWidth", BindingFlags.Instance | BindingFlags.NonPublic);
-            private static readonly FieldInfo fiClientHeight = typeof(Control).GetField("clientHeight", BindingFlags.Instance | BindingFlags.NonPublic);
-            private static readonly MethodInfo miXClearPreferredSizeCache = Type.GetType("System.Windows.Forms.Layout.CommonProperties, " + typeof(System.Windows.Forms.Layout.LayoutEngine).Assembly.FullName, false, false)
-                .GetMethod("xClearPreferredSizeCache", BindingFlags.Static | BindingFlags.NonPublic);
-            private static readonly MethodInfo miDoLayout = Type.GetType("System.Windows.Forms.Layout.LayoutTransaction, " + typeof(System.Windows.Forms.Layout.LayoutEngine).Assembly.FullName, false, false)
-                .GetMethod("DoLayout", BindingFlags.Static | BindingFlags.Public);
+            //private static readonly FieldInfo fiWidth = typeof(Control).GetField("width", BindingFlags.Instance | BindingFlags.NonPublic);
+            //private static readonly FieldInfo fiHeight = typeof(Control).GetField("height", BindingFlags.Instance | BindingFlags.NonPublic);
+            //private static readonly FieldInfo fiClientWidth = typeof(Control).GetField("clientWidth", BindingFlags.Instance | BindingFlags.NonPublic);
+            //private static readonly FieldInfo fiClientHeight = typeof(Control).GetField("clientHeight", BindingFlags.Instance | BindingFlags.NonPublic);
+            //private static readonly MethodInfo miXClearPreferredSizeCache = Type.GetType("System.Windows.Forms.Layout.CommonProperties, " + typeof(System.Windows.Forms.Layout.LayoutEngine).Assembly.FullName, false, false)
+            //    .GetMethod("xClearPreferredSizeCache", BindingFlags.Static | BindingFlags.NonPublic);
+            //private static readonly MethodInfo miDoLayout = Type.GetType("System.Windows.Forms.Layout.LayoutTransaction, " + typeof(System.Windows.Forms.Layout.LayoutEngine).Assembly.FullName, false, false)
+            //    .GetMethod("DoLayout", BindingFlags.Static | BindingFlags.Public);
             private static readonly MethodInfo miSetStyle = typeof(Control).GetMethod("SetStyle", BindingFlags.Instance | BindingFlags.NonPublic);
 
             private readonly Control ctrl;
@@ -67,13 +67,13 @@ namespace MovieGuide
 
             public int X { get { return (int)fiX.GetValue(ctrl); } set { fiX.SetValue(ctrl, value); } }
             public int Y { get { return (int)fiY.GetValue(ctrl); } set { fiY.SetValue(ctrl, value); } }
-            public int Width { get { return (int)fiWidth.GetValue(ctrl); } set { fiWidth.SetValue(ctrl, value); } }
-            public int Height { get { return (int)fiHeight.GetValue(ctrl); } set { fiHeight.SetValue(ctrl, value); } }
-            public int ClientWidth { get { return (int)fiClientWidth.GetValue(ctrl); } set { fiClientWidth.SetValue(ctrl, value); } }
-            public int ClientHeight { get { return (int)fiClientHeight.GetValue(ctrl); } set { fiClientHeight.SetValue(ctrl, value); } }
+            //public int Width { get { return (int)fiWidth.GetValue(ctrl); } set { fiWidth.SetValue(ctrl, value); } }
+            //public int Height { get { return (int)fiHeight.GetValue(ctrl); } set { fiHeight.SetValue(ctrl, value); } }
+            //public int ClientWidth { get { return (int)fiClientWidth.GetValue(ctrl); } set { fiClientWidth.SetValue(ctrl, value); } }
+            //public int ClientHeight { get { return (int)fiClientHeight.GetValue(ctrl); } set { fiClientHeight.SetValue(ctrl, value); } }
 
-            public static void xClearPreferredSizeCache(Control element) { miXClearPreferredSizeCache.Invoke(null, new object[] { element }); }
-            public static void DoLayout(Control elementToLayout, Control elementCausingLayout, string property) { miDoLayout.Invoke(null, new object[] { elementToLayout, elementCausingLayout, property }); }
+            //public static void xClearPreferredSizeCache(Control element) { miXClearPreferredSizeCache.Invoke(null, new object[] { element }); }
+            //public static void DoLayout(Control elementToLayout, Control elementCausingLayout, string property) { miDoLayout.Invoke(null, new object[] { elementToLayout, elementCausingLayout, property }); }
 
             public void SetStyle(ControlStyles styleFlags, bool doSet) { miSetStyle.Invoke(ctrl, new object[] { styleFlags, doSet }); }
         }
