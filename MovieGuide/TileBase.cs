@@ -56,6 +56,17 @@ namespace MovieGuide
     /// </summary>
     public class TileBase : UserControl, ITile
     {
+        //Determine if tile class is a TileXXXLite tile. 
+        //Must use normal painting when generating a background image from a template tile.
+        //Plus 'virtual' controls are not used in template tiles.
+        //The sole purpose of template tiles is to make a background image for the normal 'Lite' tiles.
+        private bool IsLiteTile = true; 
+
+        public TileBase()
+        {
+            IsLiteTile = this.GetType().Name.EndsWith("Lite");
+        }
+
         private bool _mouseMoveEntered = false; //used exclusively by OnMouseMove()
         private List<VirtualControl> VirtualControls = new List<VirtualControl>();
         private struct VirtualControl 
@@ -185,6 +196,12 @@ namespace MovieGuide
 
         protected override void OnPaintBackground(PaintEventArgs e)
         {
+            if (!IsLiteTile)
+            {
+                base.OnPaintBackground(e);
+                return;
+            }
+
             //Manually paint background on large tiles to stop flickering when moving cursor off the poster (only large tiles have a background image).
             if (this.BackgroundImage != null)
             {
@@ -192,12 +209,12 @@ namespace MovieGuide
                 rc.Intersect(e.ClipRectangle);
                 e.Graphics.DrawImage(this.BackgroundImage, rc, rc, GraphicsUnit.Pixel);
             }
-            //base.OnPaintBackground(e);
         }
 
         protected override void OnPaint(PaintEventArgs e)
         {
             base.OnPaint(e);
+            if (!IsLiteTile) return;
 
             for (int i = 0; i < VirtualControls.Count; i++)
             {
