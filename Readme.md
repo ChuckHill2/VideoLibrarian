@@ -1,40 +1,40 @@
-# A Movie Organizer for All Your Movies
+# A Video Librarian for All Your Movies
 
 This is a standalone Windows app that will automatically download information for all
-the movies in your movie folders and present it to you in a searchable fashion
-in order to select a movie to watch. This app is designed to be viewed on your
-TV via an HDMI connection to your laptop (e.g. larger fonts).
+the videos in your video folders and present it to you in a searchable fashion
+in order to select a video to watch. This app is designed to be viewed on your
+TV via an HDMI connection (or other means) to your laptop (e.g. larger fonts).
 
-*Note: All this information (plus more) is available in the application about box.*
+*Note: All this information is also available in the application about box.*
 
 ## Prerequisites
 
-MovieGuide uses .NET 4.5. If you are using Windows 7 or earlier, then you must first install .NET 4.5. If you attempt to run this utility and .NET 4.5 is NOT installed, this application will fail to run.
+VideoLibrarian uses .NET 4.5. If you are using Windows 7 or earlier, then you must first install .NET 4.5. If you attempt to run this utility and .NET 4.5 is NOT installed, this application will fail to run.
 
-You may download and install .NET 4.5 from:<br />
+You may download and install .NET 4.5 from:  
 <http://www.microsoft.com/en-us/download/details.aspx?id=30653>
 
 ## Installation
 
-Copy MovieGuide.exe to any new or existing writable directory.
-Copy the optional companion utility MovieFolderPrep.exe to the same folder in order to help setup the movie folders.
+Copy VideoLibrarian.exe to any new or existing writable directory.
+Copy the optional companion utility VideoOrganizer.exe to the same folder in order to help setup the video folders.
 That's it!
 
-Upon execution, MovieGuide.exe will create additional files in the same
+Upon execution, VideoLibrarian.exe will create additional files in the same
 directory as the executable.
 
--   **MovieGuide.log** – Text file contains status messages. It may be
+-   **VideoLibrarian.log** – Text file contains status messages. It may be
     informational, warnings, and errors.
--   **MovieGuide.SavedState.xml** – This file contains all the current configuration
+-   **VideoLibrarian.SavedState.xml** – This file contains all the current configuration
     values.
 -   **NReco.VideoInfo.dll** – Used to extract information from the video file.
 -   **ffprobe.exe** – Used to extract information from the video file.
 
-Note: Upon first run, Norton Antivirus (or any other AV app) may block MovieGuide and MovieFolderPrep for suspicious activity as they both query IMDB.com for movie info. Be sure to allow these within your antivirus app. Malicious hackers make it so difficult these days...
+Note: Upon first run, Norton Antivirus (or any other AV app) may block VideoLibrarian and VideoOrganizer for suspicious activity as they both query IMDB.com for movie info. Be sure to allow these within your antivirus app. Malicious hackers make it so difficult these days...
 
-## Movie Folder Setup
+## Video Folder Setup
 
-Within your root movie folder, each movie/episode video must be in a separate
+Within your root video folder, each movie/episode video must be in a separate
 folder with a matching IMDB movie shortcut (.url). A TV series root
 folder contains only the main IMDB TV series shortcut as it just refers to all
 the episodes. The folders may be arranged in any way you see fit so long as the
@@ -43,34 +43,29 @@ additional files in these folders are ignored. Upon startup, this application
 will add additional cache files to these folders. See File-\>Status Log for details.
 
 As an example, your folders may be arranged as follows:
-<pre>
-moviesRoot
-├── movie1
-│   ├── anyname.mp4 – The movie file. May be any video format.
-│   └── anyname.url – The IMDB movie shortcut (more below).
-├── movie2
-├── movieN
-├── tvSeries1
-│   ├── anyname.url – The IMDB movie shortcut (more below).
-│   ├── episode1
-│   │   ├── anyname.mp4 – The movie file. May be any video format.
-│   │   └── anyname.url – The IMDB movie shortcut (more below).
-│   ├── episode2
-│   └── episodeN
-├── tvSeries2
-└── tvSeriesN
-</pre>
+```
+    videosRoot
+    ├── video1
+    │   ├── anyname.mp4 – The video file. May be any video format.
+    │   └── anyname.url – The IMDB movie shortcut.
+    ├── video2
+    ├── videoN
+    ├── tvSeries1
+    │   ├── anyname.url – The IMDB movie shortcut.
+    │   ├── episode1
+    │   │   ├── anyname.mp4 – The video file. May be any video format.
+    │   │   └── anyname.url – The IMDB movie shortcut.
+    │   ├── episode2
+    │   └── episodeN
+    ├── tvSeries2
+    └── tvSeriesN
+```
 
-*anyname.mp4* refers to the sole movie file in this directory. It may be in 
-any video format (e.g. asf, avi, flv, mkv, mov, mp4, mpg, wmv, etc.). Note that 
-the TV series root folders do not contain a movie file, just the url.<br />
-*anyname.url* refers to an IMDB shortcut file to the IMDB page of the 
-associated movie.
-
-### Semi-automatic Movie Layout Configurator
-The utility *MovieFolderPrep.exe* may be used to set up the movie and TV series folders for you. It is not perfect because it attempts to discern the true movie name from the movie file name and may occasionally get it wrong.
-MovieFolderPrep.exe must reside in the same folder as *MovieGuide.exe*. 
-MovieFolderPrep.exe will automatically create or update the movie folder tree described above. It also includes a movie information editor to customize the information retrieved from IMDB.
+### Semi-automatic Video Layout Configurator
+The utility *VideoOrganizer.exe* may be used to set up the movie and TV series folders for you. 
+It is not perfect because it attempts to discern the true movie name from the video file name and may occasionally get it wrong.
+VideoOrganizer.exe must reside in the same folder as *VideoLibrarian.exe*. 
+VideoOrganizer.exe will automatically create or update the video folder tree described above. It also includes a movie information editor to customize the information retrieved from IMDB.
 Click on *About* for additional documentation on how to use it.
 
 ### Generated Cache Files
@@ -85,32 +80,31 @@ unique to each shortcut.
 
 If any of these files are deleted, they will be recreated.
 
-### Retrieving IMDB Movie Internet Shortcut
+### Manually Retrieving IMDB Movie Internet Shortcut
 
 Go to <https://www.imdb.com/find?s=tt>
 
 In the web page search box, enter the name of the movie. The results may find
 more than one entry. Verify by opening the relevant page. Click and drag the
-link from the Chrome, Firefox, or Edge address bar to the folder with the matching 
-movie.
+link from the browser address bar to the folder with the matching movie.
 
-### First Time MovieGuide Startup
+### First Time VideoLibrarian Startup
 
-When starting MovieGuide for the first time, the root folder(s) containing the
-movies has not yet been set in MovieGuide.
+When starting VideoLibrarian for the first time, the root folder(s) containing the
+videos has not yet been set in VideoLibrarian.
 
-Open the File-\>Settings dialog to enter your root movie folders (you may have
-more than one root movie folder).
+Open the File-\>Settings dialog to enter your root video folders (you may have
+more than one root video folder).
 
 When OK is pressed, the movie information will start to be downloaded from the
 internet. Depending on the number of movies you have, this may take from minutes
 to hours. *Be patient*. This cached information for each movie is stored in the
-same folder as the movie. These files are named tt0000000.xxx. If these files
+same folder as the video. These files are named tt0000000.xxx. If these files
 are deleted, they will automatically be regenerated. Once these cached files
 have been generated, startup will be a whole lot faster. This is the only time
 the internet is accessed.
 
-Review File-\>Status Log or the MovieGuide.log for any possible errors in file
+Review File-\>Status Log or the VideoLibrarian.log for any possible errors in file
 generation.
 
 ### Movie Tile View Modes
@@ -120,32 +114,32 @@ window, wrapping from left to right.
 
 The tiles come in 3 sizes, small, medium, and large. ‘Large’ displays all the
 information available, and ‘Small’ contains a subset because all the information
-will not fit. However many more small tiles will fit on a single page than large
-tiles. That is the trade off.
+will not fit. However, many more small tiles will fit on a single page than large
+tiles. That is the trade-off.
 
-### Changing the Default Movie Poster Image
+### Adding/Changing/Removing/Reorganizing Movies
+
+Because VideoLibrarian is based directly on the files within the folders, the video folders may be added, moved, renamed, or deleted at any time without any ill effect. This is the added management flexibility at the cost of some startup performance. For restart performance, a database _could_ have been used but it would have created a lot of restrictions regarding file management and a lot of problems maintaining synchronization between the database and actual movies. I opted for ease-of-use versus a small increase in startup speed.
+
+### Manually Changing/Correcting Movie Information
+
+The movie information is all stored in the xml file, tt1234567.xml. Most of the elements are descriptive and can be changed as necessary. If you make any changes, you must delete the tt\*.png cache files so these files can be regenerated with your new changes. If you do not want to manually edit this xml file, use _VideoOrganizer.exe_. It will allow you to safely update the  file without fear of corrupting it.
+
+#### Changing the Default Movie Poster Image
 
 When this application gathers the information from the url shortcut you
 specified, it downloads the first poster image it finds. This image may not be
 the best poster image. The IMDB movie page actually has many poster images (some
 in foreign languages). You can manually download a poster image from IMDB or
-elsewhere and replace the one that MovieGuide downloaded. If you do, you must
+elsewhere and replace the one that VideoLibrarian downloaded. If you do, you must
 delete the tt\*.png cache files so they can be regenerated with your new image
 embedded. Also for backup, you should also update the poster url in the XML
 file. The ideal image ratio is 250x365 pixels. Larger images are better so they
 can be scaled without any loss of image quality.
 
-### Adding/Changing/Removing/Reorganizing Movies
-
-Because MovieGuide is based directly on the files within the folders, the movie folders may be added, moved, renamed, or deleted at any time without any ill effect. This is the added management flexibility at the cost of some startup performance. For restart performance, a database _could_ have been used but it would have created a lot of restrictions regarding file management and a lot of problems maintaining synchronization between the database and actual movies. I opted for ease-of-use versus a small increase in startup speed.
-
-### Changing/Correcting Movie Information
-
-The movie information is all stored in the xml file, tt1234567.xml. Most of the elements are descriptive and can be changed as necessary. If you make any changes, you must delete the tt\*.png cache files so these files can be regenerated with your new changes.
-
 ##### Special notes:
 If element *EpisodeCount* is greater than zero, the movie information refers to a
-TV series. A movie in this folder is ignored. Child episode subfolders contain
+TV series. A video in this folder is ignored. Child episode subfolders contain
 the video files.
 
 If element *Season* is greater than zero, the movie information refers to a TV
@@ -154,7 +148,7 @@ series episode.
 Element *Episode* may be any integer but must be unique within the series.
 
 The episode *MovieName* element consists of 2 parts, the series name and episode name <small>(ex. \<*MovieName*\>Eureka - Pilot\</*MovieName*\>)</small>. 
-The two names are delimited by a soft hyphen (" \\xAD ", with spaces), <u>not</u> a regular
+The two names are delimited by a soft hyphen (" \\xAD ", with spaces), _not_ a regular
 minus-hyphen ‘-‘ character. They look alike. If necessary, just copy the ‘dash’ from another
 episode. This was done to distinguish between regular dashes as part of the movie or
 episode names.
@@ -169,14 +163,14 @@ episode names.
 
 -   Error/status text log. Available through menu File-\>Status Log…
 
--   3 different movie info item (aka UI ‘tile’) sizes. Available through menu
+-   3 different video info item (aka UI ‘tile’) sizes. Available through menu
     View.
 
 -   Sort tiles by multiple properties.
 
 -   Filter tiles by multiple properties.
 
--   Maximum supported movies is 3200. Additional movies are ignored. See log for
+-   Maximum supported videos is 3200. Additional videos are ignored. See log for
     details. Note that each entire TV-Series count as one ‘movie’.
 
 -   Scrolling is supported by clicking and dragging on the scrollbar, mouse
@@ -184,7 +178,7 @@ episode names.
     keys. Arrow keys scroll by 1/10 height (or width) of the current tile.
     Alt-arrow keys scroll by 1 pixel.
 
--   Clicking on title opens the movie in the default video player.
+-   Clicking on title opens the video in the default video player.
 
 -   Clicking on the description (or small tile body), opens the full summary in
     a popup window.
@@ -194,7 +188,7 @@ episode names.
 -   Clicking on the “IMDB” icon, opens the IMDB movie page in the default
     browser.
 
--   Clicking on the “Watched” checkbox, marks the movie as ‘previously viewed’
+-   Clicking on the “Watched” checkbox, marks the video as ‘previously viewed’
     and also shows date viewed. One can also filter and sort on this property.
 
 -   Clicking on the poster will blow up the tile so it fits the full screen
@@ -203,14 +197,14 @@ episode names.
 
 ### Screenshots
 
-![MovieGuide large tile view](ReadmeImages/TilesLarge.jpg)
+![VideoLibrarian large tile view](ReadmeImages/TilesLarge.jpg)
 
-![MovieGuide medium tile view](ReadmeImages/TilesMedium.jpg)
+![VideoLibrarian medium tile view](ReadmeImages/TilesMedium.jpg)
 
-![MovieGuide small tile view](ReadmeImages/TilesSmall.jpg)
+![VideoLibrarian small tile view](ReadmeImages/TilesSmall.jpg)
 
-![Filter and Sort Dialogs](ReadmeImages/FilterSortDialogs.png)<br />
-Filter dialog values are computed from the enumerated movies. Sorting may be performed using multiple keys.
+![Filter and Sort Dialogs](ReadmeImages/FilterSortDialogs.png)  
+Filter dialog values are computed from the enumerated videos. Sorting may be performed using multiple keys.
 
 ### Recommended Tools
 
@@ -235,7 +229,7 @@ formats not supported by Windows Explorer. See:
 #### Video Conversion
 
 Invariably, movie videos are extremely large. With the right tool, one can
-compress a movie by 50% without any noticeable differences. There are many video
+compress a video by 50% without any noticeable differences. There are many video
 conversion tools out there. Good (and not so good) tools cost money, but the
 best one that does not require you to be a video expert is the Divx Video
 Converter (freeware). It may be found at
@@ -267,7 +261,7 @@ Forms on Visual Studio 2019.
 
 <https://www.codeproject.com/Articles/624997/Enhanced-Scrollbar>
 
-This is used (and slightly modified) because MovieGuide is a gallery of tiles
+This is used (and slightly modified) because VideoLibrarian is a gallery of tiles
 that vastly exceeds the maximum size of the default virtual window. As a result,
 the default windows scroll bars are woefully inadequate.
 
@@ -292,16 +286,16 @@ The UI design was inspired by [SimpleMovieCatalog](https://github.com/damienlang
 ##### High-level Design Choices
 * As a web page/javascript? Requires many files. No robust means to gather properties. Not user-friendly installation. Subject to vagaries of browsers.
 * Target OS? Microsoft Windows. Just because it is what I know and what my laptop runs.
-* Client-Server (irrespective of language)? Again, not average-user-friendly, higher complexity, and lower maintainability. Does user really want a server running all the time?
+* Client-Server (irrespective of language)? Again, not average-user-friendly, higher complexity, and lower maintainability. Does your average user really want a server running all the time?
 * As a standalone app? Easy to run, just drop into folder and execute.
 * Language
   + C++ - Workable, but unnecessary complexity and more difficult to maintain.
-  + C# - Faster and easier to maintain. Has no performance bottlenecks that low-level C++ needs to overcome. Supporting Win7+. Natively supports requisite https and regex.
+  + C# - Faster and easier to maintain. There are no performance bottlenecks that low-level C++ needs to overcome. Supporting Win7+. Natively supports requisite https and regex.
     - WinForms? Can support large number of gallery items.
-    - WPF? Gallery cannot support large number videos.
+    - WPF? Gallery cannot support large number video tiles.
 * Build Environment
-  + .NET Core - Must include requisite .NET assemblies with installation.
-  + .NET Framework - .NET 4.5 must be installed on Win 7. Already included on Win 8 and Win 10. May create monolithic executable.
+  + .NET Core - Must include requisite .NET assemblies with installation. Ugh!
+  + .NET Framework - .NET 4.5 must be installed on Win 7. Already included on Win 8 and Win 10. May create monolithic executable. Our goal.
   
 Resulting decision - .net Framework Winforms
 
@@ -310,12 +304,12 @@ Resulting decision - .net Framework Winforms
   + TV Series folder does not have a video even though episode folders do.
   + Folders bracketed by '!' are ignored. Useful for unformatted folders that may have IMDB shortcuts for other purposes. 
   + Shortcuts in the root folders are ignored.
-  + IMDB shortcuts are the definitive files needed to retrieve and cache the movie properties. Video file names cannot be reliably parsed and used to find the movie on IMDB. See *MovieFolderPrep.exe*. 
+  + IMDB shortcuts are the definitive files needed to retrieve and cache the movie properties. Video file names cannot be reliably parsed and used to find the movie on IMDB. See *VideoOrganizer.exe*. 
 * Created custom FlowLayoutPanel because winforms built-in FlowLayoutPanel control is not designed for galleries.
   + Does not support virtual windows > 32768 pixels because Win32 scrollbars do not support scrolling > 32768.
   + Does not support child panels (e.g. tiles)
   + Does not support large number of controls (very very slow).
-* Cannot have large number of repeating panels with many controls (gallery) due to limited limited number of windows handles (an OS resource) allowed per application. For efficiency, created panels/tiles consisting of background image containing no more than 2 real controls. As a result, MovieGuide can support up to 3200 movies (TV Series count as one movie).
+* Cannot have large number of repeating panels with many controls (gallery) due to limited limited number of windows handles (an OS resource) allowed per application. For efficiency, created panels/tiles consisting of background image containing no more than 2 real controls. As a result, VideoLibrarian can support up to 3200 movies (TV Series count as one movie).
   
 
 
