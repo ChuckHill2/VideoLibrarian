@@ -1,18 +1,13 @@
 //#undef DEBUG
 
 using System;
-using System.Drawing;
-using System.Windows.Forms;
-using System.Runtime.InteropServices;
-using System.ComponentModel;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Diagnostics;
-using System.Reflection;
-using System.Drawing.Drawing2D;
-using System.Collections.ObjectModel;
-using System.Collections.Specialized;
 using System.Collections;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Drawing;
+using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Windows.Forms;
 
 namespace VideoLibrarian
 {
