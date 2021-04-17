@@ -89,7 +89,12 @@ namespace VideoLibrarian
         //Must use normal painting when generating a background image from a template tile.
         //Plus 'virtual' controls are not used in template tiles.
         //The sole purpose of template tiles is to make a background image for the normal 'Lite' tiles.
-        private bool IsLiteTile = true; 
+        private bool IsLiteTile = true;
+
+        // When triggering paint of the virtual controls via Invalidate(vcRect,false), it always unnecessarily repaints the entire panel!
+        // We temporarily disable OnPaintBackground() and paint ONLY the virtual control background during OnPaint().
+        // Repainting the real control backgrounds, properly repaints ONLY the control background as expected.
+        private bool VirtualPaint = false; 
 
         public TileBase()
         {
@@ -184,6 +189,7 @@ namespace VideoLibrarian
                     {
                         this.Cursor = Cursors.Hand;
                         if (vc.Text == null) return;
+                        VirtualPaint = true;
                         Invalidate(vc.Bounds, false);
                     }
                     return;
@@ -197,6 +203,7 @@ namespace VideoLibrarian
                 if (vc.Click != null)
                 {
                     this.Cursor = Cursors.Default;
+                    VirtualPaint = true;
                     Invalidate(vc.Bounds, false);
                 }
                 CurrentVirtualIndex = -1;
@@ -231,12 +238,19 @@ namespace VideoLibrarian
                 return;
             }
 
+            if (VirtualPaint)
+            {
+                VirtualPaint = false;
+                return;
+            }
+
             //Manually paint background on large tiles to stop flickering when moving cursor off the poster (only large tiles have a background image).
             if (this.BackgroundImage != null)
             {
                 var rc = this.ClientRectangle;
                 rc.Intersect(e.ClipRectangle);
                 e.Graphics.DrawImage(this.BackgroundImage, rc, rc, GraphicsUnit.Pixel);
+                Diagnostics.WriteLine($"TileBase.OnPaintBackground: {{{rc.X},{rc.Y},{rc.Width},{rc.Height}}} {MovieProps.MovieName}");
             }
         }
 
@@ -245,12 +259,15 @@ namespace VideoLibrarian
             base.OnPaint(e);
             if (!IsLiteTile) return;
 
+            Diagnostics.WriteLine($"TileBase.OnPaint: {{{e.ClipRectangle.X},{e.ClipRectangle.Y},{e.ClipRectangle.Width},{e.ClipRectangle.Height}}} {MovieProps.MovieName}");
+
             for (int i = 0; i < VirtualControls.Count; i++)
             {
                 var vc = VirtualControls[i];
                 if (vc.Text == null) continue;
                 if (!e.ClipRectangle.IntersectsWith(vc.Bounds)) continue;
                 var clr = i == CurrentVirtualIndex ? vc.Highlight : vc.Normal;
+                e.Graphics.DrawImage(this.BackgroundImage, vc.Bounds, vc.Bounds, GraphicsUnit.Pixel);
                 TextRenderer.DrawText(e.Graphics, vc.Text, vc.Font, vc.Bounds, clr, TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix);
             }
         }
