@@ -178,15 +178,14 @@ episode names.
     keys. Arrow keys scroll by 1/10 height (or width) of the current tile.
     Alt-arrow keys scroll by 1 pixel.
 
--   Clicking on title opens the video in the default video player.
+-   Clicking on title opens the video in your video player (as defined in File->Settings).
 
 -   Clicking on the description (or small tile body), opens the full summary in
     a popup window.
 
 -   Clicking on the location opens containing folder in Windows Explorer.
 
--   Clicking on the “IMDB” icon, opens the IMDB movie page in the default
-    browser.
+-   Clicking on the “IMDB” icon, opens the IMDB movie page in your browser (as defined in File->Settings).
 
 -   Clicking on the “Watched” checkbox, marks the video as ‘previously viewed’
     and also shows date viewed. One can also filter and sort on this property.
