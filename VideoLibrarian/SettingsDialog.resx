@@ -117,4 +117,16 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="m_cmbBrowser.AccessibleDescription" xml:space="preserve">
+    <value>Full path of the browser (+ any command-line args) to use when clicking on the IMDB\nicon or leave empty to use the system default browser.  Select from known installed\nbrowser list, click 'n drag from Windows Explorer, or select from the open file dialog.</value>
+  </data>
+  <data name="m_txtLogViewer.AccessibleDescription" xml:space="preserve">
+    <value>Full path of the text viewer/editor (+ any command-line args) to use when viewing the status\nlog, or leave empty to use the system default text editor (normally notepad.exe).  Select via\ntyping, copy 'n paste, click 'n drag from Windows Explorer, or select from the open file dialog.</value>
+  </data>
+  <data name="m_txtPlayer.AccessibleDescription" xml:space="preserve">
+    <value>Full path of the video player (+ any command-line args) to use when clicking on\nthe movie title or leave empty to use the system default video player.  Select\nvia click 'n drag from Windows Explorer, or select from the open file dialog.</value>
+  </data>
+  <data name="m_txtBrowser.AccessibleDescription" xml:space="preserve">
+    <value>Full path of the browser (+ any command-line args) to use when clicking on the IMDB\nicon or leave empty to use the system default browser.  Select from known installed\nbrowser list, click 'n drag from Windows Explorer, or select from the open file dialog.</value>
+  </data>
 </root>

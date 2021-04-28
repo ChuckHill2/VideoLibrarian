@@ -37,7 +37,13 @@ namespace VideoLibrarian
         [XmlArrayItem("Folder")]
         public string[] MediaFolders { get; set; }
 
-        [DefaultValue(100)]
-        public int Zoom = 100;
+        [DefaultValue("")]
+        public string Browser { get; set; } = "";
+
+        [DefaultValue("")]
+        public string VideoPlayer { get; set; } = "";
+
+        [DefaultValue("")]
+        public string LogViewer { get; set; } = "";
     }
 }

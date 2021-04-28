@@ -190,6 +190,9 @@
     <Compile Include="Utilities\FileEx.cs" />
     <Compile Include="Utilities\FolderSelectDialog.cs" />
     <Compile Include="Utilities\GlobalMouseHook.cs" />
+    <Compile Include="Utilities\LabeledTextBox.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="Utilities\MediaInfo.cs" />
     <Compile Include="Utilities\MiniMessageBox.cs">
       <SubType>Form</SubType>
@@ -213,7 +216,7 @@
     <Compile Include="Utilities\ToolTipHelp.cs" />
     <Compile Include="Utilities\VersionRW.cs" />
     <Compile Include="Utilities\XmlIO.cs" />
-    <Compile Include="Utilities\ZoomHandler.cs" />
+    <None Include="Utilities\ZoomHandler.cs" />
     <Compile Include="Watched.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -318,6 +321,9 @@
     <EmbeddedResource Include="..\packages\NReco.VideoInfo.1.1.0\lib\net35\NReco.VideoInfo.dll">
       <Link>Resources\NReco.VideoInfo.dll</Link>
     </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Resources\OpenFile-24.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

@@ -63,9 +63,6 @@
     <Compile Include="FormMain.Designer.cs">
       <DependentUpon>FormMain.cs</DependentUpon>
     </Compile>
-    <Compile Include="LabeledTextBox.cs">
-      <SubType>Component</SubType>
-    </Compile>
     <Compile Include="ManualVideoConfig.cs">
       <SubType>Form</SubType>
     </Compile>

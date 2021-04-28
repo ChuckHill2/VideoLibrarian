@@ -32,9 +32,8 @@ using System.ComponentModel;
 using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
-using VideoLibrarian;
 
-namespace VideoOrganizer
+namespace VideoLibrarian
 {
     /// <summary>
     /// Extended TextBox control. Features:

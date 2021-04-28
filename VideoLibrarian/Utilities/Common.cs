@@ -114,6 +114,8 @@ namespace VideoLibrarian
                 MessageCapture?.Invoke(severity, fmt);
             }
         }
+
+        public static void Dispose() => Write(0, null);
     }
 
     public static class Diagnostics
@@ -767,6 +769,66 @@ namespace VideoLibrarian
             {
                 return new Bitmap(fs);
             }
+        }
+    }
+
+    public static class ProcessEx
+    {
+        /// <summary>
+        /// Open file or url with supplied executable.
+        /// </summary>
+        /// <param name="exe">Executable used to open 'arg'. May include command-line arguments. if null or empty, uses the system default executable for the arg type.</param>
+        /// <param name="arg">The full filename or URL to open.</param>
+        public static void OpenExec(string exe, string arg)
+        {
+            var dir = string.Empty;
+
+            if (!arg.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+            {
+                dir = Path.GetDirectoryName(arg);
+                arg = Path.GetFileName(arg);
+            }
+
+            //Split path from potentially long movie name to minimize chance 
+            //of exception when full path exceeds the maximum path length.
+            var si = new ProcessStartInfo();
+            if (exe.IsNullOrEmpty()) //use system default executable
+            {
+                si.FileName = arg;
+            }
+            else
+            {
+                var s = SplitProcessCommandline(exe); //split executable and command-line args
+
+                if (!File.Exists(s[0]))
+                {
+                    Log.Write(Severity.Warning, "Executable not found: " + s[0]);
+                    si.FileName = arg;
+                }
+                else
+                {
+                    si.FileName = s[0];
+                    si.Arguments = $"{s[1]} \"{arg}\"".Trim();
+                }
+            }
+
+            si.WorkingDirectory = dir; //start within directory
+            Process.Start(si);
+        }
+
+        //Split the settings Browser or VideoPlayer command where s[0]== the executable, and s[1]== any optional command-line arguments.
+        public static string[] SplitProcessCommandline(string path)
+        {
+            if (path.IsNullOrEmpty()) return new string[] { "", "" };
+
+            int idx = path.IndexOf(".exe", 0, StringComparison.CurrentCultureIgnoreCase);
+            if (idx <= 0) return new string[] { "", "" }; //not an executable
+
+            return new string[]
+            {
+                path.Substring(0, idx + 4),
+                path.Substring(idx + 4)
+            };
         }
     }
 }

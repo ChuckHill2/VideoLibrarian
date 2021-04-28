@@ -1,4 +1,4 @@
-﻿namespace VideoOrganizer
+namespace VideoOrganizer
 {
     partial class FormMain
     {
@@ -29,7 +29,7 @@
         private void InitializeComponent()
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FormMain));
-            this.m_txtRoot = new VideoOrganizer.LabeledTextBox();
+            this.m_txtRoot = new VideoLibrarian.LabeledTextBox();
             this.m_btn_SelectRoot = new System.Windows.Forms.Button();
             this.m_rtfStatus = new System.Windows.Forms.RichTextBox();
             this.m_btnGo = new System.Windows.Forms.Button();
@@ -155,7 +155,7 @@
 
         #endregion
 
-        private VideoOrganizer.LabeledTextBox m_txtRoot;
+        private VideoLibrarian.LabeledTextBox m_txtRoot;
         private System.Windows.Forms.Button m_btn_SelectRoot;
         private System.Windows.Forms.RichTextBox m_rtfStatus;
         private System.Windows.Forms.Button m_btnGo;

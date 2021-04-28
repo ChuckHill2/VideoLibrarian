@@ -1,4 +1,4 @@
-﻿namespace VideoOrganizer
+namespace VideoOrganizer
 {
     partial class ManualVideoConfig
     {
@@ -35,22 +35,22 @@
             this.m_pnlAllProperties = new System.Windows.Forms.Panel();
             this.m_btnDownloadPoster = new System.Windows.Forms.Button();
             this.m_btnDownloadWebpage = new System.Windows.Forms.Button();
-            this.m_txtCreators = new VideoOrganizer.LabeledTextBox();
+            this.m_txtCreators = new VideoLibrarian.LabeledTextBox();
             this.m_grpVideoType = new System.Windows.Forms.GroupBox();
             this.m_clbVideoType = new System.Windows.Forms.CheckedListBox();
             this.m_grpGenre = new System.Windows.Forms.GroupBox();
             this.m_clbGenre = new System.Windows.Forms.CheckedListBox();
-            this.m_txtMovieName = new VideoOrganizer.LabeledTextBox();
-            this.m_txtEpisodeName = new VideoOrganizer.LabeledTextBox();
+            this.m_txtMovieName = new VideoLibrarian.LabeledTextBox();
+            this.m_txtEpisodeName = new VideoLibrarian.LabeledTextBox();
             this.m_lblReleaseDate = new System.Windows.Forms.Label();
             this.m_lblRating = new System.Windows.Forms.Label();
             this.m_numRating = new System.Windows.Forms.NumericUpDown();
-            this.m_txtPosterUrl = new VideoOrganizer.LabeledTextBox();
-            this.m_txtPlot = new VideoOrganizer.LabeledTextBox();
-            this.m_txtSummary = new VideoOrganizer.LabeledTextBox();
-            this.m_txtDirectors = new VideoOrganizer.LabeledTextBox();
-            this.m_txtWriters = new VideoOrganizer.LabeledTextBox();
-            this.m_txtCast = new VideoOrganizer.LabeledTextBox();
+            this.m_txtPosterUrl = new VideoLibrarian.LabeledTextBox();
+            this.m_txtPlot = new VideoLibrarian.LabeledTextBox();
+            this.m_txtSummary = new VideoLibrarian.LabeledTextBox();
+            this.m_txtDirectors = new VideoLibrarian.LabeledTextBox();
+            this.m_txtWriters = new VideoLibrarian.LabeledTextBox();
+            this.m_txtCast = new VideoLibrarian.LabeledTextBox();
             this.m_grpSeriesEpisode = new System.Windows.Forms.GroupBox();
             this.m_grpEpisode = new System.Windows.Forms.GroupBox();
             this.m_lblEpisode = new System.Windows.Forms.Label();
@@ -61,7 +61,7 @@
             this.m_lblEpisodeCount = new System.Windows.Forms.Label();
             this.m_numEpisodeCount = new System.Windows.Forms.NumericUpDown();
             this.m_dtReleaseDate = new System.Windows.Forms.DateTimePicker();
-            this.m_txtImdbUrl = new VideoOrganizer.LabeledTextBox();
+            this.m_txtImdbUrl = new VideoLibrarian.LabeledTextBox();
             this.m_chkImdbUrl = new System.Windows.Forms.CheckBox();
             this.m_grpWatched = new System.Windows.Forms.GroupBox();
             this.m_grpWatchedDt = new System.Windows.Forms.GroupBox();
@@ -79,7 +79,7 @@
             this.m_lblRuntimeLabel = new System.Windows.Forms.Label();
             this.m_lblDownloadDateLabel = new System.Windows.Forms.Label();
             this.m_btnSelectMovieFile = new System.Windows.Forms.Button();
-            this.m_txtMoviePath = new VideoOrganizer.LabeledTextBox();
+            this.m_txtMoviePath = new VideoLibrarian.LabeledTextBox();
             this.m_pnlAllProperties.SuspendLayout();
             this.m_grpVideoType.SuspendLayout();
             this.m_grpGenre.SuspendLayout();
@@ -873,7 +873,7 @@
         #endregion
 
         private System.Windows.Forms.Button m_btnSelectMovieFolder;
-        private VideoOrganizer.LabeledTextBox m_txtMoviePath;
+        private VideoLibrarian.LabeledTextBox m_txtMoviePath;
         private System.Windows.Forms.Button m_btnSave;
         private System.Windows.Forms.Button m_btnCancel;
         private System.Windows.Forms.Panel m_pnlAllProperties;
@@ -881,17 +881,17 @@
         private System.Windows.Forms.CheckedListBox m_clbVideoType;
         private System.Windows.Forms.GroupBox m_grpGenre;
         private System.Windows.Forms.CheckedListBox m_clbGenre;
-        private LabeledTextBox m_txtMovieName;
-        private LabeledTextBox m_txtEpisodeName;
+        private VideoLibrarian.LabeledTextBox m_txtMovieName;
+        private VideoLibrarian.LabeledTextBox m_txtEpisodeName;
         private System.Windows.Forms.Label m_lblReleaseDate;
         private System.Windows.Forms.Label m_lblRating;
         private System.Windows.Forms.NumericUpDown m_numRating;
-        private LabeledTextBox m_txtPosterUrl;
-        private LabeledTextBox m_txtPlot;
-        private LabeledTextBox m_txtSummary;
-        private LabeledTextBox m_txtDirectors;
-        private LabeledTextBox m_txtWriters;
-        private LabeledTextBox m_txtCast;
+        private VideoLibrarian.LabeledTextBox m_txtPosterUrl;
+        private VideoLibrarian.LabeledTextBox m_txtPlot;
+        private VideoLibrarian.LabeledTextBox m_txtSummary;
+        private VideoLibrarian.LabeledTextBox m_txtDirectors;
+        private VideoLibrarian.LabeledTextBox m_txtWriters;
+        private VideoLibrarian.LabeledTextBox m_txtCast;
         private System.Windows.Forms.GroupBox m_grpSeriesEpisode;
         private System.Windows.Forms.GroupBox m_grpEpisode;
         private System.Windows.Forms.Label m_lblEpisode;
@@ -903,7 +903,7 @@
         private System.Windows.Forms.NumericUpDown m_numEpisodeCount;
         private System.Windows.Forms.DateTimePicker m_dtReleaseDate;
         private System.Windows.Forms.CheckBox m_chkImdbUrl;
-        private LabeledTextBox m_txtImdbUrl;
+        private VideoLibrarian.LabeledTextBox m_txtImdbUrl;
         private System.Windows.Forms.GroupBox m_grpWatched;
         private System.Windows.Forms.GroupBox m_grpWatchedDt;
         private System.Windows.Forms.DateTimePicker m_dtWatched;
@@ -919,7 +919,7 @@
         private System.Windows.Forms.Label m_lblRuntimeLabel;
         private System.Windows.Forms.Label m_lblDownloadDateLabel;
         private System.Windows.Forms.Button m_btnSelectMovieFile;
-        private LabeledTextBox m_txtCreators;
+        private VideoLibrarian.LabeledTextBox m_txtCreators;
         private System.Windows.Forms.GroupBox m_grpVerticalDivider;
         private System.Windows.Forms.Button m_btnDownloadWebpage;
         private System.Windows.Forms.Button m_btnDownloadPoster;

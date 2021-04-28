@@ -447,13 +447,7 @@ namespace VideoLibrarian
             //This should never occur since title clicking is disabled in the tile. Well, just in case!
             if (mp.MoviePath.IsNullOrEmpty() || !File.Exists(mp.MoviePath)) { MiniMessageBox.Show(this, "Movie not found.", "Missing Movie", MessageBoxButtons.OK, MessageBoxIcon.Error); return; }
 
-            //Split path from potentially long movie name to minimize chance 
-            //of exception when full path exceeds the maximum path length.
-            var si = new ProcessStartInfo();
-            si.FileName = Path.GetFileName(mp.MoviePath);
-            si.WorkingDirectory = Path.GetDirectoryName(mp.MoviePath); //start within directory
-            Process.Start(si);
-            //Process.Start(mp.MoviePath);
+            ProcessEx.OpenExec(FormMain.This.Settings.VideoPlayer, mp.MoviePath);
         }
 
         protected void m_lblPlot_Click(object sender, EventArgs ev)
@@ -468,7 +462,8 @@ namespace VideoLibrarian
 
         protected void m_pbImdbLink_Click(object sender, EventArgs e)
         {
-            Process.Start(this.MovieProps.UrlLink);
+            if (this.MovieProps.UrlLink.IsNullOrEmpty() || this.MovieProps.UrlLink.StartsWith("file:///", StringComparison.OrdinalIgnoreCase)) return;
+            ProcessEx.OpenExec(FormMain.This.Settings.Browser, this.MovieProps.UrlLink);
         }
 
         /// <summary>

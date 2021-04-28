@@ -32,6 +32,8 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
+// NOT COMPILED, NOT USED. For reference purposes only.
+
 namespace VideoLibrarian
 {
     public class ZoomHandler : IDisposable

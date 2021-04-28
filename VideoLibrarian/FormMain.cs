@@ -48,7 +48,7 @@ namespace VideoLibrarian
     {
         private ToolTipHelp tt;
 
-        private SettingProperties Settings;
+        public SettingProperties Settings;
         private ViewType View;
         private SortProperties SortKeys;
         private FilterProperties Filters = null;
@@ -394,15 +394,28 @@ namespace VideoLibrarian
                     //Support Chrome and IE url shortcuts. Firefox does not have shortcut click'n drag from address bar. 
                     //There may be multiple shortcuts in a folder, but we may only list the folder once. 
                     var hs = new HashSet<string>();
-                    foreach (string f in Directory.EnumerateFiles(mf, "*.url", SearchOption.AllDirectories))
+                    string fx = "beginning of search";
+                    try
                     {
-                        var folder = Path.GetDirectoryName(f);
-                        if (folder == mf) continue; //ignore shortcuts in the root folder
+                        foreach (string f in Directory.EnumerateFiles(mf, "*.url", SearchOption.AllDirectories))
+                        {
+                            fx = f;
+                            var folder = Path.GetDirectoryName(f);
+                            if (folder == mf) continue; //ignore shortcuts in the root folder
 
-                        //Special: if shortcut is in a bracketed folder (or any of its child folders) the video is ignored. 
-                        if (reIgnoredFolder.IsMatch(folder+"\\")) continue;
+                            //Special: if shortcut is in a bracketed folder (or any of its child folders) the video is ignored. 
+                            if (reIgnoredFolder.IsMatch(folder + "\\")) continue;
 
-                        hs.Add(folder);
+                            hs.Add(folder);
+                        }
+                    }
+                    catch(Exception ex) //System.IO.IOException: The file or directory is corrupted and unreadable.
+                    {
+                        var emsg = $"{ex.GetType().FullName}: {ex.Message}\nFatal Error enumerating movie folder immediately following {fx}.";
+                        MessageBox.Show(this, emsg+"\n\nPress OK to exit.", "Enumerating Media Folders", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        Log.Write(Severity.Error, emsg);
+                        Log.Dispose();
+                        Environment.Exit(1);
                     }
 
                     int added = 0;
@@ -482,7 +495,6 @@ namespace VideoLibrarian
             var result = SettingsDialog.Show(this, Settings);
             if (result == null) return;
             bool foldersChanged = (result.MediaFolders.Length != Settings.MediaFolders.Length || !result.MediaFolders.SequenceEqual(Settings.MediaFolders));
-            bool zoomChanged = (result.Zoom != Settings.Zoom);
             Settings = result;
 
             EnableMenuBar(MovieProperties.Count > 0);
@@ -491,7 +503,7 @@ namespace VideoLibrarian
 
         private void m_miStatusLog_Click(object sender, EventArgs e)
         {
-            Process.Start(Log.LogName);
+            ProcessEx.OpenExec(this.Settings.LogViewer, Log.LogName);
         }
 
         private void m_miExit_Click(object sender, EventArgs e)
