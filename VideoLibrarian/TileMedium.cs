@@ -86,7 +86,12 @@ namespace VideoLibrarian
             else m_pnlRating.Value = mp.MovieRating;
 
             m_lblDuration.Text = mp.EpisodeCount > 0 ? string.Format("{0} eps", mp.EpisodeCount) : string.Format("{0} min", mp.Runtime == 0 ? "?" : mp.Runtime.ToString());
-            m_lblPlot.Text = mp.Plot;
+
+            const int maxplotlen = 404; //maximum string length that will fit in tile.
+            var plot = mp.Plot.IsNullOrEmpty() ? mp.Summary : mp.Plot;
+            if (plot.Length > maxplotlen) plot = plot.Substring(0, maxplotlen) + "…";
+            m_lblPlot.Text = plot;
+
             m_pbPoster.Image = mp.MoviePosterImg;
 
             m_chkWatched.CheckDate = mp.Watched;

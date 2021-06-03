@@ -48,12 +48,20 @@ namespace VideoLibrarian
 
             if (File.Exists(p))
             {
-                var bmp = GDI.FastLoadFromFile(p);
-                //var bmp = GDI.FastLoadFromFileStream(p);
-                var tile = new TileLargeLite(mp);
-                var controls = new object[] { tile.m_pbPoster, tile.m_lblTitle, tile.m_lblPlot, tile.m_lblLocation, tile.m_pbImdbLink, tile.m_chkWatched };
-                TileBase.LoadTileImage(tile, bmp, controls);
-                return tile;
+                try
+                {
+                    var bmp = GDI.FastLoadFromFile(p);
+                    //var bmp = GDI.FastLoadFromFileStream(p);
+                    var tile = new TileLargeLite(mp);
+                    var controls = new object[] { tile.m_pbPoster, tile.m_lblTitle, tile.m_lblPlot, tile.m_lblLocation, tile.m_pbImdbLink, tile.m_chkWatched };
+                    TileBase.LoadTileImage(tile, bmp, controls);
+                    return tile;
+                }
+                catch(Exception ex)
+                {
+                    File.Delete(p);
+                    Log.Write(Severity.Error, $"Image Corrupted. Recreating image {p}\n{ex}");
+                }
             }
 
             var tile2 = TileLarge.Create(mp, true);
@@ -98,7 +106,12 @@ namespace VideoLibrarian
             IsVisible = true;
 
             AddVirtualControl(m_pbPoster, this.m_pbPoster_Click);
-            AddVirtualControl(m_lblPlot, m_lblPlot_Click, mp.Plot, global::VideoLibrarian.ResourceCache.FontMedium);
+
+            const int maxplotlen = 517; //maximum string length that will fit in tile.
+            var plot = mp.Plot.IsNullOrEmpty() ? mp.Summary : mp.Plot;
+            if (plot.Length > maxplotlen) plot = plot.Substring(0, maxplotlen) + "…";
+
+            AddVirtualControl(m_lblPlot, m_lblPlot_Click, plot, global::VideoLibrarian.ResourceCache.FontMedium);
             AddVirtualControl(m_lblLocation, this.m_lblLocation_Click, Path.GetDirectoryName(mp.PropertiesPath), global::VideoLibrarian.ResourceCache.FontRegular);
             EventHandler click = base.m_lblTitle_Click;
             if (DisableTitleLink()) click = null;

@@ -60,6 +60,7 @@ namespace VideoLibrarian
         public const string MovieExtensions = "|.3g2|.3gp|.3gp2|.3gpp|.amv|.asf|.avi|.bik|.bin|.crf|.divx|.drc|.dv|.dvr-ms|.evo|.f4v|.flv|.gvi|.gxf|.iso|.m1v|.m2v|.m2t|.m2ts|.m4v|.mkv|.mov|.mp2|.mp2v|.mp4|.mp4v|.mpe|.mpeg|.mpeg1|.mpeg2|.mpeg4|.mpg|.mpv2|.mts|.mtv|.mxf|.mxg|.nsv|.nuv|.ogg|.ogm|.ogv|.ogx|.ps|.rec|.rm|.rmvb|.rpl|.thp|.tod|.tp|.ts|.tts|.txd|.vob|.vro|.webm|.wm|.wmv|.wtv|.xesc|";
         public const string ImageExtensions = "|.bmp|.dib|.rle|.emf|.gif|.jpg|.jpeg|.jpe|.jif|.jfif|.png|.tif|.tiff|.xif|.wmf|";
         public const string EmptyTitleID = "tt0000000"; //IMDB empty title id, used here specifically to represent non-IMDB movies. 
+        private const RegexOptions RE_options = RegexOptions.Compiled | RegexOptions.IgnoreCase;
         private Task _getMoviePropertyTask = null;  //Async state for slowly extracting video file properties from video file. Needed to make Serialization() wait before serializing.
         private string _movieName = "";             //Load-on-demand property variables
         private string _moviePosterPath = null;
@@ -164,7 +165,6 @@ namespace VideoLibrarian
                 // if image object not yet loaded or image object disposed... 
                 if (_moviePosterImg == null || _moviePosterImg.PixelFormat == System.Drawing.Imaging.PixelFormat.Undefined)
                 {
-                    var moviePosterUrl = MoviePosterUrl;
                     if (MoviePosterPath.IsNullOrEmpty() || !File.Exists(MoviePosterPath))
                     {
                         if (MoviePosterUrl.IsNullOrEmpty()) SetMoviePosterUrl(null); //Get the poster URL (not the jpg image) from the IMDB web site.
@@ -194,7 +194,19 @@ namespace VideoLibrarian
                     }
 
                     if (MoviePosterPath.IsNullOrEmpty() || !File.Exists(MoviePosterPath)) _moviePosterImg = CreateBlankPoster(this.MovieName);
-                    else _moviePosterImg = new Bitmap(MoviePosterPath);
+                    else
+                    {
+                        try
+                        {
+                            _moviePosterImg = new Bitmap(MoviePosterPath);
+                        }
+                        catch(Exception ex)
+                        {
+                            File.Delete(MoviePosterPath);
+                            Log.Write(Severity.Error, $"Corrupted poster image. Recreating poster image file \"{MoviePosterPath}\".\n{ex}");
+                            return MoviePosterImg;
+                        }
+                    }
                 }
                 return _moviePosterImg;
             }
@@ -372,16 +384,34 @@ namespace VideoLibrarian
             MatchCollection mc;
             string html = FileEx.ReadHtml(data.Filename);  //no duplicate whitespace, no whitespace before '<' and no whitespace after '>'
 
+            if (Regex.IsMatch(html, @"<script id='__NEXT_DATA__' type='application/json'>", RE_options))
+            {
+                var html2 = File.ReadAllText(data.Filename);
+                mc = Regex.Matches(html2, @"<script id=""__NEXT_DATA__"" type=""application/json"">(?<JSON>.+?)</script><script nomodule", RE_options);
+                if (mc.Count > 0)
+                {
+                    try
+                    {
+                        ParseIMDBJson(mc[0].Groups["JSON"].Value);
+                        return;
+                    }
+                    catch(Exception ex)
+                    {
+                        Log.Write(Severity.Error, $"Error retrieving values from JSON string embedded in \"{data.Filename}\". Fallback to web scraping.\n{ex}");
+                    }
+                }
+            }
+
             // <link rel='canonical' href='https://www.imdb.com/title/tt0062622/'/>
             // <meta property='og:url' content='http://www.imdb.com/title/tt0062622/'/>
-            mc = Regex.Matches(html, @"(<link rel='canonical' href='|<meta property='og:url' content=')(?<URL>[^']+)'/>", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            mc = Regex.Matches(html, @"(<link rel='canonical' href='|<meta property='og:url' content=')(?<URL>[^']+)'/>", RE_options);
             if (mc.Count > 0) UrlLink = mc[0].Groups["URL"].Value;
 
             // <title>2001: A Space Odyssey (1968) - IMDb</title>
             // <meta name='title' content='2001: A Space Odyssey (1968) - IMDb'/>
             // <meta property='og:title' content='2001: A Space Odyssey (1968)'/>
             // <meta property='og:title' content='Epoch: Evolution (TV Movie 2003)'>
-            mc = Regex.Matches(html, @"(?:<title>|<meta name='title' content='|<meta property='og:title' content=')(?<TITLE>.+?)(?:<\/title>|'>|'\/>)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            mc = Regex.Matches(html, @"(?:<title>|<meta name='title' content='|<meta property='og:title' content=')(?<TITLE>.+?)(?:<\/title>|'>|'\/>)", RE_options);
             if (mc.Count > 0)
             {
                 var title = WebUtility.HtmlDecode(mc[0].Groups["TITLE"].Value);
@@ -397,7 +427,7 @@ namespace VideoLibrarian
                 // Ant-Man (2015) - IMDb
                 // "Threshold" Trees Made of Glass: Part 1 (TV Episode 2005) - IMDb
                 // Epoch: Evolution (TV Movie 2003)
-                mc = Regex.Matches(title, @"^(?:(?:""(?<TITLE>[^""]+)"" (?<EPISODE>.+) (?=\([^\(]+$))|(?<TITLE2>.+))\((?:(?<TYPE>.+?) )?(?<YEAR>[0-9]{4,4})[–-]?(?<YEAREND>[0-9]{4,4})?", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+                mc = Regex.Matches(title, @"^(?:(?:""(?<TITLE>[^""]+)"" (?<EPISODE>.+) (?=\([^\(]+$))|(?<TITLE2>.+))\((?:(?<TYPE>.+?) )?(?<YEAR>[0-9]{4,4})[–-]?(?<YEAREND>[0-9]{4,4})?", RE_options);
                 if (mc.Count > 0)
                 {
                     var titlex = mc[0].Groups["TITLE"].Value.Trim();
@@ -415,7 +445,7 @@ namespace VideoLibrarian
 
             // <div class='summary_text'>Humanity finds a mysterious, obviously artificial object buried beneath the Lunar surface and, with the intelligent computer HAL 9000, sets off on a quest.</div>
             // <div class="summary_text">For all intents and purposes, the Apocalypse has happened. "Aftermath" is the story of those who have survived. But their nightmare has only begun. In a world where those infected kill and ...<a href="/title/tt2584642/plotsummary?ref_=tt_ov_pl">See full summary</a>&nbsp;»</div>
-            mc = Regex.Matches(html, @"<div class='summary_text'>(?<PLOT>.+?)</div>", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            mc = Regex.Matches(html, @"<div class='summary_text'>(?<PLOT>.+?)</div>", RE_options);
             if (mc.Count > 0)
             {
                 Plot = mc[0].Groups["PLOT"].Value;
@@ -437,7 +467,7 @@ namespace VideoLibrarian
             {
                 // <meta name='description' content='Directed by Stanley Kubrick.  With Keir Dullea, Gary Lockwood, William Sylvester, Daniel Richter. Humanity finds a mysterious, obviously artificial object buried beneath the Lunar surface and, with the intelligent computer HAL 9000, sets off on a quest.'/>
                 // <meta property='og:description' content='Directed by Stanley Kubrick.  With Keir Dullea, Gary Lockwood, William Sylvester, Daniel Richter. Humanity finds a mysterious, obviously artificial object buried beneath the Lunar surface and, with the intelligent computer HAL 9000, sets off on a quest.'/>
-                mc = Regex.Matches(html, @"(?:<meta name='description' content='|<meta property='og:description' content=')(?<PLOT>.+?)(?:'>|'\/>)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+                mc = Regex.Matches(html, @"(?:<meta name='description' content='|<meta property='og:description' content=')(?<PLOT>.+?)(?:'>|'\/>)", RE_options);
                 if (mc.Count > 0)
                 {
                     Plot = mc[0].Groups["PLOT"].Value;
@@ -448,7 +478,7 @@ namespace VideoLibrarian
             // <h2>Storyline</h2><div class='inline canwrap'><p><span>In the aftermath of<a href='/title/tt3498820?ref_=tt_stry_pl'>Captain America: Civil War</a>(2016), Scott Lang grapples with the consequences of his choices as both a superhero and a father.</span>
             // <h2>Storyline</h2><div class='inline canwrap'><p><span>In the aftermath of<a href='/title/tt3498820?ref_=tt_stry_pl'>Captain America: Civil War</a>(2016), Scott Lang grapples with the consequences of his choices as both a superhero and a father. As he struggles to rebalance his home life with his responsibilities as <a href='/title/tt3498820?ref_=tt_stry_pl'>Ant-Man</a>, he's confronted by Hope van Dyne and Dr. Hank Pym with an urgent new mission.</span>
             // <h2>Storyline</h2><div class='inline canwrap'><p><span>In the aftermath of<a href='/title/tt3498820?ref_=tt_stry_pl'>Captain America: Civil War</a>(2016), Scott Lang grapples with the consequences of his choices as both a superhero and a father. As he struggles to rebalance his home life with his responsibilities as <a href='/title/tt3498820?ref_=tt_stry_pl'>Ant-Man</a>, he's confronted by Hope van Dyne and Dr. Hank Pym with an urgent new mission. Scott must once again put on the suit and learn to fight alongside <a href='/title/tt3498820?ref_=tt_stry_pl'>The Wasp</a> as the team works together to uncover secrets from their past.</span>
-            mc = Regex.Matches(html, @"<h2>Storyline<\/h2>.+?<span>(?<SUMMARY>.+?)<\/span>", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            mc = Regex.Matches(html, @"<h2>Storyline<\/h2>.+?<span>(?<SUMMARY>.+?)<\/span>", RE_options);
             if (mc.Count > 0)
             {
                 Summary = mc[0].Groups["SUMMARY"].Value;
@@ -469,7 +499,7 @@ namespace VideoLibrarian
             // <div class='credit_summary_item'><h4 class='inline'>Director:</h4><a href='/name/nm0000040/?ref_=tt_ov_dr' >Stanley Kubrick</a></div>
             // <div class='credit_summary_item'><h4 class='inline'>Writers:</h4><a href='/name/nm0000040/?ref_=tt_ov_wr' >Stanley Kubrick</a> (screenplay), <a href='/name/nm0002009/?ref_=tt_ov_wr' >Arthur C. Clarke</a> (screenplay)</div>
             // <div class='credit_summary_item'><h4 class='inline'>Stars:</h4><a href='/name/nm0001158/?ref_=tt_ov_st_sm' >Keir Dullea</a>, <a href='/name/nm0516972/?ref_=tt_ov_st_sm' >Gary Lockwood</a>, <a href='/name/nm0843213/?ref_=tt_ov_st_sm' >William Sylvester</a>
-            mc = Regex.Matches(html, @"<div class='credit_summary_item'><h4 class='inline'>(?<KEY>Creator|Director|Writer|Star)s?:<\/h4>(?:<a href='[^']+'>(?<VALUE>[^<]+)<\/a>(?:.*?))+<\/div>", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            mc = Regex.Matches(html, @"<div class='credit_summary_item'><h4 class='inline'>(?<KEY>Creator|Director|Writer|Star)s?:<\/h4>(?:<a href='[^']+'>(?<VALUE>[^<]+)<\/a>(?:.*?))+<\/div>", RE_options);
             if (mc.Count > 0)
             {
                 foreach (Match m in mc)
@@ -501,7 +531,7 @@ namespace VideoLibrarian
             // <h4 class='inline'>Genres:</h4><a href='/genre/Adventure?ref_=tt_stry_gnr'>Adventure</a>&nbsp;<span>|</span><a href='/genre/Sci-Fi?ref_=tt_stry_gnr'>Sci-Fi</a></div>
             // <a href='/genre/Adventure?ref_=tt_ov_inf'>Adventure</a>,<a href='/genre/Sci-Fi?ref_=tt_ov_inf'>Sci-Fi</a>
             // <a href='/search/title?genres=adventure&explore=title_type,genres&ref_=tt_ov_inf'>Adventure</a>,<a href='/search/title?genres=sci-fi&explore=title_type,genres&ref_=tt_ov_inf'>Sci-Fi</a>
-            mc = Regex.Matches(html, @"<a href='.+?genre[^']+'>(?<GENRE>[^<]+)<\/a>", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            mc = Regex.Matches(html, @"<a href='.+?genre[^']+'>(?<GENRE>[^<]+)<\/a>", RE_options);
             if (mc.Count > 0)
             {
                 var list = new HashSet<string>();
@@ -517,7 +547,7 @@ namespace VideoLibrarian
             // <a href='/title/tt0062622/releaseinfo?ref_=tt_ov_inf' title='See more release dates'>12 May 1968 (UK)</a>
             // <a href='/title/tt4525842/releaseinfo?ref_=tt_ov_inf' title='See more release dates'>Episode aired 26 October 2015</a>
             // <h4 class='inline'>Release Date:</h4> 12 May 1968 (UK)<
-            mc = Regex.Matches(html, @"(?:<h4 class='inline'>Release Date:<\/h4>|<a href='\/title\/[^\/]+\/releaseinfo[^']*'[^<]+>).*?(?<DATE>[0-9]{1,2} [a-z]+ [0-9]{4,4})", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            mc = Regex.Matches(html, @"(?:<h4 class='inline'>Release Date:<\/h4>|<a href='\/title\/[^\/]+\/releaseinfo[^']*'[^<]+>).*?(?<DATE>[0-9]{1,2} [a-z]+ [0-9]{4,4})", RE_options);
             if (mc.Count > 0)
             {
                 DateTime dtMin = DateTime.MaxValue;
@@ -540,7 +570,7 @@ namespace VideoLibrarian
             // <meta property='og:type' content='video.tv_show'>  == TV Mini
 
             // <div class='bp_description'><div class='bp_heading'>Episode Guide</div><span class='bp_sub_heading'>101 episodes</span></div>
-            mc = Regex.Matches(html, @"<span class='bp_sub_heading'>(?<EPISODES>[0-9]+) episodes</span>", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            mc = Regex.Matches(html, @"<span class='bp_sub_heading'>(?<EPISODES>[0-9]+) episodes</span>", RE_options);
             if (mc.Count > 0)
             {
                 int i;
@@ -548,7 +578,7 @@ namespace VideoLibrarian
             }
 
             // <div class='bp_description'><div class='bp_heading'>Season 4 <span class='ghost'>|</span> Episode 2</div></div>
-            mc = Regex.Matches(html, @"<div class='bp_heading'>Season (?<S>[0-9]{1,2}).+?Episode (?<E>[0-9]{1,2})</div>", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            mc = Regex.Matches(html, @"<div class='bp_heading'>Season (?<S>[0-9]{1,2}).+?Episode (?<E>[0-9]{1,2})</div>", RE_options);
             if (mc.Count > 0)
             {
                 int i;
@@ -558,7 +588,7 @@ namespace VideoLibrarian
 
             // <div class='ratingValue'><strong title='2.0 based on 2,085 user ratings'><span>2.0</span></strong><span class='grey'>/</span><span class='grey'>10</span></div>
             // <div class='ratingValue'><strong title='8.3 based on 516,780 user ratings'><span itemprop='ratingValue'>8.3</span></strong><span class='grey'>/</span><span class='grey' itemprop='bestRating'>10</span></div>
-            mc = Regex.Matches(html, @"<div class='ratingValue'>.+?<span[^>]*>(?<RATING>[0-9\.]+)<\/span>", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            mc = Regex.Matches(html, @"<div class='ratingValue'>.+?<span[^>]*>(?<RATING>[0-9\.]+)<\/span>", RE_options);
             if (mc.Count > 0)
             {
                 float i;
@@ -567,13 +597,98 @@ namespace VideoLibrarian
             else
             {
                 // <div class='metacriticScore score_favorable titleReviewBarSubItem'><span>82</span></div>
-                mc = Regex.Matches(html, @"<div class='metacriticScore[^']*'><span>(?<RATING>[0-9]+)</span></div>", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+                mc = Regex.Matches(html, @"<div class='metacriticScore[^']*'><span>(?<RATING>[0-9]+)</span></div>", RE_options);
                 if (mc.Count > 0)
                 {
                     int i;
                     if (int.TryParse(mc[0].Groups["RATING"].Value, out i)) MovieRating = i / 10f;
                 }
             }
+        }
+
+        private void ParseIMDBJson(string json)
+        {
+            int i;
+            float f;
+            var js = SimpleJSON.JSON.Parse(json);
+            UrlLink = js["head"].Linq.FirstOrDefault(p => p.Value[0].Value == "link" && p.Value[1]["rel"].Value == "canonical").Value?[1]["href"].Value ?? "";
+
+            // The required data is in 2 node trees. It's a bit fuzzy which node actually contains the values we are looking for, so we look in both.
+            // It 'appears' the node containing the fewest properties contains most of the values we are looking for. Magic...
+            var tt = js["props"]["requestContext"]["pageConst"].Value;
+            var urqls = js["props"]["urqlState"].Linq.Where(p => p.Value["data"]["title"]["id"] == tt).OrderBy(p => p.Value["data"]["title"].Count).ToArray();
+            var props1 = urqls[0].Value["data"]["title"];
+            var props2 = urqls[1].Value["data"]["title"];
+
+            var movieClass = props1["titleType"]["id"].Value;
+            MovieClass = props1["titleType"]["text"].Value;
+            if (MovieClass == "Movie") MovieClass = "Feature Movie";
+            Year = int.TryParse(props1["releaseYear"]["year"], out i) ? i : 1900;
+
+            MovieName = props1["series"]?["series"]?["titleText"]?["text"]?.Value;
+            if (MovieName.IsNullOrEmpty())
+                MovieName = props1["titleText"]?["text"]?.Value;
+            else
+                MovieName = string.Concat(MovieName, " \xAD ", props1["titleText"]?["text"]?.Value ?? "");
+
+            var year  = int.TryParse(props1["releaseDate"]["year"], out i) ? i : Year;
+            var month = int.TryParse(props1["releaseDate"]["month"], out i) ? i : 1;
+            var day   = int.TryParse(props1["releaseDate"]["day"], out i) ? i : 1;
+            ReleaseDate = new DateTime(year, month, day);
+            if (Year == 1900) Year = year;
+
+            YearEnd = int.TryParse(props1["releaseYear"]["endYear"], out i) ? i : 0;
+
+            Runtime = int.TryParse(props1["runtime"]["seconds"], out i) ? i / 60 : 0;
+            if (Runtime == 0) Runtime = int.TryParse(props2["runtime"]["seconds"], out i) ? i / 60 : 0;
+
+            MovieRating = float.TryParse(props1["ratingsSummary"]["aggregateRating"], out f) ? f : 0;
+            MoviePosterUrl = props1["primaryImage"]["url"]?.Value ?? "";
+
+            var glist = new List<string>();
+            foreach (var g in props1["genres"]["genres"])
+            {
+                glist.Add(g.Value["text"].Value);
+            }
+            Genre = glist.ToArray();
+
+            Plot = props1["plot"]?["plotText"]?["plainText"]?.Value;
+            if (Plot.IsNullOrEmpty()) Plot = props2["plot"]?["plotText"]?["plainText"]?.Value;
+            if (!Plot.IsNullOrEmpty() && Plot.Contains('&')) Plot = WebUtility.HtmlDecode(Plot);
+
+            Summary = props1["summaries"]?["edges"]?[0]?["node"]?["plotText"]?["plaidHtml"]?.Value;
+            if (Summary.IsNullOrEmpty()) Summary = props2["summaries"]?["edges"]?[0]?["node"]?["plotText"]?["plaidHtml"]?.Value;
+            if (!Summary.IsNullOrEmpty() && Summary.Contains('&')) Summary = WebUtility.HtmlDecode(Summary);
+
+            var sb = new StringBuilder();
+            foreach (var pc in props1["principalCredits"])
+            {
+                var id = pc.Value["category"]["id"].Value;  //director, writer, cast
+                string comma = string.Empty;
+                foreach (var cr in pc.Value["credits"])
+                {
+                    sb.Append(comma);
+                    sb.Append(cr.Value["name"]["nameText"]["text"].Value);
+                    comma = ", ";
+                }
+                switch (id)
+                {
+                    case "director": Directors = sb.ToString(); break;
+                    case "writer": Writers = sb.ToString(); break;
+                    case "cast": Cast = sb.ToString(); break;
+                    case "creator": Creators = sb.ToString(); break;
+                }
+                sb.Length = 0;
+            }
+
+            Episode = int.TryParse(props1["series"]?["episodeNumber"]?["episodeNumber"], out i) ? i : 0;
+            if (Episode == 0) Episode = int.TryParse(props2["series"]?["episodeNumber"]?["episodeNumber"], out i) ? i : 0;
+
+            Season = int.TryParse(props1["series"]?["episodeNumber"]?["seasonNumber"], out i) ? i : 0;
+            if (Season == 0) Season = int.TryParse(props2["series"]?["episodeNumber"]?["seasonNumber"], out i) ? i : 0;
+
+            EpisodeCount = int.TryParse(props1["episodes"]?["episodes"]?["total"], out i) ? i : 0;
+            if (EpisodeCount == 0) EpisodeCount = int.TryParse(props2["episodes"]?["episodes"]?["total"], out i) ? i : 0;
         }
 
         /// <summary>
@@ -584,60 +699,93 @@ namespace VideoLibrarian
         /// <returns>True if this.MoviePosterUrl modified.</returns>
         private bool SetMoviePosterUrl(string html)
         {
-            if (this.MoviePosterUrl.IsNullOrEmpty())  //need to set missing MoviePosterUrl property.
-            {
-                if (html.IsNullOrEmpty())  //this must be called by MoviePosterImg getter so we load our own private copy of IMDB movie page.
-                {
-                    if (!File.Exists(HtmlPath)) //cached IMDB movie page does not exist.
-                    {
-                        var job = new FileEx.Job(null, UrlLink, HtmlPath);
-                        if (!FileEx.Download(job)) return false; // FileEx.Download() logs its own errors. It will also update data.Url to redirected path and job.Filename
-                        HtmlPath = job.Filename;
-                    }
+            if (!this.MoviePosterUrl.IsNullOrEmpty()) return false;
 
-                    html = FileEx.ReadHtml(HtmlPath);  //no duplicate whitespace, no whitespace before '<' and no whitespace after '>'
+            if (html.IsNullOrEmpty())  //Occurs when this method is lazily called by MoviePosterImg getter so we must load our cached copy of the IMDB movie page.
+            {
+                if (!File.Exists(HtmlPath)) //Oops. The cached IMDB movie page does not exist. Retrieve it.
+                {
+                    var job = new FileEx.Job(null, UrlLink, HtmlPath);
+                    if (!FileEx.Download(job)) return false; // FileEx.Download() logs its own errors. It will also update data.Url to redirected path and job.Filename
+                    HtmlPath = job.Filename;
                 }
 
-                // <div class='poster'><a href='/title/tt0401729/mediaviewer/rm3022336?ref_=tt_ov_i'><img alt='John Carter Poster' title='John Carter Poster' src='https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_UY268_CR6,0,182,268_AL_.jpg'></a></div>
-                var mc = Regex.Matches(html, @"<div class='poster'><a href='(?<URL>\/title\/[^\/]+\/mediaviewer\/(?<ID>[0-9a-z]+)[^']+).+? src='(?<POSTER>[^']+)'", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-                if (mc.Count > 0)
-                {
-                    var posterUrl = mc[0].Groups["POSTER"].Value; //get the small poster image in the page, but we continue to look for a larger/better image.
-                    var id = mc[0].Groups["ID"].Value;
-                    var mediaViewerUrl = FileEx.GetAbsoluteUrl(this.UrlLink, mc[0].Groups["URL"].Value);
+                html = FileEx.ReadHtml(HtmlPath);  //no duplicate whitespace, no whitespace before '<' and no whitespace after '>'
+            }
 
-                    var fn = Path.Combine(Path.GetDirectoryName(this.MoviePosterPath), "MediaViewer.htm"); //temporary uncached web page containing large poster images.
-                    var job = new FileEx.Job(null, mediaViewerUrl, fn);
-                    if (FileEx.Download(job))
+            // <div class='poster'><a href='/title/tt0401729/mediaviewer/rm3022336?ref_=tt_ov_i'><img alt='John Carter Poster' title='John Carter Poster' src='https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_UY268_CR6,0,182,268_AL_.jpg'></a></div>
+            var mc = Regex.Matches(html, @"<div class='poster'><a href='(?<URL>\/title\/[^\/]+\/mediaviewer\/(?<ID>[0-9a-z]+)[^']+).+? src='(?<POSTER>[^']+)'", RE_options);
+            if (mc.Count > 0)
+            {
+                var posterUrl = mc[0].Groups["POSTER"].Value; //get the small poster image in the page, but we continue to look for a larger/better image.
+                var id = mc[0].Groups["ID"].Value;
+                var mediaViewerUrl = FileEx.GetAbsoluteUrl(this.UrlLink, mc[0].Groups["URL"].Value);
+
+                var fn = Path.Combine(Path.GetDirectoryName(this.MoviePosterPath), "MediaViewer.htm"); //temporary uncached web page containing large poster images.
+                var job = new FileEx.Job(null, mediaViewerUrl, fn);
+                if (FileEx.Download(job))
+                {
+                    var html2 = FileEx.ReadHtml(job.Filename);
+                    File.Delete(job.Filename); //no longer needed. extension already used for this cache file.
+                    // {'editTagsLink':'/registration/signin','id':'rm3022336','h':1000,'msrc':'https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_SY500_CR0,0,364,500_AL_.jpg','src':'https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_SY1000_CR0,0,728,1000_AL_.jpg','w':728,'imageCount':164,'altText':'Taylor Kitsch in John Carter (2012)','caption':'<a href=\'/name/nm2018237/\'>Taylor Kitsch</a> in <a href=\'/title/tt0401729/\'>John Carter (2012)</a>','imageType':'poster','relatedNames':[{'constId':'nm2018237','displayName':'Taylor Kitsch','url':'/name/nm2018237?ref_=tt_mv'}],'relatedTitles':[{'constId':'tt0401729','displayName':'John Carter','url':'/title/tt0401729?ref_=tt_mv'}],'reportImageLink':'/registration/signin','tracking':'/title/tt0401729/mediaviewer/rm3022336/tr','voteData':{'totalLikeVotes':0,'userVoteStatus':'favorite-off'},'votingLink':'/registration/signin'}],'baseUrl':'/title/tt0401729/mediaviewer','galleryIndexUrl':'/title/tt0401729/mediaindex','galleryTitle':'John Carter (2012)','id':'tt0401729','interstitialModel':
+                    mc = Regex.Matches(html2, string.Concat("'id':'", id, "'.+?'src':'(?<POSTER>[^']+)'"), RE_options);
+                    if (mc.Count > 0) posterUrl = mc[0].Groups["POSTER"].Value;
+                    else
                     {
-                        var html2 = FileEx.ReadHtml(job.Filename);
-                        File.Delete(job.Filename); //no longer needed. extension already used for this cache file.
-                                                   // {'editTagsLink':'/registration/signin','id':'rm3022336','h':1000,'msrc':'https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_SY500_CR0,0,364,500_AL_.jpg','src':'https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_SY1000_CR0,0,728,1000_AL_.jpg','w':728,'imageCount':164,'altText':'Taylor Kitsch in John Carter (2012)','caption':'<a href=\'/name/nm2018237/\'>Taylor Kitsch</a> in <a href=\'/title/tt0401729/\'>John Carter (2012)</a>','imageType':'poster','relatedNames':[{'constId':'nm2018237','displayName':'Taylor Kitsch','url':'/name/nm2018237?ref_=tt_mv'}],'relatedTitles':[{'constId':'tt0401729','displayName':'John Carter','url':'/title/tt0401729?ref_=tt_mv'}],'reportImageLink':'/registration/signin','tracking':'/title/tt0401729/mediaviewer/rm3022336/tr','voteData':{'totalLikeVotes':0,'userVoteStatus':'favorite-off'},'votingLink':'/registration/signin'}],'baseUrl':'/title/tt0401729/mediaviewer','galleryIndexUrl':'/title/tt0401729/mediaindex','galleryTitle':'John Carter (2012)','id':'tt0401729','interstitialModel':
-                        mc = Regex.Matches(html2, string.Concat("'id':'", id, "'.+?'src':'(?<POSTER>[^']+)'"), RegexOptions.Compiled | RegexOptions.IgnoreCase);
-                        if (mc.Count > 0) posterUrl = mc[0].Groups["POSTER"].Value;
-                        else
+                        // <meta property='og:image' content='https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_SY500_CR0,0,364,500_AL_.jpg'/>
+                        // <meta itemprop='image' content='https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_SY500_CR0,0,364,500_AL_.jpg'/>
+                        // <meta name='twitter:image' content='https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_SY500_CR0,0,364,500_AL_.jpg'/>
+                        mc = Regex.Matches(html2, @"<meta (?:property='og:image'|itemprop='image'|name='twitter:image') content='(?<POSTER>[^']+)'", RE_options);
+                        foreach (Match m in mc)
                         {
-                            // <meta property='og:image' content='https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_SY500_CR0,0,364,500_AL_.jpg'/>
-                            // <meta itemprop='image' content='https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_SY500_CR0,0,364,500_AL_.jpg'/>
-                            // <meta name='twitter:image' content='https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_SY500_CR0,0,364,500_AL_.jpg'/>
-                            mc = Regex.Matches(html2, @"<meta (?:property='og:image'|itemprop='image'|name='twitter:image') content='(?<POSTER>[^']+)'", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-                            foreach (Match m in mc)
-                            {
-                                var x = m.Groups["POSTER"].Value;
-                                // Value may contain "...\imdb_logo.png". All real posters are jpg files.
-                                if (!x.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)) continue;
-                                posterUrl = x;
-                                break;
-                            }
+                            var x = m.Groups["POSTER"].Value;
+                            // Value may contain "...\imdb_logo.png". All real posters are jpg files.
+                            if (!x.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)) continue;
+                            posterUrl = x;
+                            break;
                         }
                     }
+                }
 
-                    this.MoviePosterUrl = posterUrl;
-                    return true;
+                this.MoviePosterUrl = posterUrl;
+                return true;
+            }
+
+            // Added 05/29/2021. Meta image properties now contain large poster image url's
+
+            //<meta property='og:image' content='https://m.media-amazon.com/images/M/MV5BMTY5MzM2MzkxNF5BMl5BanBnXkFtZTgwNTMzMDcyNzM@._V1_FMjpg_UX1000_.jpg'/>
+            //<meta property='twitter:image' content='https://m.media-amazon.com/images/M/MV5BMTY5MzM2MzkxNF5BMl5BanBnXkFtZTgwNTMzMDcyNzM@._V1_FMjpg_UX1000_.jpg'/>
+            mc = Regex.Matches(html, @"<meta property='(?:og|twitter):image' content='(?<URL>https:[^']+)'", RE_options);
+            if (mc.Count > 0)
+            {
+                this.MoviePosterUrl = mc[0].Groups["URL"].Value;
+                return true;
+            }
+
+            //If it doesn't exist, get first image from poster carousel.
+
+            //Url always contains 'mediaviewer' with property '?ref_=tt_ov_i'
+            mc = Regex.Matches(html, @"href='(?<URL>\/title\/tt[^\/]+\/mediaviewer\/rm[^\/]+\/\?ref_=tt_ov_i)'", RE_options);
+            if (mc.Count > 0)
+            {
+                var mediaViewerUrl = FileEx.GetAbsoluteUrl(this.UrlLink, mc[0].Groups["URL"].Value);
+
+                var fn = Path.Combine(Path.GetDirectoryName(this.MoviePosterPath), "MediaViewer.htm"); //temporary uncached web page containing large poster images.
+                var job = new FileEx.Job(null, mediaViewerUrl, fn);
+                if (FileEx.Download(job))
+                {
+                    var html2 = FileEx.ReadHtml(job.Filename);
+                    File.Delete(job.Filename); //no longer needed. extension already used for this cache file.
+                    mc = Regex.Matches(html2, @"'(?<URL>https:\/\/m\.media-amazon\.com\/images\/[^' ]+\.jpg)'", RE_options);
+                    if (mc.Count > 0)
+                    {
+                        this.MoviePosterUrl = mc[0].Groups["URL"].Value;
+                        return true;
+                    }
                 }
             }
 
-            return false;
+            return false; //no change. couldn't find poster url.
         }
 
         public void GetVideoFileProperties()
@@ -833,9 +981,17 @@ namespace VideoLibrarian
         private bool Deserialize(string path)
         {
             if (path.IsNullOrEmpty() || !File.Exists(path)) return false;
-            var sd = XmlIO.Deserialize<MovieProperties>(path);
-            OriginalMovieProperties = sd;
-            SetAllProperties(sd, this);
+            try
+            {
+                var sd = XmlIO.Deserialize<MovieProperties>(path);
+                OriginalMovieProperties = sd;
+                SetAllProperties(sd, this);
+            }
+            catch(Exception ex)
+            {
+                Log.Write(Severity.Warning, "Deserialization Error. Rebuilding movie properties file.\n" + ex.ToString());
+                return false;
+            }
             return true;
         }
 
@@ -961,7 +1117,7 @@ namespace VideoLibrarian
             if (!m.Success) return string.Empty;  //url not a match
             return m.Groups["TT"].Value == string.Empty ? MovieProperties.EmptyTitleID : m.Groups["TT"].Value;
         }
-        private static readonly Regex ReTitleId = new Regex(@"^(?:(?:https?:\/\/(?:www\.)?imdb\.com\/title\/(?<TT>tt[0-9]+))|(?<FILE>file:\/\/\/))", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        private static readonly Regex ReTitleId = new Regex(@"^(?:(?:https?:\/\/(?:www\.)?imdb\.com\/title\/(?<TT>tt[0-9]+))|(?<FILE>file:\/\/\/))", RE_options);
 
         public override string ToString() => this.FullMovieName;
 

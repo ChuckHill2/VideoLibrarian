@@ -47,11 +47,19 @@ namespace VideoLibrarian
 
             if (File.Exists(p))
             {
-                var bmp = GDI.FastLoadFromFile(p);
-                var tile = new TileMediumLite(mp);
-                var controls = new object[] { tile.m_lblTitle, tile.m_lblPlot, tile.m_chkWatched, tile.m_pbImdbLink };
-                TileBase.LoadTileImage(tile, bmp, controls);
-                return tile;
+                try
+                {
+                    var bmp = GDI.FastLoadFromFile(p);
+                    var tile = new TileMediumLite(mp);
+                    var controls = new object[] { tile.m_lblTitle, tile.m_lblPlot, tile.m_chkWatched, tile.m_pbImdbLink };
+                    TileBase.LoadTileImage(tile, bmp, controls);
+                    return tile;
+                }
+                catch (Exception ex)
+                {
+                    File.Delete(p);
+                    Log.Write(Severity.Error, $"Image Corrupted. Recreating image {p}\n{ex}");
+                }
             }
 
             var tile2 = TileMedium.Create(mp,true);
@@ -103,7 +111,12 @@ namespace VideoLibrarian
 
             MovieProps = mp;
             IsVisible = true;
-            AddVirtualControl(m_lblPlot, m_lblPlot_Click, mp.Plot, global::VideoLibrarian.ResourceCache.FontMedium);
+
+            const int maxplotlen = 404; //maximum string length that will fit in tile.
+            var plot = mp.Plot.IsNullOrEmpty() ? mp.Summary : mp.Plot;
+            if (plot.Length > maxplotlen) plot = plot.Substring(0, maxplotlen) + "…";
+
+            AddVirtualControl(m_lblPlot, m_lblPlot_Click, plot, global::VideoLibrarian.ResourceCache.FontMedium);
             EventHandler click = base.m_lblTitle_Click;
             if (DisableTitleLink()) click = null;
             AddVirtualControl(m_lblTitle, click, mp.MovieName, global::VideoLibrarian.ResourceCache.FontLargeBold);

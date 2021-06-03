@@ -46,11 +46,19 @@ namespace VideoLibrarian
 
             if (File.Exists(p))
             {
-                var bmp = GDI.FastLoadFromFile(p);
-                var tile = new TileSmallLite(mp);
-                object[] controls = new object[] { tile.m_lblTitle, tile.m_pbImdbLink };
-                TileBase.LoadTileImage(tile, bmp, controls);
-                return tile;
+                try
+                {
+                    var bmp = GDI.FastLoadFromFile(p);
+                    var tile = new TileSmallLite(mp);
+                    object[] controls = new object[] { tile.m_lblTitle, tile.m_pbImdbLink };
+                    TileBase.LoadTileImage(tile, bmp, controls);
+                    return tile;
+                }
+                catch (Exception ex)
+                {
+                    File.Delete(p);
+                    Log.Write(Severity.Error, $"Image Corrupted. Recreating image {p}\n{ex}");
+                }
             }
 
             var tile2 = TileSmall.Create(mp, true);
@@ -132,7 +140,7 @@ namespace VideoLibrarian
 
         private void Plot_Click(object sender, EventArgs ev)
         {
-            SummaryPopup.Create(this, MovieProps.Summary, 1.15);
+            SummaryPopup.Create(this, this.MovieProps.Summary.IsNullOrEmpty() ? this.MovieProps.Plot : this.MovieProps.Summary, 1.15);
         }
     }
 }

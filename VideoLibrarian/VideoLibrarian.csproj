@@ -213,6 +213,7 @@
     <Compile Include="Utilities\ScrollBarEnhancedControl.cs">
       <SubType>UserControl</SubType>
     </Compile>
+    <Compile Include="Utilities\SimpleJSON.cs" />
     <Compile Include="Utilities\ToolTipHelp.cs" />
     <Compile Include="Utilities\VersionRW.cs" />
     <Compile Include="Utilities\XmlIO.cs" />

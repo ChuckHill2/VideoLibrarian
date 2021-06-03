@@ -452,7 +452,7 @@ namespace VideoLibrarian
 
         protected void m_lblPlot_Click(object sender, EventArgs ev)
         {
-            SummaryPopup.Create(this, this.MovieProps.Summary, 1.65);
+            SummaryPopup.Create(this, this.MovieProps.Summary.IsNullOrEmpty() ? this.MovieProps.Plot : this.MovieProps.Summary, 1.65);
         }
 
         protected void m_lblLocation_Click(object sender, EventArgs e)

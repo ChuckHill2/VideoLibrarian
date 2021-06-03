@@ -92,7 +92,10 @@ namespace VideoLibrarian
             if (mp.ReleaseDate.Day==1 && mp.ReleaseDate.Month==1)  m_lblReleaseDate.Text = mp.ReleaseDate.Year.ToString();
             else m_lblReleaseDate.Text = mp.ReleaseDate.ToDateString();
 
-            m_lblPlot.Text = mp.Plot.IsNullOrEmpty() ? mp.Summary : mp.Plot;
+            const int maxplotlen = 517; //maximum string length that will fit in tile.
+            var plot = mp.Plot.IsNullOrEmpty() ? mp.Summary : mp.Plot;
+            if (plot.Length > maxplotlen) plot = plot.Substring(0, maxplotlen) + "…";
+            m_lblPlot.Text = plot;
 
             if (mp.Creators.IsNullOrEmpty()) { tableLayoutPanel3.RowStyles[0].SizeType = SizeType.Absolute; tableLayoutPanel3.RowStyles[0].Height = 0; }
             else m_lblCreators.Text = mp.Creators;
