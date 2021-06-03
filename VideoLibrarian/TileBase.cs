@@ -241,7 +241,7 @@ namespace VideoLibrarian
             if (VirtualPaint)
             {
                 VirtualPaint = false;
-                return;
+                //return;  //a little too aggressive...:-\
             }
 
             //Manually paint background on large tiles to stop flickering when moving cursor off the poster (only large tiles have a background image).
