@@ -114,7 +114,12 @@ namespace VideoLibrarian
                 return;
             }
 
+            var prevCacheSize = Regex.CacheSize; //==15
+            Regex.CacheSize = 32; //MovieProperties.ParseImdbPage() uses ~22 compiled regex patterns, so we boost the cache size to avoid expensive churn.
+
             LoadMovieInfo();
+
+            Regex.CacheSize = prevCacheSize;
 
             if (MovieProperties.Count == 0)
             {

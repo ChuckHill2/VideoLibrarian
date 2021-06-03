@@ -382,11 +382,11 @@ namespace VideoLibrarian
         private void ParseImdbPage(FileEx.Job data)
         {
             MatchCollection mc;
-            string html = FileEx.ReadHtml(data.Filename);  //no duplicate whitespace, no whitespace before '<' and no whitespace after '>'
+            string html = FileEx.ReadHtml(data.Filename);  //no duplicate whitespace, no whitespace before '<' and no whitespace after '>', and all double quotes replaced with single quotes. Great for simplifying Regex patterns.
 
             if (Regex.IsMatch(html, @"<script id='__NEXT_DATA__' type='application/json'>", RE_options))
             {
-                var html2 = File.ReadAllText(data.Filename);
+                var html2 = File.ReadAllText(data.Filename); //FileEx.ReadHtml() corrupts JSON string.
                 mc = Regex.Matches(html2, @"<script id=""__NEXT_DATA__"" type=""application/json"">(?<JSON>.+?)</script><script nomodule", RE_options);
                 if (mc.Count > 0)
                 {
@@ -395,11 +395,12 @@ namespace VideoLibrarian
                         ParseIMDBJson(mc[0].Groups["JSON"].Value);
                         return;
                     }
-                    catch(Exception ex)
+                    catch (Exception ex)
                     {
                         Log.Write(Severity.Error, $"Error retrieving values from JSON string embedded in \"{data.Filename}\". Fallback to web scraping.\n{ex}");
                     }
                 }
+                else Log.Write(Severity.Warning, $"JSON not found in \"{data.Filename}\"");
             }
 
             // <link rel='canonical' href='https://www.imdb.com/title/tt0062622/'/>
@@ -623,7 +624,6 @@ namespace VideoLibrarian
             var movieClass = props1["titleType"]["id"].Value;
             MovieClass = props1["titleType"]["text"].Value;
             if (MovieClass == "Movie") MovieClass = "Feature Movie";
-            Year = int.TryParse(props1["releaseYear"]["year"], out i) ? i : 1900;
 
             MovieName = props1["series"]?["series"]?["titleText"]?["text"]?.Value;
             if (MovieName.IsNullOrEmpty())
@@ -631,6 +631,7 @@ namespace VideoLibrarian
             else
                 MovieName = string.Concat(MovieName, " \xAD ", props1["titleText"]?["text"]?.Value ?? "");
 
+            Year = int.TryParse(props1["releaseYear"]["year"], out i) ? i : 1900;
             var year  = int.TryParse(props1["releaseDate"]["year"], out i) ? i : Year;
             var month = int.TryParse(props1["releaseDate"]["month"], out i) ? i : 1;
             var day   = int.TryParse(props1["releaseDate"]["day"], out i) ? i : 1;
@@ -667,7 +668,7 @@ namespace VideoLibrarian
             var sb = new StringBuilder();
             foreach (var pc in props1["principalCredits"])
             {
-                var id = pc.Value["category"]["id"].Value;  //director, writer, cast
+                var id = pc.Value["category"]["id"].Value;  //director, writer, cast, creator
                 string comma = string.Empty;
                 foreach (var cr in pc.Value["credits"])
                 {
