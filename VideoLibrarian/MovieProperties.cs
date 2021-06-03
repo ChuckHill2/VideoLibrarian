@@ -639,8 +639,12 @@ namespace VideoLibrarian
 
             YearEnd = int.TryParse(props1["releaseYear"]["endYear"], out i) ? i : 0;
 
-            Runtime = int.TryParse(props1["runtime"]["seconds"], out i) ? i / 60 : 0;
-            if (Runtime == 0) Runtime = int.TryParse(props2["runtime"]["seconds"], out i) ? i / 60 : 0;
+            if (MoviePath.IsNullOrEmpty() || !File.Exists(this.MoviePath))
+            {
+                //This is normally set from async extract of video file properties: GetVideoFileProperties()
+                Runtime = int.TryParse(props1["runtime"]["seconds"], out i) ? i / 60 : 0;
+                if (Runtime == 0) Runtime = int.TryParse(props2["runtime"]["seconds"], out i) ? i / 60 : 0;
+            }
 
             MovieRating = float.TryParse(props1["ratingsSummary"]["aggregateRating"], out f) ? f : 0;
             MoviePosterUrl = props1["primaryImage"]["url"]?.Value ?? "";
