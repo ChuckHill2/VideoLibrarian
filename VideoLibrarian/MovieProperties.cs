@@ -384,6 +384,7 @@ namespace VideoLibrarian
             MatchCollection mc;
             string html = FileEx.ReadHtml(data.Filename);  //no duplicate whitespace, no whitespace before '<' and no whitespace after '>', and all double quotes replaced with single quotes. Great for simplifying Regex patterns.
 
+            //Note: As of 06-04-2021 only 50% of all IMDB web pages support this.
             if (Regex.IsMatch(html, @"<script id='__NEXT_DATA__' type='application/json'>", RE_options))
             {
                 var html2 = File.ReadAllText(data.Filename); //FileEx.ReadHtml() corrupts JSON string.
@@ -621,9 +622,10 @@ namespace VideoLibrarian
             var props1 = urqls[0].Value["data"]["title"];
             var props2 = urqls[1].Value["data"]["title"];
 
-            var movieClass = props1["titleType"]["id"].Value;
+            var movieClass = props1["titleType"]["id"].Value; //language independent ID
             MovieClass = props1["titleType"]["text"].Value;
-            if (MovieClass == "Movie") MovieClass = "Feature Movie";
+            if (MovieClass == "Movie") MovieClass = "Feature Movie"; //make same as legacy scraped web page
+            else if (MovieClass == "TV Mini Series") MovieClass = "TV Mini-Series"; //make same as legacy scraped web page
 
             MovieName = props1["series"]?["series"]?["titleText"]?["text"]?.Value;
             if (MovieName.IsNullOrEmpty())

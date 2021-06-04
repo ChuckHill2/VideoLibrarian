@@ -100,6 +100,7 @@ namespace VideoLibrarian
                 else if (ext == ".html") ext = ".htm";
                 else if (ext == ".jpe") ext = ".jpg";
                 else if (ext == ".jpeg") ext = ".jpg";
+                else if (ext == ".jfif") ext = ".jpg";
                 return ext;
             }
             catch { return string.Empty; }
@@ -203,7 +204,7 @@ namespace VideoLibrarian
         public static bool Download(Job data)
         {
             #region Initialize Static Variables
-            const string UserAgent = @"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:83.0) Gecko/20100101 Firefox/83.0"; //DO NOT include "User-Agent: " prefix!
+            const string UserAgent = @"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0"; //DO NOT include "User-Agent: " prefix!
             Func<string, string, string> GetDefaultExtension = (mimeType, defalt) =>
             {
                 if (mimeType.IsNullOrEmpty()) return defalt;

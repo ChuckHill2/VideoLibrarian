@@ -50,6 +50,10 @@ namespace VideoLibrarian
         public MyFlowLayoutPanel() : base()
         {
             Panel.Layout += Panel_Layout;
+            //SetStyle(ControlStyles.OptimizedDoubleBuffer, true); //does not seem to improve scrolling appearance
+            //SetStyle(ControlStyles.DoubleBuffer, true);
+            //SetStyle(ControlStyles.UserPaint, true);
+            //SetStyle(ControlStyles.AllPaintingInWmPaint, true);
         }
 
         #region Designer Compatibility with System.Windows.Forms.Panel, otherwise ignored

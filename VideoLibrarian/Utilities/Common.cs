@@ -90,8 +90,8 @@ namespace VideoLibrarian
             {
                 if (severity != Severity.None) LogStream.Write(severity.ToString() + ": ");
 #if DEBUG
-                    //Cleanup string and indent succeeding lines
-                    if (args != null && args.Length > 0)
+                //Cleanup string and indent succeeding lines
+                if (args != null && args.Length > 0)
                     fmt = string.Format(fmt, args);
                 fmt = fmt.Beautify(false, "    ").TrimStart();
                 LogStream.WriteLine(fmt);
