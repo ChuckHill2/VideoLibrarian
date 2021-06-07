@@ -99,7 +99,7 @@ namespace VideoLibrarian
             if (pt.X < 4) pt.X = 4;
             else if (pt.X > (screen.Width - Popup.Width - 4)) pt.X = screen.Width - Popup.Width - 4;
             if (pt.Y < 4) pt.Y = 4;
-            else if (pt.Y > (screen.Height - Popup.Height - 4)) pt.X = screen.Height - Popup.Height - 4;
+            else if (pt.Y > (screen.Height - Popup.Height - 4)) pt.Y = screen.Height - Popup.Height - 4;
 
             Popup.Location = pt;
 
