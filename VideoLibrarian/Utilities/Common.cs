@@ -813,6 +813,11 @@ namespace VideoLibrarian
             }
 
             si.WorkingDirectory = dir; //start within directory
+
+            var fn = si.FileName;
+            if (fn.Contains(' ')) fn = String.Concat("\"", fn, "\"");
+            Log.Write(Severity.Info, $"Exec: {fn} {si.Arguments??""}");
+
             Process.Start(si);
         }
 

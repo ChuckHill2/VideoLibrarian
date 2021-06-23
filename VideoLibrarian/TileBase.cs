@@ -457,7 +457,11 @@ namespace VideoLibrarian
 
         protected void m_lblLocation_Click(object sender, EventArgs e)
         {
-            Process.Start(Path.GetDirectoryName(this.MovieProps.PropertiesPath));
+            var fn = Path.GetDirectoryName(this.MovieProps.PropertiesPath);
+            if (fn.Contains(' ')) fn = String.Concat("\"", fn, "\"");
+            Log.Write(Severity.Info, $"Exec: {fn}");
+
+            Process.Start(fn);
         }
 
         protected void m_pbImdbLink_Click(object sender, EventArgs e)
