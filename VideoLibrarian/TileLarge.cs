@@ -35,14 +35,11 @@ namespace VideoLibrarian
 {
     public partial class TileLarge : TileBase
     {
-        //
-        //
-
         public static TileLarge Create(MovieProperties mp, bool ctrlImageOnly = false)
         {
             var ctrl = new TileLarge(mp);
 
-            if (ctrlImageOnly)
+            if (ctrlImageOnly) 
             {
                 ctrl.m_lblLocation.Visible = false;
                 ctrl.m_pbImdbLink.Image = null;
@@ -92,10 +89,9 @@ namespace VideoLibrarian
             if (mp.ReleaseDate.Day==1 && mp.ReleaseDate.Month==1)  m_lblReleaseDate.Text = mp.ReleaseDate.Year.ToString();
             else m_lblReleaseDate.Text = mp.ReleaseDate.ToDateString();
 
-            const int maxplotlen = 517; //maximum string length that will fit in tile.
             var plot = mp.Plot.IsNullOrEmpty() ? mp.Summary : mp.Plot;
-            if (plot.Length > maxplotlen) plot = plot.Substring(0, maxplotlen) + "…";
-            m_lblPlot.Text = plot;
+            m_lblPlot.Text = FitInRect(plot, m_lblPlot.Width,7, m_lblPlot.Font);
+
 
             if (mp.Creators.IsNullOrEmpty()) { tableLayoutPanel3.RowStyles[0].SizeType = SizeType.Absolute; tableLayoutPanel3.RowStyles[0].Height = 0; }
             else m_lblCreators.Text = mp.Creators;

@@ -50,7 +50,7 @@ namespace VideoLibrarian
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new FormMain());
 
-            Log.Write(Severity.None, null); //closes the logger.
+            Log.Dispose(); //closes the logger.
         }
 
         static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)

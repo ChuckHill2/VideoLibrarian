@@ -33,8 +33,6 @@ namespace VideoLibrarian
 {
     public partial class TileMedium : TileBase
     {
-        //
-
         public static TileMedium Create(MovieProperties mp, bool ctrlImageOnly = false)
         {
             var ctrl = new TileMedium(mp);
@@ -87,10 +85,8 @@ namespace VideoLibrarian
 
             m_lblDuration.Text = mp.EpisodeCount > 0 ? string.Format("{0} eps", mp.EpisodeCount) : string.Format("{0} min", mp.Runtime == 0 ? "?" : mp.Runtime.ToString());
 
-            const int maxplotlen = 404; //maximum string length that will fit in tile.
             var plot = mp.Plot.IsNullOrEmpty() ? mp.Summary : mp.Plot;
-            if (plot.Length > maxplotlen) plot = plot.Substring(0, maxplotlen) + "…";
-            m_lblPlot.Text = plot;
+            m_lblPlot.Text = FitInRect(plot, m_lblPlot.Width, 12, m_lblPlot.Font);
 
             m_pbPoster.Image = mp.MoviePosterImg;
 

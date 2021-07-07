@@ -55,6 +55,9 @@ namespace VideoLibrarian
                     var tile = new TileLargeLite(mp);
                     var controls = new object[] { tile.m_pbPoster, tile.m_lblTitle, tile.m_lblPlot, tile.m_lblLocation, tile.m_pbImdbLink, tile.m_chkWatched };
                     TileBase.LoadTileImage(tile, bmp, controls);
+
+                    tile.Initialize();
+
                     return tile;
                 }
                 catch(Exception ex)
@@ -104,20 +107,22 @@ namespace VideoLibrarian
 
             MovieProps = mp;
             IsVisible = true;
+        }
 
+        private void Initialize()
+        {
             AddVirtualControl(m_pbPoster, this.m_pbPoster_Click);
 
-            const int maxplotlen = 517; //maximum string length that will fit in tile.
-            var plot = mp.Plot.IsNullOrEmpty() ? mp.Summary : mp.Plot;
-            if (plot.Length > maxplotlen) plot = plot.Substring(0, maxplotlen) + "…";
+            var plot = MovieProps.Plot.IsNullOrEmpty() ? MovieProps.Summary : MovieProps.Plot;
+            plot = FitInRect(plot, m_lblPlot.Width, 7, global::VideoLibrarian.ResourceCache.FontMedium);
 
             AddVirtualControl(m_lblPlot, m_lblPlot_Click, plot, global::VideoLibrarian.ResourceCache.FontMedium);
-            AddVirtualControl(m_lblLocation, this.m_lblLocation_Click, Path.GetDirectoryName(mp.PropertiesPath), global::VideoLibrarian.ResourceCache.FontRegular);
+            AddVirtualControl(m_lblLocation, this.m_lblLocation_Click, Path.GetDirectoryName(MovieProps.PropertiesPath), global::VideoLibrarian.ResourceCache.FontRegular);
             EventHandler click = base.m_lblTitle_Click;
             if (DisableTitleLink()) click = null;
-            AddVirtualControl(m_lblTitle, click, mp.MovieName, global::VideoLibrarian.ResourceCache.FontLargeBold);
+            AddVirtualControl(m_lblTitle, click, MovieProps.MovieName, global::VideoLibrarian.ResourceCache.FontLargeBold);
 
-            m_chkWatched.CheckDate = mp.Watched;
+            m_chkWatched.CheckDate = MovieProps.Watched;
         }
 
         /// <summary>

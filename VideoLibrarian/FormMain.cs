@@ -90,12 +90,13 @@ namespace VideoLibrarian
             this.Filters = data.Filters;
             this.ScrollPosition = data.ScrollPosition;
             this.MaxLoadedProperties = data.MaxLoadedProperties;
+            Log.SeverityFilter = data.LogSeverity;
 
             SetViewMenu(this.View);
 
             needsCacheRebuild = (data.DPIScaling != GDI.DpiScalingFactor());
             if (needsCacheRebuild)
-                Log.Write(Severity.None, "Rebuilding image cache due to screen resolution change (aka DPI scaling).");
+                Log.Write(Severity.Info, "Rebuilding image cache due to screen resolution change (aka DPI scaling).");
 
             if (data.Version != Assembly.GetExecutingAssembly().GetName().Version)
             {
@@ -225,6 +226,7 @@ namespace VideoLibrarian
             }
 
             data.MaxLoadedProperties = this.MaxLoadedProperties;
+            data.LogSeverity = Log.SeverityFilter;
             data.Serialize();
         }
 

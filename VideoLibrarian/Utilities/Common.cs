@@ -47,14 +47,17 @@ using System.Windows.Forms;
 
 namespace VideoLibrarian
 {
+    /// <summary>
+    /// Logging severity levels
+    /// </summary>
     public enum Severity
     {
-        None,    //No severity level written
-        Success, //Action successful, Color.Green
+        None,    //Special: No severity level written, but message always written.
+        Success, //Action successful, Color.ForestGreen
         Error,   //Action failed, Color.Red
         Warning, //Action failed but recovered, Color.Gold
-        Info,    //Action status, Color.Blue
-        Verbose  //Detailed action status, Color.Purple
+        Info,    //Action status, Color.MediumBlue
+        Verbose  //Detailed action status, Color.LightBlue
     }
 
     public static class Log
@@ -66,8 +69,12 @@ namespace VideoLibrarian
 
         public static event Action<Severity, string> MessageCapture;
 
+        public static Severity SeverityFilter { get; set; } = Severity.Info; //default == all except verbose messages
+
         public static void Write(Severity severity, string fmt, params object[] args)
         {
+            if (severity > SeverityFilter) return;
+
             if (fmt == null && LogStream == null) return; //Nothing to do
             if (fmt == null && LogStream != null) //Close
             {
@@ -89,27 +96,24 @@ namespace VideoLibrarian
             if (LogStream != null) lock (lockObj)
             {
                 if (severity != Severity.None) LogStream.Write(severity.ToString() + ": ");
-#if DEBUG
-                //Cleanup string and indent succeeding lines
-                if (args != null && args.Length > 0)
-                    fmt = string.Format(fmt, args);
-                fmt = fmt.Beautify(false, "    ").TrimStart();
-                LogStream.WriteLine(fmt);
-#else
-                //Cleanup string and indent succeeding lines. But as this is release
-                //mode, exceptions show only the message not the entire call stack.
-                //Users wouldn't know what to do with the call stack, anyway.
+
+                //When not in verbose mode, do not include an exception call stack.
                 if (args != null && args.Length > 0)
                 {
-                    for (int i = 0; i < args.Length; i++)
+                    if (severity == Severity.Verbose)
+                        fmt = string.Format(fmt, args);
+                    else
                     {
-                        if (args[i] is Exception) args[i] = ((Exception)args[i]).Message;
+                        for (int i = 0; i < args.Length; i++)
+                        {
+                            if (args[i] is Exception) args[i] = ((Exception)args[i]).Message;
+                        }
+                        fmt = string.Format(fmt, args);
                     }
-                    fmt = string.Format(fmt, args);
                 }
-                fmt = fmt.Beautify(false, "    ").TrimStart();
-                LogStream.WriteLine(fmt); 
-#endif
+
+                fmt = fmt.Beautify(false, "    ").TrimStart(); //indent succeeding lines of message.
+                LogStream.WriteLine(fmt);
                 LogStream.BaseStream.Flush();
                 MessageCapture?.Invoke(severity, fmt);
             }

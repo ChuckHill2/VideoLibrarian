@@ -287,7 +287,7 @@ namespace VideoLibrarian
                 ShortcutPath = dst;
 
                 this.Serialize();
-                Log.Write(Severity.None, "Added new movie \"{0}\" at {1}", this.FullMovieName, Path.GetDirectoryName(PropertiesPath));
+                Log.Write(Severity.Info, "Added new movie \"{0}\" at {1}", this.FullMovieName, Path.GetDirectoryName(PropertiesPath));
             }
             else if (forceRefresh && !loadAvailable)
             {

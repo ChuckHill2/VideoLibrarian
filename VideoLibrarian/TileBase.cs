@@ -471,6 +471,36 @@ namespace VideoLibrarian
         }
 
         /// <summary>
+        /// The tile label fields are fixed width and variable height. However, the max height must be limited so it will not push the following fields off the tile.
+        /// The plot or title may exceed the maximum size for the field in the tile. This will truncate the string on word boundries so it will not overrun the field.
+        /// </summary>
+        /// <param name="s">String field to test.</param>
+        /// <param name="width">Maximum width of field</param>
+        /// <param name="maxLines">The maximum allowed number of lines for the field</param>
+        /// <param name="f">Font used to draw the string</param>
+        /// <returns>Possibly truncated string with an ellipsis appended.</returns>
+        protected string FitInRect(string s, int width, int maxLines, Font f)
+        {
+            const TextFormatFlags flags = TextFormatFlags.HidePrefix | TextFormatFlags.TextBoxControl | TextFormatFlags.VerticalCenter | TextFormatFlags.WordBreak;
+            if (string.IsNullOrEmpty(s)) return s;
+            s = s.Trim();
+            if (s.Length==0 || !s.Contains(' ')) return s; //no word boundries!
+            var maxHeight = maxLines * f.Height;
+            if (TextRenderer.MeasureText(s, f, new Size(width, 99999), flags).Height <= maxHeight) return s; //string fits ok.
+
+            var size = new Size(0, 99999);
+            while (size.Height > maxHeight)
+            {
+                var i = s.LastIndexOf(' ');
+                if (i == -1) return s;
+                s = s.Substring(0, i) + "…";  //remove last word and try again.
+                size = TextRenderer.MeasureText(s, f, new Size(width, 99999), flags);
+            }
+
+            return s;
+        }
+
+        /// <summary>
         /// Load bitmap into tile and position any child controls.
         /// Used exclusively in the Create() static method of each TileXxxLite tile.
         /// </summary>

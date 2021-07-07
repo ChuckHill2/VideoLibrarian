@@ -53,6 +53,7 @@ namespace VideoLibrarian
                     var tile = new TileMediumLite(mp);
                     var controls = new object[] { tile.m_lblTitle, tile.m_lblPlot, tile.m_chkWatched, tile.m_pbImdbLink };
                     TileBase.LoadTileImage(tile, bmp, controls);
+                    tile.Initialize();
                     return tile;
                 }
                 catch (Exception ex)
@@ -111,17 +112,19 @@ namespace VideoLibrarian
 
             MovieProps = mp;
             IsVisible = true;
+        }
 
-            const int maxplotlen = 404; //maximum string length that will fit in tile.
-            var plot = mp.Plot.IsNullOrEmpty() ? mp.Summary : mp.Plot;
-            if (plot.Length > maxplotlen) plot = plot.Substring(0, maxplotlen) + "…";
+        private void Initialize()
+        {
+            var plot = MovieProps.Plot.IsNullOrEmpty() ? MovieProps.Summary : MovieProps.Plot;
+            plot = FitInRect(plot, m_lblPlot.Width, 12, global::VideoLibrarian.ResourceCache.FontMedium);
 
             AddVirtualControl(m_lblPlot, m_lblPlot_Click, plot, global::VideoLibrarian.ResourceCache.FontMedium);
             EventHandler click = base.m_lblTitle_Click;
             if (DisableTitleLink()) click = null;
-            AddVirtualControl(m_lblTitle, click, mp.MovieName, global::VideoLibrarian.ResourceCache.FontLargeBold);
+            AddVirtualControl(m_lblTitle, click, MovieProps.MovieName, global::VideoLibrarian.ResourceCache.FontLargeBold);
 
-            m_chkWatched.CheckDate = mp.Watched;
+            m_chkWatched.CheckDate = MovieProps.Watched;
             m_pbPoster.Visible = true;
         }
 

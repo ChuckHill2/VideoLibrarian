@@ -60,7 +60,8 @@ namespace VideoOrganizer
 
         public FormMain()
         {
-            Log.MessageCapture += SetStatus;  //copy to status window low level logging errors from internet downloads.
+            Log.MessageCapture += SetStatus;  //copy any log messages to to status window, particularly low-level logging errors from internet downloads.
+            Log.SeverityFilter = Severity.Verbose;
 
             InitializeComponent();
 
@@ -152,34 +153,7 @@ namespace VideoOrganizer
             Process.Start(e.LinkText);
         }
 
-        private void SetStatus(string msg)
-        {
-            SetStatus(Severity.None, msg);
-        }
-
-        private void SetStatus(Severity severity, string fmt, params object[] args)
-        {
-            //Cleanup string and indent succeeding lines
-            #if DEBUG
-                if (args != null && args.Length > 0)  fmt = string.Format(fmt, args);
-            #else
-                //Cleanup string and indent succeeding lines. But as this is release
-                //mode, exceptions show only the message not the entire call stack.
-                //Users wouldn't know what to do with the call stack, anyway.
-                if (args != null && args.Length > 0)
-                {
-                    for (int i = 0; i < args.Length; i++)
-                    {
-                        if (args[i] is Exception) args[i] = ((Exception)args[i]).Message;
-                    }
-                    fmt = string.Format(fmt, args);
-                }
-            #endif
-
-            fmt = fmt.Beautify(false, "    ").TrimStart();
-            SetStatus(severity, fmt);
-        }
-
+        // We don't actually perform any file logging as everything goes to the status window.
         private void SetStatus(Severity severity, string msg)
         {
             if (this.InvokeRequired)
@@ -191,10 +165,10 @@ namespace VideoOrganizer
             Color clr;
             switch(severity)
             {
-                case Severity.Success: clr = Color.Green;  break;
+                case Severity.Success: clr = Color.ForestGreen;  break;
                 case Severity.Error:   clr = Color.Red;    break;
                 case Severity.Warning: clr = Color.Gold;   break;
-                case Severity.Info:    clr = Color.Blue;   break;
+                case Severity.Info:    clr = Color.MediumBlue;   break;
                 case Severity.Verbose: clr = Color.LightBlue; break;
                 default:               clr = Color.Black;  break;
             }
@@ -214,9 +188,10 @@ namespace VideoOrganizer
                 m_rtfStatus.SelectionFont = RegularFont;
             }
 
+            msg = msg.Beautify(false, "    ").TrimStart();
+
             m_rtfStatus.AppendText(msg);
-            //if (msg[msg.Length-1] != '\n') 
-                m_rtfStatus.AppendText("\n");
+            m_rtfStatus.AppendText("\n");
             m_rtfStatus.ScrollToCaret();
         }
 
@@ -267,12 +242,12 @@ namespace VideoOrganizer
             }
             catch (Exception ex)
             {
-                SetStatus(Severity.Error, "Fatal: {1}", ex);
+                SetStatus(Severity.Error, $"Fatal: {ex}");
                 return;
             }
 
             DebugExportCache();
-            SetStatus(string.Empty);
+            SetStatus(Severity.None, string.Empty);
             SetStatus(Severity.Success, "Completed.");
         }
 
@@ -308,7 +283,7 @@ namespace VideoOrganizer
             {
                 File.WriteAllText(filepath, $"[InternetShortcut]\r\nURL=https://www.imdb.com/title/{tt}/ \r\nIconFile={favicon}\r\nIconIndex=0\r\nHotKey=0\r\nIDList=\r\nAuthor=VideoLibrarian.exe");
             }
-            SetStatus($"Created shortcut {Path.GetFileNameWithoutExtension(filepath)} ==> https://www.imdb.com/title/{tt}/");
+            SetStatus(Severity.Info, $"Created shortcut {Path.GetFileNameWithoutExtension(filepath)} ==> https://www.imdb.com/title/{tt}/");
         }
 
         //Bug in Regex.Escape(@"~`'!@#$%^&*(){}[].,;+_=-"). It doesn't escape ']'

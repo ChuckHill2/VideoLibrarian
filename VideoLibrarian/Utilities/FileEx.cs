@@ -226,6 +226,8 @@ namespace VideoLibrarian
 
             Uri uri = new Uri(data.Url);
             data.Retries++;
+            int t1 = Environment.TickCount;
+
             try
             {
                 string ext = Path.GetExtension(data.Filename);
@@ -244,7 +246,7 @@ namespace VideoLibrarian
                     if (!data.Referer.IsNullOrEmpty()) web.Headers[HttpRequestHeader.Referer] = data.Referer;
                     if (!data.Cookie.IsNullOrEmpty()) web.Headers[HttpRequestHeader.Cookie] = data.Cookie;
                     data.Filename = FileEx.GetUniqueFilename(data.Filename); //creates empty file as placeholder
-                    //Diagnostics.WriteLine("{0} ==> {1}\r\n", data.Url, Path.GetFileName(data.Filename));
+                    //Diagnostics.WriteLine($"{data.Url} ==> {Path.GetFileName(data.Filename)}\r\n");
 
                     web.DownloadFile(data.Url, data.Filename);
 
@@ -279,6 +281,7 @@ namespace VideoLibrarian
                     data.Filename = newfilename;
                 }
 
+                Log.Write(Severity.Verbose, $"Download {data.Url} duration={((Environment.TickCount - t1) / 1000f):F2} sec");
                 return true;
             }
             catch (Exception ex)
@@ -305,7 +308,7 @@ namespace VideoLibrarian
                     ((status == WebExceptionStatus.NameResolutionFailure || status == WebExceptionStatus.ConnectFailure) && !ResolvedHosts.Contains(uri.Host)) ||
                     ex.Message.Contains("URI formats are not supported"))
                 {
-                    Log.Write(Severity.Error, "{0} ==> {1}: {2}", data.Url, Path.GetFileName(data.Filename), ex.Message);
+                    Log.Write(Severity.Error, $"duration={((Environment.TickCount - t1) / 1000f):F2} sec, {data.Url} ==> {Path.GetFileName(data.Filename)}: {ex.Message}");
                     return false;
                 }
 
@@ -317,7 +320,7 @@ namespace VideoLibrarian
                     }
                 }
 
-                Log.Write(Severity.Warning, "Retry #{0}: {1} ==> {2}: {3}", data.Retries, data.Url, Path.GetFileName(data.Filename), ex.Message);
+                Log.Write(Severity.Warning, $"Retry #{data.Retries}: duration={((Environment.TickCount-t1)/1000f):F2} sec, {data.Url} ==> {Path.GetFileName(data.Filename)}: {ex.Message}");
                 return Download(data);
                 #endregion Log Error and Maybe Retry Download
             }

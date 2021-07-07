@@ -45,14 +45,15 @@ namespace VideoLibrarian
         [XmlElement(Order=1)] public VersionRW Version { get; set; }  //needed for future upgrades
         [XmlElement(Order=2)] public int DPIScaling { get; set; }     //if DPI scaling has changed.
         [XmlElement(Order=3)] public RECT DesktopBounds;
-
         [XmlElement(Order=4)] public SettingProperties Settings { get; set; }
         [XmlElement(Order=5)] public ViewType View { get; set; }
         [XmlElement(Order=6)] public string SortKey { get; set; }
         [XmlElement(Order=7)] public FilterProperties Filters { get; set; }
         [XmlElement(Order=8)] public int ScrollPosition { get; set; }
-        [XmlComment("Explicit number of properties to load. For debugging use only.")]
-        [XmlElement(Order=9)] public int MaxLoadedProperties { get; set; }
+        [XmlComment("Explicit number of properties/tiles to load. For debugging use only.")]
+        [XmlElement(Order = 9)] public int MaxLoadedProperties { get; set; }
+        [XmlComment("Logging severity level: Success,Error,Warning,Info,Verbose. For debugging use only.")]
+        [XmlElement(Order = 10)] public Severity LogSeverity { get; set; }
 
         public FormMainProperties()
         {
@@ -72,6 +73,7 @@ namespace VideoLibrarian
             //this.Filters = new FilterProperties();
             this.ScrollPosition = 0;
             this.MaxLoadedProperties = 0;
+            this.LogSeverity = Severity.Info;
         }
 
         public void Serialize()
