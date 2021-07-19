@@ -29,6 +29,7 @@
 //--------------------------------------------------------------------------
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace VideoLibrarian
@@ -43,97 +44,13 @@ namespace VideoLibrarian
         {
             this.Keys = new List<SortKey>(7)
             {
-                new SortKey("MovieName","Movie Name", "Sort by name of movie", true, SortDirection.Ascending, 
-                    delegate(ITile x, ITile y)
-                    {
-                        int v = x.MovieProps.MovieName.CompareTo(y.MovieProps.MovieName);
-                        if (v != 0) return v;
-                        return x.MovieProps.GetHashCode() - y.MovieProps.GetHashCode();
-                    }, 
-                    delegate(ITile x, ITile y)
-                    {
-                        int v = y.MovieProps.MovieName.CompareTo(x.MovieProps.MovieName);
-                        if (v != 0) return v;
-                        return y.MovieProps.GetHashCode() - x.MovieProps.GetHashCode();
-                    }),
-                new SortKey("MovieClass","Video Type", "Sort by the type of movie", false, SortDirection.Ascending, 
-                    delegate(ITile x, ITile y)
-                    {
-                        int v = x.MovieProps.MovieClass.CompareTo(y.MovieProps.MovieClass);
-                        if (v != 0) return v;
-                        return x.MovieProps.GetHashCode() - y.MovieProps.GetHashCode();
-                    }, 
-                    delegate(ITile x, ITile y)
-                    {
-                        int v = y.MovieProps.MovieClass.CompareTo(x.MovieProps.MovieClass);
-                        if (v != 0) return v;
-                        return y.MovieProps.GetHashCode() - x.MovieProps.GetHashCode();
-                    }),
-                new SortKey("ReleaseDate","Release Date", "Sort by release date", false, SortDirection.Ascending,
-                    delegate(ITile x, ITile y)
-                    {
-                        int v = x.MovieProps.ReleaseDate.CompareTo(y.MovieProps.ReleaseDate);
-                        if (v != 0) return v;
-                        return x.MovieProps.GetHashCode() - y.MovieProps.GetHashCode();
-                    },
-                    delegate(ITile x, ITile y)
-                    {
-                        int v = y.MovieProps.ReleaseDate.CompareTo(x.MovieProps.ReleaseDate);
-                        if (v != 0) return v;
-                        return y.MovieProps.GetHashCode() - x.MovieProps.GetHashCode();
-                    }),
-                new SortKey("MovieRating","Movie Rating", "Sort by user rating", false, SortDirection.Ascending,
-                    delegate(ITile x, ITile y)
-                    {
-                        int v = x.MovieProps.MovieRating.CompareTo(y.MovieProps.MovieRating);
-                        if (v != 0) return v;
-                        return x.MovieProps.GetHashCode() - y.MovieProps.GetHashCode();
-                    },
-                    delegate(ITile x, ITile y)
-                    {
-                        int v = y.MovieProps.MovieRating.CompareTo(x.MovieProps.MovieRating);
-                        if (v != 0) return v;
-                        return y.MovieProps.GetHashCode() - x.MovieProps.GetHashCode();
-                    }),
-                new SortKey("DownloadDate","Download Date", "Sort by date the video file was downloaded.", false, SortDirection.Ascending,
-                    delegate(ITile x, ITile y)
-                    { 
-                        int v = x.MovieProps.DownloadDate.CompareTo(y.MovieProps.DownloadDate);
-                        if (v != 0) return v;
-                        return x.MovieProps.GetHashCode() - y.MovieProps.GetHashCode();
-                    },
-                    delegate(ITile x, ITile y)
-                    {
-                        int v = y.MovieProps.DownloadDate.CompareTo(x.MovieProps.DownloadDate);
-                        if (v != 0) return v;
-                        return y.MovieProps.GetHashCode() - x.MovieProps.GetHashCode();
-                    }),
-                new SortKey("FolderName","Folder Name", "Sort by name of folder containing video file.", false, SortDirection.Ascending, 
-                    delegate(ITile x, ITile y)
-                    { 
-                        int v = x.MovieProps.FolderName.CompareTo(y.MovieProps.FolderName);
-                        if (v != 0) return v;
-                        return x.MovieProps.GetHashCode() - y.MovieProps.GetHashCode();
-                    }, 
-                    delegate(ITile x, ITile y)
-                    { 
-                        int v = y.MovieProps.FolderName.CompareTo(x.MovieProps.FolderName);
-                        if (v != 0) return v;
-                        return y.MovieProps.GetHashCode() - x.MovieProps.GetHashCode();
-                    }),
-                new SortKey("Watched","Watched", "Sort by date video was watched.", false, SortDirection.Ascending, 
-                    delegate(ITile x, ITile y)
-                    { 
-                        int v = x.MovieProps.Watched.CompareTo(y.MovieProps.Watched);
-                        if (v != 0) return v;
-                        return x.MovieProps.GetHashCode() - y.MovieProps.GetHashCode();
-                    }, 
-                    delegate(ITile x, ITile y)
-                    {
-                        int v = y.MovieProps.Watched.CompareTo(x.MovieProps.Watched);
-                        if (v != 0) return v;
-                        return y.MovieProps.GetHashCode() - x.MovieProps.GetHashCode();
-                    })
+                new SortKey("MovieName","Movie Name", "Sort by name of movie", true, SortDirection.Ascending, k => k.MovieProps.MovieName),
+                new SortKey("MovieClass","Video Type", "Sort by the type of movie", false, SortDirection.Ascending, k => k.MovieProps.MovieClass),
+                new SortKey("ReleaseDate","Release Date", "Sort by release date", false, SortDirection.Ascending, k => k.MovieProps.ReleaseDate),
+                new SortKey("MovieRating","Movie Rating", "Sort by user rating", false, SortDirection.Ascending, k => k.MovieProps.MovieRating),
+                new SortKey("DownloadDate","Download Date", "Sort by date the video file was downloaded.", false, SortDirection.Ascending, k => k.MovieProps.DownloadDate),
+                new SortKey("FolderName","Folder Name", "Sort by name of folder containing video file.", false, SortDirection.Ascending, k => k.MovieProps.FolderName),
+                new SortKey("Watched","Watched", "Sort by date video was watched.", false, SortDirection.Ascending, k => k.MovieProps.Watched)
             };
         }
 
@@ -193,56 +110,43 @@ namespace VideoLibrarian
         /// <returns>True if changed</returns>
         public bool Sort(ITile[] tiles)
         {
-            //Create short list of compare delegates
-            var comparers = new List<Func<ITile, ITile, int>>(Keys.Count);
-            for (int i = 0; i < Keys.Count; i++)
+            IOrderedEnumerable<ITile> etiles = null;
+            foreach(var key in Keys)
             {
-                if (!Keys[i].Enabled) continue;
-                if (Keys[i].Direction == SortDirection.Descending) comparers.Add(Keys[i].SortDescending);
-                else comparers.Add(Keys[i].SortAscending);
-            }
-            int length = comparers.Count;
-            if (length == 0) return false; //no sort keys were enabled.
-
-            //Create comparer
-            Comparison<ITile> comparer = (x, y) =>
-            {
-                for (int i = 0; i < length; i++)
+                if (!key.Enabled) continue;
+                if (etiles == null)
                 {
-                    int result = comparers[i](x, y);
-                    if (result != 0) return result;
+                    if (key.Direction == SortDirection.Ascending)
+                        etiles = tiles.OrderBy(key.Key);
+                    else
+                        etiles = tiles.OrderByDescending(key.Key);
                 }
-                return 0;
-            };
+                else
+                {
+                    if (key.Direction == SortDirection.Ascending)
+                        etiles = etiles.ThenBy(key.Key);
+                    else
+                        etiles = etiles.ThenByDescending(key.Key);
+                }
+            }
+            if (etiles == null) return false;
 
             ITile[] dupeTiles = new ITile[tiles.Length];
             Array.Copy(tiles, dupeTiles, tiles.Length);
+            Array.Copy(etiles.ToArray(), tiles, tiles.Length);
 
-            //Now, sort in-place...
-            Array.Sort<ITile>(tiles, Comparer<ITile>.Create(comparer));
-
-            //Has the above Array.Sort change the order of tiles?
-            bool changed = false;
-            for (int i = 0; i < tiles.Length; i++)
-            {
-                if (tiles[i].MovieProps.GetHashCode() != dupeTiles[i].MovieProps.GetHashCode())
-                {
-                    changed = true;
-                }
-            }
-
-           return changed;
+            //Has Sort change the order of tiles?
+            return !tiles.SequenceEqual(dupeTiles);
         }
 
         public class SortKey
         {
-            public string Name { get; set; }
-            public string FriendlyName { get; set; }
-            public string Description { get; set; }
-            public bool Enabled { get; set; }
-            public SortDirection Direction { get; set; }
-            public Func<ITile, ITile, int> SortAscending { get; set; }
-            public Func<ITile, ITile, int> SortDescending { get; set; }
+            public string Name { get; set; } //Key name used for export
+            public string FriendlyName { get; set; } //friendly name for UI
+            public string Description { get; set; } //tool tip
+            public bool Enabled { get; set; } //Is this sort key used?
+            public SortDirection Direction { get; set; } 
+            public Func<ITile, object> Key { get; set; } //linq OrderBy delegate
 
             public SortKey()
             {
@@ -253,26 +157,19 @@ namespace VideoLibrarian
                 Direction = SortDirection.Ascending;
             }
 
-            public SortKey(string name, string friendlyname, string description, bool enabled, SortDirection order, Func<ITile, ITile, int> ascending, Func<ITile, ITile, int> descending)
+            public SortKey(string name, string friendlyname, string description, bool enabled, SortDirection order, Func<ITile, object> key)
             {
                 Name = name;
                 FriendlyName = friendlyname.IsNullOrEmpty() ? name : friendlyname;
                 Description = description;
                 Enabled = enabled;
                 Direction = order;
-                SortAscending = ascending;
-                SortDescending = descending;
+                Key = key; 
             }
 
-            public SortKey Clone()
-            {
-                return (SortKey)this.MemberwiseClone();
-            }
+            public SortKey Clone() => (SortKey)this.MemberwiseClone();
 
-            public override string ToString()
-            {
-                return string.Concat(Name, ",", Direction.ToString());
-            }
+            public override string ToString() => string.Concat(Name, ",", Direction.ToString());
         }
     }
 }
