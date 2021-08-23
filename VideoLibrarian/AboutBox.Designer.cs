@@ -1,4 +1,4 @@
-﻿namespace VideoLibrarian
+namespace VideoLibrarian
 {
     partial class AboutBox
     {
@@ -51,7 +51,7 @@
             // 
             this.labelProductName.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.labelProductName.Font = new System.Drawing.Font("Lucida Sans", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.labelProductName.Font = global::VideoLibrarian.ResourceCache.FontBold;
             this.labelProductName.Location = new System.Drawing.Point(218, 12);
             this.labelProductName.Margin = new System.Windows.Forms.Padding(3);
             this.labelProductName.Name = "labelProductName";
@@ -64,7 +64,7 @@
             // 
             this.labelVersion.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.labelVersion.Font = new System.Drawing.Font("Lucida Sans", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.labelVersion.Font = global::VideoLibrarian.ResourceCache.FontBold;
             this.labelVersion.Location = new System.Drawing.Point(218, 32);
             this.labelVersion.Margin = new System.Windows.Forms.Padding(3);
             this.labelVersion.Name = "labelVersion";
@@ -77,7 +77,7 @@
             // 
             this.labelCopyright.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.labelCopyright.Font = new System.Drawing.Font("Lucida Sans", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.labelCopyright.Font = global::VideoLibrarian.ResourceCache.FontBold;
             this.labelCopyright.Location = new System.Drawing.Point(218, 52);
             this.labelCopyright.Margin = new System.Windows.Forms.Padding(3);
             this.labelCopyright.Name = "labelCopyright";
@@ -90,7 +90,7 @@
             // 
             this.labelCompanyName.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.labelCompanyName.Font = new System.Drawing.Font("Lucida Sans", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.labelCompanyName.Font = global::VideoLibrarian.ResourceCache.FontBold;
             this.labelCompanyName.Location = new System.Drawing.Point(218, 72);
             this.labelCompanyName.Margin = new System.Windows.Forms.Padding(3);
             this.labelCompanyName.Name = "labelCompanyName";

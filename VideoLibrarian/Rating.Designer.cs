@@ -1,4 +1,4 @@
-﻿namespace VideoLibrarian
+namespace VideoLibrarian
 {
     partial class Rating
     {
@@ -51,7 +51,7 @@
             // 
             this.m_lblRating.AutoSize = true;
             this.m_lblRating.Dock = System.Windows.Forms.DockStyle.Left;
-            this.m_lblRating.Font = new System.Drawing.Font("Lucida Sans", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.m_lblRating.Font = global::VideoLibrarian.ResourceCache.FontBold;
             this.m_lblRating.Location = new System.Drawing.Point(20, 0);
             this.m_lblRating.Margin = new System.Windows.Forms.Padding(0);
             this.m_lblRating.Name = "m_lblRating";
@@ -64,7 +64,7 @@
             // 
             this.m_lbl10.AutoSize = true;
             this.m_lbl10.Dock = System.Windows.Forms.DockStyle.Left;
-            this.m_lbl10.Font = new System.Drawing.Font("Lucida Sans", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.m_lbl10.Font = global::VideoLibrarian.ResourceCache.FontRegular;
             this.m_lbl10.ForeColor = System.Drawing.Color.LightSlateGray;
             this.m_lbl10.Location = new System.Drawing.Point(47, 0);
             this.m_lbl10.Margin = new System.Windows.Forms.Padding(0);
@@ -82,7 +82,7 @@
             this.Controls.Add(this.m_lbl10);
             this.Controls.Add(this.m_lblRating);
             this.Controls.Add(this.m_pbStar);
-            this.Font = new System.Drawing.Font("Lucida Sans", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.Font = global::VideoLibrarian.ResourceCache.FontRegular;
             this.Margin = new System.Windows.Forms.Padding(0);
             this.MaximumSize = new System.Drawing.Size(999, 16);
             this.MinimumSize = new System.Drawing.Size(73, 16);

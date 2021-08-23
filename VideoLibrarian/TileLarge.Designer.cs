@@ -1,4 +1,4 @@
-﻿namespace VideoLibrarian
+namespace VideoLibrarian
 {
     partial class TileLarge
     {
@@ -112,7 +112,7 @@
             this.m_lblTitle.AutoSize = true;
             this.m_lblTitle.BackColor = System.Drawing.Color.Transparent;
             this.m_lblTitle.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.m_lblTitle.Font = new System.Drawing.Font("Lucida Sans", 14F, System.Drawing.FontStyle.Bold);
+            this.m_lblTitle.Font = global::VideoLibrarian.ResourceCache.FontLargeBold;
             this.m_lblTitle.ForeColor = System.Drawing.Color.Black;
             this.m_lblTitle.Location = new System.Drawing.Point(12, 1);
             this.m_lblTitle.Margin = new System.Windows.Forms.Padding(12, 1, 0, 6);
@@ -128,7 +128,7 @@
             this.m_lblPlot.AutoSize = true;
             this.m_lblPlot.BackColor = System.Drawing.Color.Transparent;
             this.m_lblPlot.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.m_lblPlot.Font = new System.Drawing.Font("Lucida Sans", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.m_lblPlot.Font = global::VideoLibrarian.ResourceCache.FontMedium;
             this.m_lblPlot.Location = new System.Drawing.Point(12, 83);
             this.m_lblPlot.Margin = new System.Windows.Forms.Padding(12, 6, 6, 6);
             this.m_lblPlot.Name = "m_lblPlot";
@@ -149,7 +149,7 @@
             this.tableLayoutPanel1.Controls.Add(this.m_lblReleaseDate, 2, 0);
             this.tableLayoutPanel1.Controls.Add(this.m_lblDuration, 0, 0);
             this.tableLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.tableLayoutPanel1.Font = new System.Drawing.Font("Lucida Sans", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.tableLayoutPanel1.Font = global::VideoLibrarian.ResourceCache.FontBold;
             this.tableLayoutPanel1.Location = new System.Drawing.Point(0, 52);
             this.tableLayoutPanel1.Margin = new System.Windows.Forms.Padding(0);
             this.tableLayoutPanel1.Name = "tableLayoutPanel1";
@@ -204,7 +204,7 @@
             this.tableLayoutPanel2.Controls.Add(this.m_pnlRating, 2, 0);
             this.tableLayoutPanel2.Controls.Add(this.m_lblSeasonEpisode, 1, 0);
             this.tableLayoutPanel2.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.tableLayoutPanel2.Font = new System.Drawing.Font("Lucida Sans", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.tableLayoutPanel2.Font = global::VideoLibrarian.ResourceCache.FontBold;
             this.tableLayoutPanel2.Location = new System.Drawing.Point(0, 29);
             this.tableLayoutPanel2.Margin = new System.Windows.Forms.Padding(0);
             this.tableLayoutPanel2.Name = "tableLayoutPanel2";
@@ -230,7 +230,7 @@
             this.m_pnlRating.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.m_pnlRating.AutoSize = true;
             this.m_pnlRating.BackColor = System.Drawing.Color.Transparent;
-            this.m_pnlRating.Font = new System.Drawing.Font("Lucida Sans", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.m_pnlRating.Font = global::VideoLibrarian.ResourceCache.FontRegular;
             this.m_pnlRating.Location = new System.Drawing.Point(473, 2);
             this.m_pnlRating.Margin = new System.Windows.Forms.Padding(0);
             this.m_pnlRating.MaximumSize = new System.Drawing.Size(999, 16);
@@ -290,7 +290,7 @@
             // m_lblCreatorsHeading
             // 
             this.m_lblCreatorsHeading.AutoSize = true;
-            this.m_lblCreatorsHeading.Font = new System.Drawing.Font("Lucida Sans", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.m_lblCreatorsHeading.Font = global::VideoLibrarian.ResourceCache.FontBold;
             this.m_lblCreatorsHeading.Location = new System.Drawing.Point(12, 3);
             this.m_lblCreatorsHeading.Margin = new System.Windows.Forms.Padding(12, 3, 0, 3);
             this.m_lblCreatorsHeading.Name = "m_lblCreatorsHeading";
@@ -301,7 +301,7 @@
             // m_lblDirectorsHeading
             // 
             this.m_lblDirectorsHeading.AutoSize = true;
-            this.m_lblDirectorsHeading.Font = new System.Drawing.Font("Lucida Sans", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.m_lblDirectorsHeading.Font = global::VideoLibrarian.ResourceCache.FontBold;
             this.m_lblDirectorsHeading.Location = new System.Drawing.Point(12, 3);
             this.m_lblDirectorsHeading.Margin = new System.Windows.Forms.Padding(12, 3, 0, 3);
             this.m_lblDirectorsHeading.Name = "m_lblDirectorsHeading";
@@ -312,7 +312,7 @@
             // m_lblWritersHeading
             // 
             this.m_lblWritersHeading.AutoSize = true;
-            this.m_lblWritersHeading.Font = new System.Drawing.Font("Lucida Sans", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.m_lblWritersHeading.Font = global::VideoLibrarian.ResourceCache.FontBold;
             this.m_lblWritersHeading.Location = new System.Drawing.Point(12, 24);
             this.m_lblWritersHeading.Margin = new System.Windows.Forms.Padding(12, 3, 0, 3);
             this.m_lblWritersHeading.Name = "m_lblWritersHeading";
@@ -323,7 +323,7 @@
             // m_lblCastHeading
             // 
             this.m_lblCastHeading.AutoSize = true;
-            this.m_lblCastHeading.Font = new System.Drawing.Font("Lucida Sans", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.m_lblCastHeading.Font = global::VideoLibrarian.ResourceCache.FontBold;
             this.m_lblCastHeading.Location = new System.Drawing.Point(12, 45);
             this.m_lblCastHeading.Margin = new System.Windows.Forms.Padding(12, 3, 0, 3);
             this.m_lblCastHeading.Name = "m_lblCastHeading";
@@ -348,7 +348,7 @@
             // 
             this.m_lblDisplayHeading.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.m_lblDisplayHeading.AutoSize = true;
-            this.m_lblDisplayHeading.Font = new System.Drawing.Font("Lucida Sans", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.m_lblDisplayHeading.Font = global::VideoLibrarian.ResourceCache.FontBold;
             this.m_lblDisplayHeading.Location = new System.Drawing.Point(12, 78);
             this.m_lblDisplayHeading.Margin = new System.Windows.Forms.Padding(12, 3, 0, 3);
             this.m_lblDisplayHeading.Name = "m_lblDisplayHeading";
@@ -359,7 +359,7 @@
             // m_lblLocationHeading
             // 
             this.m_lblLocationHeading.AutoSize = true;
-            this.m_lblLocationHeading.Font = new System.Drawing.Font("Lucida Sans", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.m_lblLocationHeading.Font = global::VideoLibrarian.ResourceCache.FontBold;
             this.m_lblLocationHeading.Location = new System.Drawing.Point(12, 90);
             this.m_lblLocationHeading.Margin = new System.Windows.Forms.Padding(12, 3, 0, 3);
             this.m_lblLocationHeading.Name = "m_lblLocationHeading";
@@ -459,7 +459,7 @@
             this.m_pbImdbLink.BackColor = System.Drawing.Color.Transparent;
             this.m_pbImdbLink.BackgroundImageLayout = System.Windows.Forms.ImageLayout.None;
             this.m_pbImdbLink.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.m_pbImdbLink.Image = ((System.Drawing.Image)(resources.GetObject("m_pbImdbLink.Image")));
+            this.m_pbImdbLink.Image = global::VideoLibrarian.ResourceCache.ImdbIcon;
             this.m_pbImdbLink.Location = new System.Drawing.Point(26, 32);
             this.m_pbImdbLink.Margin = new System.Windows.Forms.Padding(26, 0, 0, 0);
             this.m_pbImdbLink.Name = "m_pbImdbLink";
@@ -494,12 +494,12 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.BackgroundImage = ((System.Drawing.Image)(resources.GetObject("$this.BackgroundImage")));
+            this.BackgroundImage = global::VideoLibrarian.ResourceCache.TileBackground;
             this.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
             this.Controls.Add(this.m_tblLayout);
             this.Controls.Add(this.m_pbPoster);
             this.Controls.Add(this.pictureBox2);
-            this.Font = new System.Drawing.Font("Lucida Sans", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.Font = global::VideoLibrarian.ResourceCache.FontRegular;
             this.Margin = new System.Windows.Forms.Padding(0);
             this.Name = "TileLarge";
             this.Padding = new System.Windows.Forms.Padding(17);

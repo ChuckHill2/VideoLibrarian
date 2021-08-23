@@ -63,7 +63,7 @@
             this.m_tblLayout.Controls.Add(this.m_pbImdbLink, 0, 4);
             this.m_tblLayout.Controls.Add(this.m_pnlRating, 0, 2);
             this.m_tblLayout.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.m_tblLayout.Font = new System.Drawing.Font("Lucida Sans", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.m_tblLayout.Font = global::VideoLibrarian.ResourceCache.FontBold;
             this.m_tblLayout.Location = new System.Drawing.Point(0, 0);
             this.m_tblLayout.Name = "m_tblLayout";
             this.m_tblLayout.RowCount = 5;
@@ -137,7 +137,7 @@
             this.m_pnlRating.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.m_pnlRating.AutoSize = true;
             this.m_pnlRating.BackColor = System.Drawing.Color.Transparent;
-            this.m_pnlRating.Font = new System.Drawing.Font("Lucida Sans", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.m_pnlRating.Font = global::VideoLibrarian.ResourceCache.FontRegular;
             this.m_pnlRating.Location = new System.Drawing.Point(41, 96);
             this.m_pnlRating.Margin = new System.Windows.Forms.Padding(6);
             this.m_pnlRating.MaximumSize = new System.Drawing.Size(999, 16);
@@ -154,7 +154,7 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.Controls.Add(this.m_tblLayout);
             this.Controls.Add(this.m_pbPoster);
-            this.Font = new System.Drawing.Font("Lucida Sans", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.Font = global::VideoLibrarian.ResourceCache.FontRegular;
             this.Name = "TileSmall";
             this.Size = new System.Drawing.Size(153, 220);
             ((System.ComponentModel.ISupportInitialize)(this.m_pbPoster)).EndInit();

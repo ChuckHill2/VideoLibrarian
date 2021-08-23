@@ -32,8 +32,11 @@ using System.Drawing;
 namespace VideoLibrarian
 {
     /// <summary>
-    /// Commonly used resource cache to improve speed (albiet small).
-    /// This is used in the tile *.designer.cs because there are MANY open tiles.
+    /// Commonly used resource cache to improve speed (albiet small). 
+    /// This is used in tile *.designer.cs files because there are MANY 
+    /// open tiles HOWEVER all instances of System.Drawing.Font() and 
+    /// resources.GetObject() must be manually replaced because the 
+    /// Winforms designer does not understand these optimizations.
     /// </summary>
     public static class ResourceCache
     {

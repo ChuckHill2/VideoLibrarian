@@ -1,4 +1,4 @@
-﻿namespace VideoLibrarian
+namespace VideoLibrarian
 {
     partial class TileMedium
     {
@@ -91,7 +91,7 @@
             this.m_lblTitle.AutoSize = true;
             this.m_lblTitle.BackColor = System.Drawing.Color.Transparent;
             this.m_lblTitle.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.m_lblTitle.Font = new System.Drawing.Font("Lucida Sans", 14F, System.Drawing.FontStyle.Bold);
+            this.m_lblTitle.Font = global::VideoLibrarian.ResourceCache.FontLargeBold;
             this.m_lblTitle.ForeColor = System.Drawing.Color.Black;
             this.m_lblTitle.Location = new System.Drawing.Point(8, 15);
             this.m_lblTitle.Margin = new System.Windows.Forms.Padding(0, 12, 0, 12);
@@ -123,7 +123,7 @@
             this.tableLayoutPanel1.Controls.Add(this.m_lblYear, 2, 0);
             this.tableLayoutPanel1.Controls.Add(this.m_pnlRating, 1, 0);
             this.tableLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.tableLayoutPanel1.Font = new System.Drawing.Font("Lucida Sans", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.tableLayoutPanel1.Font = global::VideoLibrarian.ResourceCache.FontBold;
             this.tableLayoutPanel1.Location = new System.Drawing.Point(3, 104);
             this.tableLayoutPanel1.Margin = new System.Windows.Forms.Padding(0);
             this.tableLayoutPanel1.Name = "tableLayoutPanel1";
@@ -161,7 +161,7 @@
             this.m_pnlRating.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.m_pnlRating.AutoSize = true;
             this.m_pnlRating.BackColor = System.Drawing.Color.Transparent;
-            this.m_pnlRating.Font = new System.Drawing.Font("Lucida Sans", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.m_pnlRating.Font = global::VideoLibrarian.ResourceCache.FontRegular;
             this.m_pnlRating.Location = new System.Drawing.Point(100, 8);
             this.m_pnlRating.Margin = new System.Windows.Forms.Padding(0);
             this.m_pnlRating.MaximumSize = new System.Drawing.Size(999, 16);
@@ -175,7 +175,7 @@
             // 
             this.m_lblGenre.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.m_lblGenre.AutoSize = true;
-            this.m_lblGenre.Font = new System.Drawing.Font("Lucida Sans", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.m_lblGenre.Font = global::VideoLibrarian.ResourceCache.FontBold;
             this.m_lblGenre.Location = new System.Drawing.Point(63, 148);
             this.m_lblGenre.Margin = new System.Windows.Forms.Padding(6);
             this.m_lblGenre.Name = "m_lblGenre";
@@ -190,7 +190,7 @@
             this.m_lblPlot.AutoSize = true;
             this.m_lblPlot.BackColor = System.Drawing.Color.Transparent;
             this.m_lblPlot.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.m_lblPlot.Font = new System.Drawing.Font("Lucida Sans", 12F);
+            this.m_lblPlot.Font = global::VideoLibrarian.ResourceCache.FontMedium;
             this.m_lblPlot.Location = new System.Drawing.Point(9, 176);
             this.m_lblPlot.Margin = new System.Windows.Forms.Padding(6);
             this.m_lblPlot.Name = "m_lblPlot";
@@ -230,7 +230,7 @@
             this.m_pbImdbLink.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.m_pbImdbLink.BackColor = System.Drawing.Color.Transparent;
             this.m_pbImdbLink.BackgroundImageLayout = System.Windows.Forms.ImageLayout.None;
-            this.m_pbImdbLink.Image = ((System.Drawing.Image)(resources.GetObject("m_pbImdbLink.Image")));
+            this.m_pbImdbLink.Image = global::VideoLibrarian.ResourceCache.ImdbIcon;
             this.m_pbImdbLink.Location = new System.Drawing.Point(40, 8);
             this.m_pbImdbLink.Name = "m_pbImdbLink";
             this.m_pbImdbLink.Size = new System.Drawing.Size(66, 32);
@@ -244,7 +244,7 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.Controls.Add(this.m_tblLayout);
             this.Controls.Add(this.m_pbPoster);
-            this.Font = new System.Drawing.Font("Lucida Sans", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.Font = global::VideoLibrarian.ResourceCache.FontRegular;
             this.Name = "TileMedium";
             this.Size = new System.Drawing.Size(306, 441);
             ((System.ComponentModel.ISupportInitialize)(this.m_pbPoster)).EndInit();
