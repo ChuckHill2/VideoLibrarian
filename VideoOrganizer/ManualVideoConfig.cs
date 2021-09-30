@@ -43,6 +43,8 @@ namespace VideoOrganizer
         private string RootFolder;
         private MovieProperties _mp; //Save loaded properties for change comparison during Save.
         private static readonly DateTime ControlMinDate = new DateTime(1900, 1, 1); //DateTimePicker does not support DateTime.MinValue!
+        private long MovieFileLength = 0L;
+        private Guid MovieHash = Guid.Empty;
 
         public static void Show(IWin32Window owner, string rootFolder)
         {
@@ -437,6 +439,9 @@ namespace VideoOrganizer
             m_lblAspectRatio.Text = mpx.DisplayRatio;
             m_lblDimensions.Text = $"{mpx.DisplayWidth} x {mpx.DisplayHeight} pixels";
             m_lblRuntime.Text = $"{mpx.Runtime} minutes ({mpx.Runtime/60}:{mpx.Runtime % 60})";
+
+            MovieFileLength = mpx.MovieFileLength;
+            MovieHash = mpx.MovieHash;
         }
 
         private void m_clbVideoType_ItemCheck(object sender, ItemCheckEventArgs e)
@@ -604,6 +609,9 @@ namespace VideoOrganizer
             m_lblDimensions.Text = $"{_mp.DisplayWidth} x {_mp.DisplayHeight} pixels";
             m_lblRuntime.Text = $"{_mp.Runtime} minutes ({_mp.Runtime / 60}:{_mp.Runtime % 60})";
 
+            MovieFileLength = _mp.MovieFileLength;
+            MovieHash = _mp.MovieHash;
+
             m_btnSave.Enabled = true;
         }
 
@@ -651,6 +659,9 @@ namespace VideoOrganizer
                 mp2.DisplayHeight = int.Parse(m_lblDimensions.Text.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)[2]);
             }
             mp2.Watched = m_chkWatched.Checked ? m_dtWatched.Value.Date : DateTime.MinValue;
+
+            mp2.MovieFileLength = this.MovieFileLength;
+            mp2.MovieHash = this.MovieHash;
 
             if (m_chkImdbUrl.Checked)
             {

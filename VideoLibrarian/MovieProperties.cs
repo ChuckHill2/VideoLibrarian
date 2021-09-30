@@ -148,6 +148,10 @@ namespace VideoLibrarian
         public int DisplayWidth { get; set; }
         /// <summary>Video height in pixels</summary>
         public int DisplayHeight { get; set; }
+        /// <summary>MD5 hash of movie file content to validate that it is not corrupted.</summary>
+        public Guid MovieHash { get; set; }
+        /// <summary>Length of movie file to validate that it is not corrupted.</summary>
+        public long MovieFileLength { get; set; }
 
         /// <summary>Date video was viewed by user. Unwatched=='0001-01-01' aka DateTime.MinValue</summary>
         [XmlElement(DataType = "date")]
@@ -795,12 +799,17 @@ namespace VideoLibrarian
             return false; //no change. couldn't find poster url.
         }
 
+        /// <summary>
+        /// Populate the video properties of the movie.
+        /// </summary>
         public void GetVideoFileProperties()
         {
             if (!MoviePath.IsNullOrEmpty() && File.Exists(this.MoviePath))
             {
                 try
                 {
+                    var hashtask = Task.Run(() => { this.MovieHash = FileEx.GetHash(this.MoviePath); });
+
                     this.DownloadDate = FileEx.GetCreationDate(this.MoviePath);
                     var info = MediaInfo.GetInfo(this.MoviePath);
                     if (info == null) throw new NullReferenceException("Media info is null.");
@@ -810,6 +819,10 @@ namespace VideoLibrarian
                     this.DisplayWidth = stream.Width;
                     this.DisplayHeight = stream.Height;
                     this.DisplayRatio = ComputeNormalizedDisplayRatio(stream.Width, stream.Height);
+                    this.MovieFileLength = new FileInfo(this.MoviePath).Length;
+
+                    hashtask.Wait();
+                    hashtask.Dispose();
                 }
                 catch(Exception ex)
                 {
@@ -830,6 +843,61 @@ namespace VideoLibrarian
                 }
                 this.DownloadDate = FileEx.GetCreationDate(path);
             }
+        }
+
+        /// <summary>
+        /// Validate/verify integrity of movie file.
+        /// Used by VideoValidator.exe
+        /// </summary>
+        /// <returns>True if valid and not corrupted.</returns>
+        public bool VerifyVideoFile()
+        {
+            if (this.MoviePath.IsNullOrEmpty())
+            {
+                if (this.MovieHash != Guid.Empty)
+                {
+                    Log.Write(Severity.Error, $"Movie file name missing in folder {Path.GetDirectoryName(this.PropertiesPath)} but hash exists.");
+                    return false;
+                }
+                if (this.MovieFileLength != 0)
+                {
+                    Log.Write(Severity.Error, $"Movie file name missing in folder {Path.GetDirectoryName(this.PropertiesPath)} but file length exists.");
+                    return false;
+                }
+                return true;
+            }
+
+            if (!File.Exists(this.MoviePath))
+            {
+                Log.Write(Severity.Error, $"Verification of {this.MoviePath} Failed: File not found.");
+                return false;
+            }
+
+            if (this.MovieFileLength == 0)
+            {
+                Log.Write(Severity.Error, $"Verification of {this.MoviePath} Failed: MovieFileLength undefined.");
+                return false;
+            }
+
+            if (this.MovieHash == Guid.Empty)
+            {
+                Log.Write(Severity.Error, $"Verification of {this.MoviePath} Failed: File hash mismatch. MovieHash undefined.");
+                return false;
+            }
+
+            if (this.MovieFileLength != new FileInfo(this.MoviePath).Length)
+            {
+                Log.Write(Severity.Error, $"Verification of {this.MoviePath} Failed: File length mismatch. Video Corrupted.");
+                return false;
+            }
+
+            if (this.MovieHash != FileEx.GetHash(this.MoviePath))
+            {
+                Log.Write(Severity.Error, $"Verification of {this.MoviePath} Failed: File hash mismatch. Video Corrupted.");
+                return false;
+            }
+
+            return true;
         }
 
         private string CreateFullMovieName()

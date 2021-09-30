@@ -31,6 +31,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
+using System.Reflection;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -82,6 +84,71 @@ namespace VideoLibrarian
             }
 
             return newFilename;
+        }
+
+        private static MD5CryptoServiceProvider __MD5CryptoServiceProvider = null;
+        private static MD5CryptoServiceProvider MD5CryptoServiceProvider
+        {
+            get
+            {
+                if (__MD5CryptoServiceProvider == null)
+                {
+                    if (FIPSCompliance) FIPSCompliance = false;
+                    __MD5CryptoServiceProvider = new MD5CryptoServiceProvider();
+                }
+                return __MD5CryptoServiceProvider;
+            }
+        }
+
+        /// <summary>
+        /// Compute unique MD5 hash of file contents.
+        /// DO NOT USE for security encryption.
+        /// </summary>
+        /// <param name="filename">File content to generate hash from.</param>
+        /// <returns>Guid</returns>
+        public static Guid GetHash(string filename)
+        {
+            if (filename.IsNullOrEmpty()) return Guid.Empty;
+            try
+            {
+                using (var fs = new FileStream(filename, FileMode.Open, System.Security.AccessControl.FileSystemRights.Read, FileShare.ReadWrite, 1024 * 1024, FileOptions.SequentialScan))
+                {
+                    return new Guid(MD5CryptoServiceProvider.ComputeHash(fs));
+                }
+            }
+            catch
+            {
+                return Guid.Empty;
+            }
+        }
+
+        /// <summary>
+        /// Get or set FIPS compliance flag.
+        /// A hacky way to allow non-FIPS compliant algorthms to run.
+        /// Non-FIPS compliant algorthims are:
+        ///     MD5CryptoServiceProvider,
+        ///     RC2CryptoServiceProvider,
+        ///     RijndaelManaged,
+        ///     RIPEMD160Managed,
+        ///     SHA1Managed,
+        ///     SHA256Managed,
+        ///     SHA384Managed,
+        ///     SHA512Managed,
+        ///     AesManaged,
+        ///     MD5Cng. 
+        /// In particular, enables use of fast MD5 hash to create unique identifiers for internal use.
+        /// </summary>
+        private static bool FIPSCompliance
+        {
+            get { return CryptoConfig.AllowOnlyFipsAlgorithms; }
+            set
+            {
+                FieldInfo fi;
+                fi = typeof(CryptoConfig).GetField("s_fipsAlgorithmPolicy", BindingFlags.Static | BindingFlags.NonPublic);
+                if (fi != null) fi.SetValue(null, value);
+                fi = typeof(CryptoConfig).GetField("s_haveFipsAlgorithmPolicy", BindingFlags.Static | BindingFlags.NonPublic);
+                if (fi != null) fi.SetValue(null, true);
+            }
         }
 
         /// <summary>
