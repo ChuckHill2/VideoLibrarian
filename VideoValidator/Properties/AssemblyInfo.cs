@@ -1,36 +1,34 @@
-﻿using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-
-// General Information about an assembly is controlled through the following
-// set of attributes. Change these attribute values to modify the information
-// associated with an assembly.
-[assembly: AssemblyTitle("VideoValidator")]
-[assembly: AssemblyDescription("")]
-[assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("VideoValidator")]
-[assembly: AssemblyCopyright("Copyright ©  2021")]
-[assembly: AssemblyTrademark("")]
-[assembly: AssemblyCulture("")]
-
-// Setting ComVisible to false makes the types in this assembly not visible
-// to COM components.  If you need to access a type in this assembly from
-// COM, set the ComVisible attribute to true on that type.
-[assembly: ComVisible(false)]
-
-// The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("09ed9ac3-27f2-4620-bb23-1241fcaf843c")]
-
-// Version information for an assembly consists of the following four values:
+//--------------------------------------------------------------------------
+// <summary>
+//   
+// </summary>
+// <copyright file="AssemblyInfo.cs" company="Chuck Hill">
+// Copyright (c) 2020 Chuck Hill.
 //
-//      Major Version
-//      Minor Version
-//      Build Number
-//      Revision
+// This library is free software; you can redistribute it and/or
+// modify it under the terms of the GNU Lesser General Public License
+// as published by the Free Software Foundation; either version 2.1
+// of the License, or (at your option) any later version.
 //
-// You can specify all the values or you can default the Build and Revision Numbers
-// by using the '*' as shown below:
-// [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("1.0.0.0")]
-[assembly: AssemblyFileVersion("1.0.0.0")]
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+//
+// The GNU Lesser General Public License can be viewed at
+// http://www.opensource.org/licenses/lgpl-license.php. If
+// you unfamiliar with this license or have questions about
+// it, here is an http://www.gnu.org/licenses/gpl-faq.html.
+//
+// All code and executables are provided "as is" with no warranty
+// either express or implied. The author accepts no liability for
+// any damage or loss of business that this product may cause.
+// </copyright>
+// <repository>https://github.com/ChuckHill2/VideoLibrarian</repository>
+// <author>Chuck Hill</author>
+//--------------------------------------------------------------------------
+using System.Reflection;
+
+[assembly: AssemblyTitle("Video Validator - Validate/verify the integrity of all the movie/videos under the VideoLibrarian.")]
+[assembly: AssemblyDescription(@"Enumerate all the movies referenced by the VideoLibrarian and check for any posible file corruption.")]
+[assembly: AssemblyProduct("Video Validator")]
