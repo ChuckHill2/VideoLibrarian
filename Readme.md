@@ -17,7 +17,7 @@ You may download and install .NET 4.5 from:
 ## Installation
 
 Copy VideoLibrarian.exe to any new or existing writable directory.
-Copy the optional companion utility VideoOrganizer.exe to the same folder in order to help setup the video folders.
+Copy the optional companion utilities VideoOrganizer.exe and VideoValidator.exe to the same folder.
 That's it!
 
 Upon execution, VideoLibrarian.exe will create additional files in the same
@@ -68,6 +68,9 @@ VideoOrganizer.exe must reside in the same folder as *VideoLibrarian.exe*.
 VideoOrganizer.exe will automatically create or update the video folder tree described above. It also includes a movie information editor to customize the information retrieved from IMDB.
 Click on *About* for additional documentation on how to use it.
 
+### Video Anti-Corruption Verification
+Because hard drives are not infallible, video files may get corrupted over time. *VideoValidator.exe* will go through all your VideoLibrarian videos and validate that they are not corrupted. It does not fix them but it does help you identify them. *VideoValidator.exe* is a console application. Run the application with the '/?' argument to get a more comprehensive description regarding usage.
+
 ### Generated Cache Files
 These cache files reside in the same folders as the shortcut files. They are 
 unique to each shortcut.
@@ -81,6 +84,9 @@ unique to each shortcut.
 If any of these files are deleted, they will be recreated.
 
 ### Manually Retrieving IMDB Movie Internet Shortcut
+
+If one does not use VideoOrganizer or VideoOrganizer fails to identify the movie, 
+the shortcut must be manually retrieved from IMDB.
 
 Go to <https://www.imdb.com/find?s=tt>
 
@@ -99,7 +105,7 @@ more than one root video folder).
 When OK is pressed, the movie information will start to be downloaded from the
 internet. Depending on the number of movies you have, this may take from minutes
 to hours. *Be patient*. This cached information for each movie is stored in the
-same folder as the video. These files are named tt0000000.xxx. If these files
+same folder as the video. These files are named tt1234567.xxx. If these files
 are deleted, they will automatically be regenerated. Once these cached files
 have been generated, startup will be a whole lot faster. This is the only time
 the internet is accessed.
