@@ -50,8 +50,8 @@ namespace VideoLibrarian
             {
                 try
                 {
-                    var bmp = GDI.FastLoadFromFile(p);
-                    //var bmp = GDI.FastLoadFromFileStream(p);
+                    //Background image file cannot be deleted if underlying file is still open, so so we have to load a copy of the bmp so file will stay closed.
+                    System.Drawing.Bitmap bmp = mp.DeleteFileCacheUponExit == 0 ? GDI.FastLoadFromFile(p) : GDI.FastLoadFromFileStream(p);
                     var tile = new TileLargeLite(mp);
                     var controls = new object[] { tile.m_pbPoster, tile.m_lblTitle, tile.m_lblPlot, tile.m_lblLocation, tile.m_pbImdbLink, tile.m_chkWatched };
                     TileBase.LoadTileImage(tile, bmp, controls);

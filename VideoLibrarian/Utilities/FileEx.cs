@@ -43,7 +43,6 @@ namespace VideoLibrarian
 {
     public static class FileEx
     {
-        private static HashSet<string> ResolvedHosts = null;                   //used exclusively by FileEx.Download()
         private static readonly Object GetUniqueFilename_Lock = new Object();  //used exclusively by FileEx.GetUniqueFilename()
 
         /// <summary>
@@ -263,46 +262,30 @@ namespace VideoLibrarian
 
         /// <summary>
         /// Download a URL output into a local file.
-        /// Due to network or server glitches or delays, this will try 3 times before giving up.
         /// Will not throw an exception. Errors are written to Log.Write().
         /// </summary>
         /// <param name="data">Job to download (url and suggested destination filename)</param>
         /// <returns>True if successfully downloaded</returns>
         public static bool Download(Job data)
         {
-            #region Initialize Static Variables
             const string UserAgent = @"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0"; //DO NOT include "User-Agent: " prefix!
-            Func<string, string, string> GetDefaultExtension = (mimeType, defalt) =>
-            {
-                if (mimeType.IsNullOrEmpty()) return defalt;
-                mimeType = mimeType.Split(';')[0].Trim();
-                try { return Registry.GetValue(@"HKEY_CLASSES_ROOT\MIME\Database\Content Type\" + mimeType, "Extension", string.Empty).ToString(); }
-                catch { }
-                return defalt;
-            };
 
-            if (ResolvedHosts == null)
-            {
-                ResolvedHosts = new HashSet<string>(); //for name resolution or connection failure to determine if we should retry the download
-                //Fix for exception: The request was aborted: Could not create SSL/TLS secure channel
-                //https://stackoverflow.com/questions/10822509/the-request-was-aborted-could-not-create-ssl-tls-secure-channel
-                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls | SecurityProtocolType.Ssl3;
-                ServicePointManager.ServerCertificateValidationCallback = delegate { return true; }; //Skip validation of SSL/TLS certificate
-            }
-            #endregion
-
-            Uri uri = new Uri(data.Url);
-            data.Retries++;
+            Uri uri = null;
             int t1 = Environment.TickCount;
 
             try
             {
+                uri = new Uri(data.Url);
+
                 string ext = Path.GetExtension(data.Filename);
                 string mimetype = null;
                 DateTime lastModified;
 
-                //HACK: Empirically required for httpś://m.media-amazon.com/images/ poster images.
-                if (uri.Host.EndsWith("amazon.com", StringComparison.OrdinalIgnoreCase))
+                //Fix for exception: The request was aborted: Could not create SSL/TLS secure channel
+                //https://stackoverflow.com/questions/10822509/the-request-was-aborted-could-not-create-ssl-tls-secure-channel
+                if (ServicePointManager.ServerCertificateValidationCallback==null)
+                    ServicePointManager.ServerCertificateValidationCallback = delegate { return true; }; //Skip validation of SSL/TLS certificate
+                if (uri.Host.EndsWith("amazon.com", StringComparison.OrdinalIgnoreCase)) //HACK: Empirically required for httpś://m.media-amazon.com/images/ poster images.
                     ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls;
                 else
                     ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls | SecurityProtocolType.Ssl3;
@@ -313,7 +296,6 @@ namespace VideoLibrarian
                     if (!data.Referer.IsNullOrEmpty()) web.Headers[HttpRequestHeader.Referer] = data.Referer;
                     if (!data.Cookie.IsNullOrEmpty()) web.Headers[HttpRequestHeader.Cookie] = data.Cookie;
                     data.Filename = FileEx.GetUniqueFilename(data.Filename); //creates empty file as placeholder
-                    //Diagnostics.WriteLine($"{data.Url} ==> {Path.GetFileName(data.Filename)}\r\n");
 
                     web.DownloadFile(data.Url, data.Filename);
 
@@ -323,29 +305,23 @@ namespace VideoLibrarian
                     if (!DateTime.TryParse(web.ResponseHeaders[HttpResponseHeader.LastModified] ?? string.Empty, out lastModified)) lastModified = DateTime.Now;
                     mimetype = web.ResponseHeaders[HttpResponseHeader.ContentType];
                 }
-                ResolvedHosts.Add(uri.Host);  //for NameResolutionFailure handler statement.
-                if (!File.Exists(data.Filename)) throw new FileNotFoundException("File missing or truncated.");
+                if (!File.Exists(data.Filename)) throw new FileNotFoundException();
 
-                //if (data.Retries < 1) return true; //do not validate. we want this file, always.
+                if (new FileInfo(data.Filename).Length < 8) { File.Delete(data.Filename); throw new FileNotFoundException("File truncated."); }
 
-                if (new FileInfo(data.Filename).Length < 8) { File.Delete(data.Filename); return false; }
-
-                //Interlocked.Increment(ref mediaDownloaded);  //mediaDownloaded++;
                 File.SetCreationTime(data.Filename, lastModified);
                 File.SetLastAccessTime(data.Filename, lastModified);
                 File.SetLastWriteTime(data.Filename, lastModified);
 
+                //Adjust extension to reflect true filetype, BUT make sure that  new filename does not exist.
                 ext = GetDefaultExtension(mimetype, ext);
-                if (ext == ".html") ext = ".htm";
-                if (ext == ".jfif") ext = ".jpg";
-
                 if (!ext.EqualsI(Path.GetExtension(data.Filename)))
                 {
                     var newfilename = Path.ChangeExtension(data.Filename, ext);
                     newfilename = FileEx.GetUniqueFilename(newfilename); //creates empty file as placeholder
                     File.Delete(newfilename); //delete the placeholder. Move will throw exception if it already exists
                     File.Move(data.Filename, newfilename);
-                    data.Filename = newfilename;
+                    data.Filename = newfilename; //return new filename to caller.
                 }
 
                 Log.Write(Severity.Verbose, $"Download {data.Url} duration={((Environment.TickCount - t1) / 1000f):F2} sec");
@@ -354,65 +330,45 @@ namespace VideoLibrarian
             catch (Exception ex)
             {
                 File.Delete(data.Filename);
-                if (ex is ThreadAbortException) return false;
-
-                #region Log Error and Maybe Retry Download
-                HttpStatusCode responseStatus = (HttpStatusCode)0;
-                WebExceptionStatus status = WebExceptionStatus.Success;
-                if (ex is WebException)
-                {
-                    WebException we = (WebException)ex;
-                    HttpWebResponse response = we.Response as System.Net.HttpWebResponse;
-                    responseStatus = (response == null ? (HttpStatusCode)0 : response.StatusCode);
-                    status = we.Status;
-                }
-
-                if ((data.Retries < 1 || data.Retries > 3) ||
-                    responseStatus == HttpStatusCode.Forbidden || //403
-                    responseStatus == HttpStatusCode.NotFound || //404
-                    responseStatus == HttpStatusCode.Gone || //410
-                    //responseStatus == HttpStatusCode.InternalServerError || //500
-                    ((status == WebExceptionStatus.NameResolutionFailure || status == WebExceptionStatus.ConnectFailure) && !ResolvedHosts.Contains(uri.Host)) ||
-                    ex.Message.Contains("URI formats are not supported"))
-                {
-                    Log.Write(Severity.Error, $"duration={((Environment.TickCount - t1) / 1000f):F2} sec, {data.Url} ==> {Path.GetFileName(data.Filename)}: {ex.Message}");
-                    return false;
-                }
-
-                if (status == WebExceptionStatus.NameResolutionFailure || status == WebExceptionStatus.ConnectFailure)
-                {
-                    if (MiniMessageBox.Show(null, "Network Connection Dropped.", "Name Resolution Failure", MessageBoxButtons.RetryCancel, MessageBoxIcon.Error) == DialogResult.Cancel)
-                    {
-                        return false;
-                    }
-                }
-
-                Log.Write(Severity.Warning, $"Retry #{data.Retries}: duration={((Environment.TickCount-t1)/1000f):F2} sec, {data.Url} ==> {Path.GetFileName(data.Filename)}: {ex.Message}");
-                return Download(data);
-                #endregion Log Error and Maybe Retry Download
+                Log.Write(Severity.Error, $"duration={((Environment.TickCount - t1) / 1000f):F2} sec, {data.Url} ==> {Path.GetFileName(data.Filename)}: {ex.GetType().Name}:{ex.Message}");
+                return false;
             }
+        }
+
+        private static string GetDefaultExtension(string mimeType, string defalt) //used exclusively by Download()
+        {
+            if (mimeType.IsNullOrEmpty()) return defalt;
+            mimeType = mimeType.Split(';')[0].Trim();
+            string ext;
+            try { ext = Registry.GetValue(@"HKEY_CLASSES_ROOT\MIME\Database\Content Type\" + mimeType, "Extension", string.Empty).ToString(); }
+            catch { ext = defalt; }
+
+            if (ext == ".html") ext = ".htm";  //Override registry mimetypes. We like the legacy extensions.
+            if (ext == ".jfif") ext = ".jpg";
+
+            return ext;
         }
 
         private class MyWebClient : WebClient
         {
             public WebRequest Request { get; private set; }
             public WebResponse Response { get; private set; }
-            public string ResponseUrl => this.Response?.ResponseUri?.AbsoluteUri;
+            public string ResponseUrl => this.Response?.ResponseUri?.AbsoluteUri; //gets the URI of the Internet resource that actually responded to the request.
 
-            protected override WebResponse GetWebResponse(WebRequest request)
+            protected override WebResponse GetWebResponse(WebRequest request) //used internally
             {
                 Request = request;
                 Response = base.GetWebResponse(request);
                 return Response;
             }
 
-            protected override WebRequest GetWebRequest(Uri address)
+            protected override WebRequest GetWebRequest(Uri address) //used internally
             {
                 Request = base.GetWebRequest(address);
                 HttpWebRequest request = Request as HttpWebRequest;
                 //Allow this API to decompress output.
-                request.AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip;
-                return request;
+                if (request!= null) request.AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip;
+                return Request;
             }
         }
 
@@ -421,12 +377,6 @@ namespace VideoLibrarian
         /// </summary>
         public class Job
         {
-            /// <summary>
-            /// Download retry count (min value=1, max value=3). 
-            /// Do not modify. For internal use only by FileEx.Downloader().
-            /// </summary>
-            public int Retries = -1;
-
             /// <summary>
             /// Previous job url. Now the referrer to this new job. 
             /// Do not modify. For internal use only by FileEx.Downloader().

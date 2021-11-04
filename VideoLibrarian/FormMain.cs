@@ -177,14 +177,41 @@ namespace VideoLibrarian
                 {
                     foreach (var p in MovieProperties)
                     {
+                        if (p.Episodes != null)
+                        {
+                            foreach (var p2 in p.Episodes)
+                            {
+                                p2.Serialize();
+                                DeleteFileCache(p2);
+                            }
+                        }
                         p.Serialize();
-                        if (p.Episodes != null) foreach (var p2 in p.Episodes) p2.Serialize();
+                        DeleteFileCache(p);
                     }
                 }
                 catch (Exception ex) { Log.Write(Severity.Error, $"Serializing MovieProperties: {ex}"); }
             });
 
             base.OnFormClosing(e);
+        }
+
+        private static void DeleteFileCache(MovieProperties p)
+        {
+            if (p.DeleteFileCacheUponExit == VideoLibrarian.MovieProperties.FileCacheScope.All)
+            {
+                File.Delete(p.MoviePosterPath);
+                File.Delete(p.PropertiesPath);
+                File.Delete(p.HtmlPath);
+                File.Delete(p.PathPrefix + "S.png");
+                File.Delete(p.PathPrefix + "M.png");
+                File.Delete(p.PathPrefix + "L.png");
+            }
+            else if (p.DeleteFileCacheUponExit == VideoLibrarian.MovieProperties.FileCacheScope.ImagesOnly)
+            {
+                File.Delete(p.PathPrefix + "S.png");
+                File.Delete(p.PathPrefix + "M.png");
+                File.Delete(p.PathPrefix + "L.png");
+            }
         }
 
         private void SaveState()

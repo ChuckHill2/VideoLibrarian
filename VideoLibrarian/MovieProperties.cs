@@ -178,11 +178,13 @@ namespace VideoLibrarian
                             if (MoviePosterUrl.StartsWith("http"))
                             {
                                 var job = new FileEx.Job(null, MoviePosterUrl, this.PathPrefix + FileEx.GetUrlExtension(MoviePosterUrl));
+                                job.Referer = "https://www.imdb.com/"; //add valid referrer just in case image web host server is looking.
                                 if (FileEx.Download(job))
                                 {
                                     MoviePosterPath = job.Filename;
                                     TileBase.PurgeTileImages(Path.GetDirectoryName(this.PathPrefix));
                                 }
+                                else this.DeleteFileCacheUponExit = FileCacheScope.ImagesOnly;
                             }
                             else
                             {
@@ -248,6 +250,17 @@ namespace VideoLibrarian
         /// Just append the suffix. (e.g. ".xml" or "-myname.png")
         /// </summary>
         [XmlIgnore] public string PathPrefix { get; set; }
+
+        /// <summary>
+        /// How to handle file cache when there is a download failure.
+        /// </summary>
+        /// <remarks>
+        /// Usecase: Delay load poster image fails to be downloaded, Cached tile background is created with blank poster image.
+        /// Now that tile has been created, the true poster jpg will never be downloaded again and now stuck with a blank poster
+        /// image for the tile unless tile background is manually deleted.
+        /// </remarks>
+        [XmlIgnore] public FileCacheScope DeleteFileCacheUponExit { get; set; }
+        public enum FileCacheScope { None, All, ImagesOnly }
         #endregion //Properties
 
         #region Constructors
@@ -717,7 +730,11 @@ namespace VideoLibrarian
                 if (!File.Exists(HtmlPath)) //Oops. The cached IMDB movie page does not exist. Retrieve it.
                 {
                     var job = new FileEx.Job(null, UrlLink, HtmlPath);
-                    if (!FileEx.Download(job)) return false; // FileEx.Download() logs its own errors. It will also update data.Url to redirected path and job.Filename
+                    if (!FileEx.Download(job))
+                    {
+                        this.DeleteFileCacheUponExit = FileCacheScope.ImagesOnly;
+                        return false; // FileEx.Download() logs its own errors. It will also update data.Url to redirected path and job.Filename
+                    }
                     HtmlPath = job.Filename;
                 }
 
