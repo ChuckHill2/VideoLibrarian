@@ -93,13 +93,13 @@ namespace VideoLibrarian
                 if (asm != null) return asm;
 
                 //Dig deeper. Look for embedded assembly resource only within OUR assemblies.
-                var dllname = $".{asmName.Name}.dll";
+                var dllname = $"{asmName.Name}.dll";
                 foreach (Assembly a in loadedAssemblies)
                 {
                     if (a.IsDynamic) continue;
                     if (a.Location.ContainsI("Microsoft.NET")) continue; //Exclude microsoft .net assemblies
 
-                    var resname = a.GetManifestResourceNames().FirstOrDefault(m => m.EndsWith(dllname, StringComparison.InvariantCultureIgnoreCase));
+                    var resname = a.GetManifestResourceNames().FirstOrDefault(m => m.EndsWith("."+dllname, StringComparison.InvariantCultureIgnoreCase));
                     if (resname == null) continue;
 
                     var fullpath = Path.Combine(Path.GetDirectoryName(a.Location), dllname);
