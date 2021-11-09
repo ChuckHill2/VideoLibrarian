@@ -179,10 +179,10 @@ namespace VideoValidator
         {
             Console.WriteLine(@"
 Validate/verify that all the movie files in the specified folders are NOT corrupted.
-Reason: Video corruption may occur if the external drive is disconnectded
+Reason: Video corruption may occur if the external drive is disconnected
 unexpectedly, windows crashed, or the drive itself is just slowly dying.
 
-See low-level console command: chkdsk.exe drive-letter: /F /R /X
+See low-level system console command: chkdsk.exe drive-letter: /F /R /X
 This may need to be run first in order to verify/fix/repair the drive itself.
 
 Usage: VideoValidator.exe [/?] [[mediafolder1] [mediafolder2] [mediafolderN]...]

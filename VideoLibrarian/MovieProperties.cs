@@ -873,32 +873,53 @@ namespace VideoLibrarian
             {
                 if (this.MovieHash != Guid.Empty)
                 {
-                    Log.Write(Severity.Error, $"Movie file name missing in folder {Path.GetDirectoryName(this.PropertiesPath)} but hash exists.");
+                    //this.DownloadDate - We do not initialize DownloadDate because root TVSeries folder takes on the file date of the first video in the series.
+                    this.Runtime = 0;
+                    this.DisplayRatio = "0:0";
+                    this.DisplayWidth = 0;
+                    this.DisplayHeight = 0;
+                    this.MovieHash = Guid.Empty;
+                    this.MovieFileLength = 0;
+                    this.Serialize();
+                    Log.Write(Severity.Warning, $"Movie file name missing in folder {Path.GetDirectoryName(this.PropertiesPath)} but hash exists, but now corrected.");
                     return false;
                 }
                 if (this.MovieFileLength != 0)
                 {
-                    Log.Write(Severity.Error, $"Movie file name missing in folder {Path.GetDirectoryName(this.PropertiesPath)} but file length exists.");
+                    this.Runtime = 0;
+                    this.DisplayRatio = "0:0";
+                    this.DisplayWidth = 0;
+                    this.DisplayHeight = 0;
+                    this.MovieHash = Guid.Empty;
+                    this.MovieFileLength = 0;
+                    this.Serialize();
+                    Log.Write(Severity.Warning, $"Movie file name missing in folder {Path.GetDirectoryName(this.PropertiesPath)} but file length exists, but now corrected.");
                     return false;
                 }
                 return true;
             }
 
-            if (!File.Exists(this.MoviePath))
+            if (!File.Exists(this.MoviePath)) //Should never get here (see FindFiles()).
             {
                 Log.Write(Severity.Error, $"Verification of {this.MoviePath} Failed: File not found.");
                 return false;
             }
 
+            //Video file exists, now validate it...
+
             if (this.MovieFileLength == 0)
             {
-                Log.Write(Severity.Error, $"Verification of {this.MoviePath} Failed: MovieFileLength undefined.");
+                this.GetVideoFileProperties();
+                this.Serialize();
+                Log.Write(Severity.Warning, $"{this.MoviePath} not verified: MovieFileLength undefined, but now corrected.");
                 return false;
             }
 
             if (this.MovieHash == Guid.Empty)
             {
-                Log.Write(Severity.Error, $"Verification of {this.MoviePath} Failed: File hash mismatch. MovieHash undefined.");
+                this.GetVideoFileProperties();
+                this.Serialize();
+                Log.Write(Severity.Warning, $"{this.MoviePath} not verified: MovieHash undefined, but now corrected.");
                 return false;
             }
 
