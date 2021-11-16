@@ -264,7 +264,7 @@ namespace VideoLibrarian
         /// Download a URL output into a local file.
         /// Will not throw an exception. Errors are written to Log.Write().
         /// </summary>
-        /// <param name="data">Job to download (url and suggested destination filename)</param>
+        /// <param name="data">Job to download (url and suggested destination filename, plus more)</param>
         /// <returns>True if successfully downloaded</returns>
         public static bool Download(Job data)
         {
@@ -313,7 +313,7 @@ namespace VideoLibrarian
                 File.SetLastAccessTime(data.Filename, lastModified);
                 File.SetLastWriteTime(data.Filename, lastModified);
 
-                //Adjust extension to reflect true filetype, BUT make sure that  new filename does not exist.
+                //Adjust extension to reflect true filetype, BUT make sure that new filename does not exist.
                 ext = GetDefaultExtension(mimetype, ext);
                 if (!ext.EqualsI(Path.GetExtension(data.Filename)))
                 {
@@ -365,53 +365,51 @@ namespace VideoLibrarian
             protected override WebRequest GetWebRequest(Uri address) //used internally
             {
                 Request = base.GetWebRequest(address);
-                HttpWebRequest request = Request as HttpWebRequest;
-                //Allow this API to decompress output.
+                HttpWebRequest request = Request as HttpWebRequest; //there are others: e.g. FtpWebRequest (ftp://) and FileWebRequest (file://).
+                //Allow this API to decompress http output.
                 if (request!= null) request.AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip;
                 return Request;
             }
         }
 
         /// <summary>
-        /// Info to pass to FileEx.Downloader.
+        /// Info to pass to FileEx.Download(). More properties may be added in the future.
         /// </summary>
         public class Job
         {
             /// <summary>
             /// Previous job url. Now the referrer to this new job. 
-            /// Do not modify. For internal use only by FileEx.Downloader().
             /// </summary>
             public string Referer { get; set; }
 
             /// <summary>
-            /// Previous job generated cookie. Now forwarded to this new job. 
-            /// Do not modify. For internal use only by FileEx.Downloader().
+            /// Previously generated cookie. Now forwarded to this new job. 
             /// </summary>
             public string Cookie { get; set; }
 
             /// <summary>
-            /// Absolute url path to download
+            /// Absolute url path to download. Updated with the URI of the Internet resource that actually responded to the request.
             /// </summary>
             public string Url { get; set; }
 
             /// <summary>
             ///   Full path name of file to write result to.
             ///   If file extension does not match the downloaded mimetype, the file extension is updated to match the mimetype.
-            ///   If the file previously exists, the file name is incremented (e.g 'name(nn).ext')
-            ///   This field is updated with the new name.
+            ///   If the file already exists, the file name is incremented (e.g 'name(nn).ext')
+            ///   This property is updated with the new name.
             /// </summary>
             public string Filename { get; set; }
 
             /// <summary>
-            /// Info to pass to FileEx.Downloader.
+            /// Info to pass to FileEx.Download().
             /// </summary>
             /// <param name="job">Parent job info to use as the referrer. Null if no parent.</param>
             /// <param name="url">Url to download</param>
             /// <param name="filename">
             ///   Full path name of file to write result to.
             ///   If file extension does not match the downloaded mimetype, the file extension is updated to match the mimetype.
-            ///   If the file exists, the file name is incremented (e.g 'name(nn).ext')
-            ///   This field is updated with the new name.
+            ///   If the file already exists, the file name is incremented (e.g 'name(nn).ext')
+            ///   This property is updated with the new name.
             /// </param>
             public Job(Job job, string url, string filename)
             {
@@ -426,6 +424,26 @@ namespace VideoLibrarian
                     //if (!url.IsNullOrEmpty()) Cookie = VideoLibrarian.Cookie.GetCached(new Uri(url).Host);
                 }
 
+                Url = url;
+                Filename = filename;
+            }
+
+            /// <summary>
+            /// Info to pass to FileEx.Download().
+            /// </summary>
+            /// <param name="url">Url to download</param>
+            /// <param name="filename">
+            ///   Full path name of file to write result to.
+            ///   If file extension does not match the downloaded mimetype, the file extension is updated to match the mimetype.
+            ///   If the file already exists, the file name is incremented (e.g 'name(nn).ext')
+            ///   This property is updated with the new name.
+            /// </param>
+            /// <param name="referer">Optional download referer. Simulates reference to a previous call.</param>
+            /// <param name="cookie">Optional download cookie. A previously generated cookie.</param>
+            public Job(string url, string filename, string referer = null, string cookie = null)
+            {
+                Referer = referer;
+                Cookie = cookie;
                 Url = url;
                 Filename = filename;
             }

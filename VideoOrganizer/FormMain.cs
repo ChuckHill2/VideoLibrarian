@@ -261,7 +261,7 @@ namespace VideoOrganizer
             var favicon = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonPictures), "favicon_imdb.ico");
             if (!File.Exists(favicon))
             {
-                var job = new FileEx.Job(null, "https://www.imdb.com/favicon.ico", favicon);
+                var job = new FileEx.Job("https://www.imdb.com/favicon.ico", favicon);
                 FileEx.Download(job);
                 if (!favicon.Equals(job.Filename)) File.Move(job.Filename, favicon);
             }
@@ -447,7 +447,7 @@ namespace VideoOrganizer
                 TVSeries[name + ".FOLDERNAME"] = ToFolderName(items["NAME"], items["YEAR"]);
                 TVSeries[name] = items["TT"];
 
-                var job = new FileEx.Job(null, $"https://www.imdb.com/title/{items["TT"]}/episodes?season={season}", tempFileName);
+                var job = new FileEx.Job($"https://www.imdb.com/title/{items["TT"]}/episodes?season={season}", tempFileName);
                 if (FileEx.Download(job))
                 {
                     var html = FileEx.ReadHtml(job.Filename, true);
@@ -572,7 +572,7 @@ namespace VideoOrganizer
             string html;
             var tempFileName = Path.Combine(Path.GetTempPath(), "FindUrl.htm");
 
-            var job = new FileEx.Job(null, $"https://www.imdb.com/find?q={WebUtility.UrlEncode(name)}&s=tt&exact=true", tempFileName); //strict search
+            var job = new FileEx.Job($"https://www.imdb.com/find?q={WebUtility.UrlEncode(name)}&s=tt&exact=true", tempFileName); //strict search
             if (FileEx.Download(job))
             {
                 html = FileEx.ReadHtml(job.Filename, true);
@@ -591,7 +591,7 @@ namespace VideoOrganizer
             var i = name.IndexOf('(');
             var fuzzyName = i == -1 ? name : name.Substring(0, i).TrimEnd();
 
-            job = new FileEx.Job(null, $"https://www.imdb.com/find?q={WebUtility.UrlEncode(fuzzyName)}&s=tt", tempFileName);  //try again, not so strict.
+            job = new FileEx.Job($"https://www.imdb.com/find?q={WebUtility.UrlEncode(fuzzyName)}&s=tt", tempFileName);  //try again, not so strict.
             if (FileEx.Download(job))
             {
                 html = FileEx.ReadHtml(job.Filename, true);

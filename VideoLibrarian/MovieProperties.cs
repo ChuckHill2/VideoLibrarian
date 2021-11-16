@@ -177,8 +177,7 @@ namespace VideoLibrarian
                         {
                             if (MoviePosterUrl.StartsWith("http"))
                             {
-                                var job = new FileEx.Job(null, MoviePosterUrl, this.PathPrefix + FileEx.GetUrlExtension(MoviePosterUrl));
-                                job.Referer = "https://www.imdb.com/"; //add valid referrer just in case image web host server is looking.
+                                var job = new FileEx.Job(MoviePosterUrl, this.PathPrefix + FileEx.GetUrlExtension(MoviePosterUrl), "https://www.imdb.com/");
                                 if (FileEx.Download(job))
                                 {
                                     MoviePosterPath = job.Filename;
@@ -288,11 +287,11 @@ namespace VideoLibrarian
                 if (PathPrefix.EndsWith(EmptyTitleID)) throw new XmlException("Content of manually created movie properties file {PropertiesPath} is invalid.");
 
                 _getMoviePropertyTask = Task.Run(() => GetVideoFileProperties());
-                if (File.Exists(HtmlPath)) ParseImdbPage(new FileEx.Job(null, UrlLink, HtmlPath));
+                if (File.Exists(HtmlPath)) ParseImdbPage(new FileEx.Job(UrlLink, HtmlPath));
                 else
                 {
                     // File.Delete(HtmlPath);
-                    var job = new FileEx.Job(null, UrlLink, HtmlPath);
+                    var job = new FileEx.Job(UrlLink, HtmlPath);
                     if (!FileEx.Download(job)) return; // FileEx.Download() logs its own errors. It will also update data.Url to redirected path and job.Filename
                     HtmlPath = job.Filename;
                     ParseImdbPage(job);
@@ -729,7 +728,7 @@ namespace VideoLibrarian
             {
                 if (!File.Exists(HtmlPath)) //Oops. The cached IMDB movie page does not exist. Retrieve it.
                 {
-                    var job = new FileEx.Job(null, UrlLink, HtmlPath);
+                    var job = new FileEx.Job(UrlLink, HtmlPath);
                     if (!FileEx.Download(job))
                     {
                         this.DeleteFileCacheUponExit = FileCacheScope.ImagesOnly;
@@ -750,7 +749,7 @@ namespace VideoLibrarian
                 var mediaViewerUrl = FileEx.GetAbsoluteUrl(this.UrlLink, mc[0].Groups["URL"].Value);
 
                 var fn = Path.Combine(Path.GetDirectoryName(this.MoviePosterPath), "MediaViewer.htm"); //temporary uncached web page containing large poster images.
-                var job = new FileEx.Job(null, mediaViewerUrl, fn);
+                var job = new FileEx.Job(mediaViewerUrl, fn);
                 if (FileEx.Download(job))
                 {
                     var html2 = FileEx.ReadHtml(job.Filename);
@@ -799,7 +798,7 @@ namespace VideoLibrarian
                 var mediaViewerUrl = FileEx.GetAbsoluteUrl(this.UrlLink, mc[0].Groups["URL"].Value);
 
                 var fn = Path.Combine(Path.GetDirectoryName(this.MoviePosterPath), "MediaViewer.htm"); //temporary uncached web page containing large poster images.
-                var job = new FileEx.Job(null, mediaViewerUrl, fn);
+                var job = new FileEx.Job(mediaViewerUrl, fn);
                 if (FileEx.Download(job))
                 {
                     var html2 = FileEx.ReadHtml(job.Filename);
