@@ -782,7 +782,7 @@ namespace VideoLibrarian
 
             //<meta property='og:image' content='https://m.media-amazon.com/images/M/MV5BMTY5MzM2MzkxNF5BMl5BanBnXkFtZTgwNTMzMDcyNzM@._V1_FMjpg_UX1000_.jpg'/>
             //<meta property='twitter:image' content='https://m.media-amazon.com/images/M/MV5BMTY5MzM2MzkxNF5BMl5BanBnXkFtZTgwNTMzMDcyNzM@._V1_FMjpg_UX1000_.jpg'/>
-            mc = Regex.Matches(html, @"<meta property='(?:og|twitter):image' content='(?<URL>https:[^']+)'", RE_options);
+            mc = Regex.Matches(html, @"<meta property='(?:og|twitter):image' content='(?<URL>https:[^']+\.jpg)'", RE_options);
             if (mc.Count > 0)
             {
                 this.MoviePosterUrl = mc[0].Groups["URL"].Value;
@@ -812,6 +812,9 @@ namespace VideoLibrarian
                 }
             }
 
+            // The source IMDB page may not be complete because IMDB does not have the poster jpg's yet.
+            // It also presumes that the other properties are not up to date either. Maybe the next time VideoLibrarian is run.
+            this.DeleteFileCacheUponExit = FileCacheScope.All;
             return false; //no change. couldn't find poster url.
         }
 
