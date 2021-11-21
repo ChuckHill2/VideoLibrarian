@@ -60,8 +60,8 @@ namespace VideoOrganizer
             try
             {
                 Log.Write(Severity.Error, "Unhandled Exception: {0}", e.ExceptionObject.ToString());
-                //MessageBox.Show(e.ExceptionObject.ToString(), "VideoLibrarian - Unhandled Exception", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                //EventLog.WriteEntry("VideoLibrarian", "VideoLibrarian - Unhandled Exception\r\n" + e.ExceptionObject.ToString(), EventLogEntryType.Error);
+                MessageBox.Show(e.ExceptionObject.ToString(), "VideoOrganizer - Unhandled Exception", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                //EventLog.WriteEntry("VideoLibrarian", "VideoOrganizer - Unhandled Exception\r\n" + e.ExceptionObject.ToString(), EventLogEntryType.Error);
             }
             catch { }
         }
@@ -71,8 +71,8 @@ namespace VideoOrganizer
             try
             {
                 Log.Write(Severity.Error, "Unhandled Thread Exception: {0}", e.Exception.ToString());
-                //MessageBox.Show(e.Exception.ToString(), "VideoLibrarian - Unhandled Thread Exception", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                //EventLog.WriteEntry("VideoLibrarian", "VideoLibrarian - Unhandled Thread Exception\r\n" + e.Exception.ToString(), EventLogEntryType.Error);
+                MessageBox.Show(e.Exception.ToString(), "VideoOrganizer - Unhandled Thread Exception", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                //EventLog.WriteEntry("VideoLibrarian", "VideoOrganizer - Unhandled Thread Exception\r\n" + e.Exception.ToString(), EventLogEntryType.Error);
             }
             catch { }
         }

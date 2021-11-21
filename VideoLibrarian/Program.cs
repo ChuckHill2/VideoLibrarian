@@ -55,10 +55,14 @@ namespace VideoLibrarian
 
         static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
+            //For debugging Error: Unhandled Exception: System.InvalidOperationException: Object is currently in use elsewhere.
+            //https://stackoverflow.com/questions/1851292/invalidoperationexception-object-is-currently-in-use-elsewhere
+            //System.Diagnostics.Debugger.Launch();
+            //System.Diagnostics.Debugger.Break();
             try
             {
                 Log.Write(Severity.Error, "Unhandled Exception: {0}", e.ExceptionObject.ToString());
-                //MessageBox.Show(e.ExceptionObject.ToString(), "VideoLibrarian - Unhandled Exception", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(e.ExceptionObject.ToString(), "VideoLibrarian - Unhandled Exception", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 //EventLog.WriteEntry("VideoLibrarian", "VideoLibrarian - Unhandled Exception\r\n" + e.ExceptionObject.ToString(), EventLogEntryType.Error);
             }
             catch { }
@@ -69,7 +73,7 @@ namespace VideoLibrarian
             try
             {
                 Log.Write(Severity.Error, "Unhandled Thread Exception: {0}", e.Exception.ToString());
-                //MessageBox.Show(e.Exception.ToString(), "VideoLibrarian - Unhandled Thread Exception", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(e.Exception.ToString(), "VideoLibrarian - Unhandled Thread Exception", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 //EventLog.WriteEntry("VideoLibrarian", "VideoLibrarian - Unhandled Thread Exception\r\n" + e.Exception.ToString(), EventLogEntryType.Error);
             }
             catch { }
