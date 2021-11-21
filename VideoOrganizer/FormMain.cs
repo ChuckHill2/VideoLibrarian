@@ -287,7 +287,7 @@ namespace VideoOrganizer
         }
 
         //Bug in Regex.Escape(@"~`'!@#$%^&*(){}[].,;+_=-"). It doesn't escape ']'
-        private static readonly Regex ReBracketed = new Regex(@"\\[~`'!@\#\$%\^&\*\(\)\{}\[\]\.,;\+_=-][^~`'!@\#\$%\^&\*\(\)\{}\[\]\.,;\+_=-]+[~`'!@\#\$%\^&\*\(\)\{}\[\]\.,;\+_=-]\\", RegexOptions.Compiled);
+        private static readonly Regex reIgnoredFolder = new Regex(@"\\[~`'!@\#\$%\^&\*\(\)\{}\[\]\.,;\+_=-][^\\]+[~`'!@\#\$%\^&\*\(\)\{}\[\]\.,;\+_=-]\\", RegexOptions.Compiled);
         private static IEnumerable<string> UnprocessedMovieList(string rootFolder)
         {
             //We must have a realized list because we may be moving folders and files around causing unrealized enumerations to break.
@@ -301,7 +301,7 @@ namespace VideoOrganizer
                 var folder = Path.GetDirectoryName(f);
 
                 //Special: if video is in a bracketed folder (or any of its child folders) the video is ignored. 
-                if (ReBracketed.IsMatch(folder + "\\")) continue;
+                if (reIgnoredFolder.IsMatch(folder + "\\")) continue;
 
                 //A video in the root folder is always unprocessed even if there are other shortcuts in
                 //the root folder, because we will be moving the video into its own folder anyway. 

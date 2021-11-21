@@ -110,6 +110,10 @@ are deleted, they will automatically be regenerated. Once these cached files
 have been generated, startup will be a whole lot faster. This is the only time
 the internet is accessed.
 
+Note: Any folder names bracketed by any of the characters *~`'!@#$%^&\*(){}[].,;+_=-*
+are ignored (e.g. “C:\Users\User\Videos\\*[FamilyMovies\]*\2005\TimmysFirstTooth.mp4”).
+Any folders that do not contain an IMDB internet shortcut are also ignored.
+
 Review File-\>Status Log or the VideoLibrarian.log for any possible errors in file
 generation.
 

@@ -410,8 +410,8 @@ namespace VideoLibrarian
             }
         }
 
-        private static readonly string BracketChars = Regex.Escape(@"~`'!@#$%^&*.,;+_=-"); // []{}() are not ignored. Note: This doesn't escape ']' or '}' anyway.
-        private static readonly Regex reIgnoredFolder = new Regex($@"\\[{BracketChars}][^{BracketChars}]+[{BracketChars}]\\", RegexOptions.Compiled);
+        //Bug in Regex.Escape(@"~`'!@#$%^&*(){}[].,;+_=-"). It doesn't escape ']'
+        private static readonly Regex reIgnoredFolder = new Regex(@"\\[~`'!@\#\$%\^&\*\(\)\{}\[\]\.,;\+_=-][^\\]+[~`'!@\#\$%\^&\*\(\)\{}\[\]\.,;\+_=-]\\", RegexOptions.Compiled);
         public void LoadMovieInfo()
         {
             //This may take awhile. Don't lock up the UI.
