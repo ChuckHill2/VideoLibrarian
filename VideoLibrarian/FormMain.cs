@@ -411,7 +411,32 @@ namespace VideoLibrarian
         }
 
         //Bug in Regex.Escape(@"~`'!@#$%^&*(){}[].,;+_=-"). It doesn't escape ']'
-        private static readonly Regex reIgnoredFolder = new Regex(@"\\[~`'!@\#\$%\^&\*\(\)\{}\[\]\.,;\+_=-][^\\]+[~`'!@\#\$%\^&\*\(\)\{}\[\]\.,;\+_=-]\\", RegexOptions.Compiled);
+        //const string BracketPattern = @"\\[~`'!@\#\$%\^&\*\(\{\[\.,;\+_=-][^\\]+[~`'!@\#\$%\^&\*\)\}\]\.,;\+_=-]\\";  //fast and loose bracket pattern.
+        //Create strict bracket pattern; whatever bracket char folder name starts with, it must also end with.
+        const string BracketPattern = @"\\(
+            (~[^\\]+~)|
+            (`[^\\]+`)|
+            ('[^\\]+')|
+            (![^\\]+!)|
+            (@[^\\]+@)|
+            (\#[^\\]+\#)|
+            (\$[^\\]+\$)|
+            (%[^\\]+%)|
+            (\^[^\\]+\^)|
+            (&[^\\]+&)|
+            (\*[^\\]+\*)|
+            (\.[^\\]+\.)|
+            (,[^\\]+,)|
+            (;[^\\]+;)|
+            (\+[^\\]+\+)|
+            (_[^\\]+_)|
+            (=[^\\]+=)|
+            (-[^\\]+-)|
+            (\([^\\]+\))|
+            (\{[^\\]+\})|
+            (\[[^\\]+\])
+            )\\";
+        private static readonly Regex reIgnoredFolder = new Regex(BracketPattern, RegexOptions.Compiled | RegexOptions.IgnorePatternWhitespace);
         public void LoadMovieInfo()
         {
             //This may take awhile. Don't lock up the UI.
