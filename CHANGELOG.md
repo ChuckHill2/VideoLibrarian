@@ -64,3 +64,9 @@
 * Fixed bug in filtering Rating where rating==0
 * Fixed parsing IMDB movie names (didn't support '()' in movie names)
 
+#### Not a bug
+At runtime, if there are 2 identical TV Series in 2 different root folders, all episodes
+will be merged under single TV Series tile with the other one containing no episodes
+thus no child episodes to expand into.
+This does not occur with movies. In this case an extra instance tile of the same movie
+title will be shown.
