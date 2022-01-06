@@ -634,7 +634,9 @@ namespace VideoLibrarian
             // The required data is in 2 node trees. It's a bit fuzzy which node actually contains the values we are looking for, so we look in both.
             // It 'appears' the node containing the fewest properties contains most of the values we are looking for. Magic...
             var tt = js["props"]["requestContext"]["pageConst"].Value;
+            if (tt.IsNullOrEmpty()) tt = js["props"]["pageProps"]["requestContext"]["pageConst"].Value;
             var urqls = js["props"]["urqlState"].Linq.Where(p => p.Value["data"]["title"]["id"] == tt).OrderBy(p => p.Value["data"]["title"].Count).ToArray();
+            if (urqls.Length==0) urqls = js["props"]["pageProps"]["urqlState"].Linq.Where(p => p.Value["data"]["title"]["id"] == tt).OrderBy(p => p.Value["data"]["title"].Count).ToArray();
             var props1 = urqls[0].Value["data"]["title"];
             var props2 = urqls[1].Value["data"]["title"];
 
