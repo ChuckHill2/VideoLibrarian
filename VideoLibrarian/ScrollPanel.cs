@@ -636,9 +636,8 @@ namespace VideoLibrarian
         /// <param name="e"></param>
         protected override void OnMouseWheel(MouseEventArgs e)
         {
-            if (e.Delta >= 0) m_vScroll.ScrollLineUp();
-            else m_vScroll.ScrollLineDown();
-
+            if (e.Delta >= 0) { m_vScroll.ScrollLineUp(); m_vScroll.ScrollLineUp(); }
+            else { m_vScroll.ScrollLineDown(); m_vScroll.ScrollLineDown(); }
             base.OnMouseWheel(e);
         }
 
