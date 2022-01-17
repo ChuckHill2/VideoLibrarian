@@ -357,6 +357,13 @@ namespace VideoLibrarian
             return false;
         }
 
+        public static bool IsNullOrEmpty(this ICollection arr)
+        {
+            if (arr == null) return true;
+            if (arr.Count == 0) return true;
+            return false;
+        }
+
         public static int IndexOf<T>(this IList<T> list, Func<T, bool> match) where T : class
         {
             for (int i = 0; i < list.Count; i++)

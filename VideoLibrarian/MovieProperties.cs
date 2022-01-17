@@ -57,6 +57,7 @@ namespace VideoLibrarian
     /// </summary>
     public class MovieProperties
     {
+        #region Variables
         public const string MovieExtensions = "|.3g2|.3gp|.3gp2|.3gpp|.amv|.asf|.avi|.bik|.bin|.crf|.divx|.drc|.dv|.dvr-ms|.evo|.f4v|.flv|.gvi|.gxf|.iso|.m1v|.m2v|.m2t|.m2ts|.m4v|.mkv|.mov|.mp2|.mp2v|.mp4|.mp4v|.mpe|.mpeg|.mpeg1|.mpeg2|.mpeg4|.mpg|.mpv2|.mts|.mtv|.mxf|.mxg|.nsv|.nuv|.ogg|.ogm|.ogv|.ogx|.ps|.rec|.rm|.rmvb|.rpl|.thp|.tod|.tp|.ts|.tts|.txd|.vob|.vro|.webm|.wm|.wmv|.wtv|.xesc|";
         public const string ImageExtensions = "|.bmp|.dib|.rle|.emf|.gif|.jpg|.jpeg|.jpe|.jif|.jfif|.png|.tif|.tiff|.xif|.wmf|";
         public const string EmptyTitleID = "tt0000000"; //IMDB empty title id, used here specifically to represent non-IMDB movies. 
@@ -64,9 +65,10 @@ namespace VideoLibrarian
         private Task _getMoviePropertyTask = null;  //Async state for slowly extracting video file properties from video file. Needed to make Serialization() wait before serializing.
         private string _movieName = "";             //Load-on-demand property variables
         private string _moviePosterPath = null;
-        private Image  _moviePosterImg = null;
+        private Image _moviePosterImg = null;
         private string _fullName = null;
         private string _sortKey = null;
+        #endregion
 
         #region Properties
         // Retrieved from current folder
@@ -100,7 +102,7 @@ namespace VideoLibrarian
         }
         /// <summary>Comma-delimited list of genres</summary>
         public string[] Genre { get; set; } = new string[0];
-        /// <summary>The type of movie/video</summary>
+        /// <summary>The type of movie/video : Feature Movie, Short, TV Movie, Video; TV Mini-Series, TV Series, TV Episode</summary>
         public string MovieClass { get; set; } = "";
         /// <summary>Year movie was released</summary>
         public int Year { get; set; }           //release year
@@ -205,7 +207,7 @@ namespace VideoLibrarian
                         {
                             _moviePosterImg = new Bitmap(MoviePosterPath);
                         }
-                        catch(Exception ex)
+                        catch (Exception ex)
                         {
                             File.Delete(MoviePosterPath);
                             Log.Write(Severity.Error, $"Corrupted poster image. Recreating poster image file \"{MoviePosterPath}\".\n{ex}");
@@ -240,7 +242,7 @@ namespace VideoLibrarian
             get
             {
                 if (_sortKey.IsNullOrEmpty()) _sortKey = CreateSortKey();
-                return _sortKey.IsNullOrEmpty() ? "UNKNOWN" :_sortKey;
+                return _sortKey.IsNullOrEmpty() ? "UNKNOWN" : _sortKey;
             }
         }
 
@@ -287,14 +289,14 @@ namespace VideoLibrarian
                 if (PathPrefix.EndsWith(EmptyTitleID)) throw new XmlException("Content of manually created movie properties file {PropertiesPath} is invalid.");
 
                 _getMoviePropertyTask = Task.Run(() => GetVideoFileProperties());
-                if (File.Exists(HtmlPath)) ParseImdbPage(new FileEx.Job(UrlLink, HtmlPath));
+                if (File.Exists(HtmlPath)) ParseImdb(new FileEx.Job(UrlLink, HtmlPath));
                 else
                 {
                     // File.Delete(HtmlPath);
                     var job = new FileEx.Job(UrlLink, HtmlPath);
                     if (!FileEx.Download(job)) return; // FileEx.Download() logs its own errors. It will also update data.Url to redirected path and job.Filename
                     HtmlPath = job.Filename;
-                    ParseImdbPage(job);
+                    ParseImdb(job);
                 }
 
                 // Rename url shortcut filename to friendly name.
@@ -315,9 +317,9 @@ namespace VideoLibrarian
                 // Ignore all derived properties including all derived directory/file paths 
                 // SetAllProperties(p, this, new string[] { "MoviePosterUrl", "Episode", "Watched" });
                 // SetOnlyTheseProperties(p, this, new string[] { "Creators" });
-                if (this.Creators != p.Creators || 
-                    this.Directors != p.Directors || 
-                    this.Writers != p.Writers || 
+                if (this.Creators != p.Creators ||
+                    this.Directors != p.Directors ||
+                    this.Writers != p.Writers ||
                     this.Cast != p.Cast)
                 {
                     this.Creators = p.Creators;
@@ -395,232 +397,377 @@ namespace VideoLibrarian
             }
         }
 
-        private void ParseImdbPage(FileEx.Job data)
+        private void ParseImdb(FileEx.Job data)
         {
             MatchCollection mc;
-            string html = FileEx.ReadHtml(data.Filename);  //no duplicate whitespace, no whitespace before '<' and no whitespace after '>', and all double quotes replaced with single quotes. Great for simplifying Regex patterns.
+            var html = File.ReadAllText(data.Filename);
+
+            //Initialize to null so as to detect if these were explicitly populated but must be set to empty when these properties are read outside of the parser.
+            if (Creators.IsNullOrEmpty()) Creators = null;
+            if (Directors.IsNullOrEmpty()) Directors = null;
+            if (Writers.IsNullOrEmpty()) Writers = null;
+            if (Cast.IsNullOrEmpty()) Cast = null;
 
             //Note: As of 06-04-2021 only 50% of all IMDB web pages support this.
-            if (Regex.IsMatch(html, @"<script id='__NEXT_DATA__' type='application/json'>", RE_options))
-            {
-                var html2 = File.ReadAllText(data.Filename); //FileEx.ReadHtml() corrupts JSON string.
-                mc = Regex.Matches(html2, @"<script id=""__NEXT_DATA__"" type=""application/json"">(?<JSON>.+?)</script><script nomodule", RE_options);
-                if (mc.Count > 0)
-                {
-                    try
-                    {
-                        ParseIMDBJson(mc[0].Groups["JSON"].Value);
-                        return;
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Write(Severity.Error, $"Error retrieving values from JSON string embedded in \"{data.Filename}\". Fallback to web scraping.\n{ex}");
-                    }
-                }
-                else Log.Write(Severity.Warning, $"JSON not found in \"{data.Filename}\"");
-            }
-
-            // <link rel='canonical' href='https://www.imdb.com/title/tt0062622/'/>
-            // <meta property='og:url' content='http://www.imdb.com/title/tt0062622/'/>
-            mc = Regex.Matches(html, @"(<link rel='canonical' href='|<meta property='og:url' content=')(?<URL>[^']+)'/>", RE_options);
-            if (mc.Count > 0) UrlLink = mc[0].Groups["URL"].Value;
-
-            // <title>2001: A Space Odyssey (1968) - IMDb</title>
-            // <meta name='title' content='2001: A Space Odyssey (1968) - IMDb'/>
-            // <meta property='og:title' content='2001: A Space Odyssey (1968)'/>
-            // <meta property='og:title' content='Epoch: Evolution (TV Movie 2003)'>
-            mc = Regex.Matches(html, @"(?:<title>|<meta name='title' content='|<meta property='og:title' content=')(?<TITLE>.+?)(?:<\/title>|'>|'\/>)", RE_options);
+            mc = Regex.Matches(html, @"<script id=""__NEXT_DATA__"" type=""application/json"">(?<JSON>.+?)</script><script nomodule", RE_options);
             if (mc.Count > 0)
             {
-                var title = WebUtility.HtmlDecode(mc[0].Groups["TITLE"].Value);
-                // Childhood's End (TV Mini-Series 2015) - IMDb
-                // Gotham (TV Series 2014- ) - IMDb
-                // Gotham (TV Series 2014-2019) - IMDb
-                // "Gotham" A Dark Knight: The Fear Reaper (TV Episode 2017) - IMDb
-                // "BrainDead" Back to Work: A Behind-the-Scenes Look at Congress and How It Gets Things Done (and Often Doesn't) (TV Episode 2016) - IMDb
-                // 1492: Conquest of Paradise (1992) - IMDb
-                // Primeval: New World (TV Series 2013) - IMDb
-                // Primeval: New World (TV Series 2012–2013) - IMDb
-                // "Primeval: New World" The New World (TV Episode 2012) - IMDb
-                // Ant-Man (2015) - IMDb
-                // "Threshold" Trees Made of Glass: Part 1 (TV Episode 2005) - IMDb
-                // Epoch: Evolution (TV Movie 2003)
-                mc = Regex.Matches(title, @"^(?:(?:""(?<TITLE>[^""]+)"" (?<EPISODE>.+) (?=\([^\(]+$))|(?<TITLE2>.+))\((?:(?<TYPE>.+?) )?(?<YEAR>[0-9]{4,4})[–-]?(?<YEAREND>[0-9]{4,4})?", RE_options);
-                if (mc.Count > 0)
+                try
                 {
-                    var titlex = mc[0].Groups["TITLE"].Value.Trim();
-                    if (titlex.IsNullOrEmpty()) titlex = mc[0].Groups["TITLE2"].Value.Trim();
-                    var episode = mc[0].Groups["EPISODE"].Value.Trim();
-                    MovieName = episode.Length > 1 ? string.Concat(titlex, " \xAD ", episode) : titlex;
-                    var year = mc[0].Groups["YEAR"].Value;
-                    if (!year.IsNullOrEmpty()) { Year = int.Parse(year); ReleaseDate = new DateTime(Year, 1, 1); }
-                    var yearend = mc[0].Groups["YEAREND"].Value;
-                    if (!yearend.IsNullOrEmpty()) YearEnd = int.Parse(yearend);
-                    var type = mc[0].Groups["TYPE"].Value;
-                    MovieClass = type.IsNullOrEmpty() ? "Feature Movie" : type;
+                    ParseIMDBJson(mc[0].Groups["JSON"].Value);
+                }
+                catch (Exception ex)
+                {
+                    Log.Write(Severity.Error, $"Error retrieving values from JSON string embedded in \"{data.Filename}\". Fallback to web scraping.\n{ex}");
                 }
             }
 
-            // <div class='summary_text'>Humanity finds a mysterious, obviously artificial object buried beneath the Lunar surface and, with the intelligent computer HAL 9000, sets off on a quest.</div>
-            // <div class="summary_text">For all intents and purposes, the Apocalypse has happened. "Aftermath" is the story of those who have survived. But their nightmare has only begun. In a world where those infected kill and ...<a href="/title/tt2584642/plotsummary?ref_=tt_ov_pl">See full summary</a>&nbsp;»</div>
-            mc = Regex.Matches(html, @"<div class='summary_text'>(?<PLOT>.+?)</div>", RE_options);
-            if (mc.Count > 0)
+            html = FileEx.ReadHtml(data.Filename, true); //remove all whitespace, javascript, and replace all double-quotes with single-quotes for parsing ease and speed.
+            ParseImdbPageV2(html);
+            ParseImdbPageV1(html);
+
+            //Restore uninitialized properties null strings back to empty for normal runtime usage.
+            if (Creators == null) Creators = string.Empty;
+            if (Directors == null) Directors = string.Empty;
+            if (Writers == null) Writers = string.Empty;
+            if (Cast == null) Cast = string.Empty;
+        }
+
+        private void ParseImdbPageV1(string html)
+        {
+            //Legacy: Used pre-06-04-2021. IMDB pages now use Angular web page design.
+            //Kept for backward compatibility for stored html web pages.
+
+            MatchCollection mc;
+
+            if (UrlLink.IsNullOrEmpty())
             {
-                Plot = mc[0].Groups["PLOT"].Value;
-                if (Plot.Contains("...<")) Plot = Plot.Substring(0, Plot.LastIndexOf("...<") + 3); //remove trailing "<a href="/title/tt2584642/plotsummary?ref_=tt_ov_pl">See full summary</a>&nbsp;»"
-                if (Plot.Any(c => c == '<')) //string contains '<a href>' links. We remove them here.
-                {
-                    var e = Plot.Split(new char[] { '<', '>' });
-                    var sb = new StringBuilder(Plot.Length);
-                    for (int i = 0; i < e.Length; i += 2)
-                    {
-                        sb.Append(e[i].Trim());
-                        sb.Append(' ');
-                    }
-                    sb.Length -= 1;
-                    Plot = sb.ToString();
-                }
+                // <link rel='canonical' href='https://www.imdb.com/title/tt0062622/'/>
+                // <meta property='og:url' content='http://www.imdb.com/title/tt0062622/'/>
+                mc = Regex.Matches(html, @"(<link rel='canonical' href='|<meta property='og:url' content=')(?<URL>[^']+)'/>", RE_options);
+                if (mc.Count > 0) UrlLink = mc[0].Groups["URL"].Value;
             }
-            else
+
+            if (MovieName.IsNullOrEmpty() || Year == 0 || MovieClass.IsNullOrEmpty())
             {
-                // <meta name='description' content='Directed by Stanley Kubrick.  With Keir Dullea, Gary Lockwood, William Sylvester, Daniel Richter. Humanity finds a mysterious, obviously artificial object buried beneath the Lunar surface and, with the intelligent computer HAL 9000, sets off on a quest.'/>
-                // <meta property='og:description' content='Directed by Stanley Kubrick.  With Keir Dullea, Gary Lockwood, William Sylvester, Daniel Richter. Humanity finds a mysterious, obviously artificial object buried beneath the Lunar surface and, with the intelligent computer HAL 9000, sets off on a quest.'/>
-                mc = Regex.Matches(html, @"(?:<meta name='description' content='|<meta property='og:description' content=')(?<PLOT>.+?)(?:'>|'\/>)", RE_options);
+                // <title>2001: A Space Odyssey (1968) - IMDb</title>
+                // <meta name='title' content='2001: A Space Odyssey (1968) - IMDb'/>
+                // <meta property='og:title' content='2001: A Space Odyssey (1968)'/>
+                // <meta property='og:title' content='Epoch: Evolution (TV Movie 2003)'>
+                mc = Regex.Matches(html, @"(?:<title>|<meta name='title' content='|<meta property='og:title' content=')(?<TITLE>.+?)(?:<\/title>|'>|'\/>)", RE_options);
+                if (mc.Count > 0) ParsePageTitle(mc[0].Groups["TITLE"].Value);
+            }
+
+            if (Plot.IsNullOrEmpty())
+            {
+                // <div class='summary_text'>Humanity finds a mysterious, obviously artificial object buried beneath the Lunar surface and, with the intelligent computer HAL 9000, sets off on a quest.</div>
+                // <div class="summary_text">For all intents and purposes, the Apocalypse has happened. "Aftermath" is the story of those who have survived. But their nightmare has only begun. In a world where those infected kill and ...<a href="/title/tt2584642/plotsummary?ref_=tt_ov_pl">See full summary</a>&nbsp;»</div>
+                mc = Regex.Matches(html, @"<div class='summary_text'>(?<PLOT>.+?)</div>", RE_options);
                 if (mc.Count > 0)
                 {
                     Plot = mc[0].Groups["PLOT"].Value;
-                }
-            }
-
-            // <h2>Storyline</h2><div class='inline canwrap'><p><span>'2001' is a story of evolution. Sometime in the distant past, someone or something nudged evolution by placing a monolith on Earth (presumably elsewhere throughout the universe as well).</span>
-            // <h2>Storyline</h2><div class='inline canwrap'><p><span>In the aftermath of<a href='/title/tt3498820?ref_=tt_stry_pl'>Captain America: Civil War</a>(2016), Scott Lang grapples with the consequences of his choices as both a superhero and a father.</span>
-            // <h2>Storyline</h2><div class='inline canwrap'><p><span>In the aftermath of<a href='/title/tt3498820?ref_=tt_stry_pl'>Captain America: Civil War</a>(2016), Scott Lang grapples with the consequences of his choices as both a superhero and a father. As he struggles to rebalance his home life with his responsibilities as <a href='/title/tt3498820?ref_=tt_stry_pl'>Ant-Man</a>, he's confronted by Hope van Dyne and Dr. Hank Pym with an urgent new mission.</span>
-            // <h2>Storyline</h2><div class='inline canwrap'><p><span>In the aftermath of<a href='/title/tt3498820?ref_=tt_stry_pl'>Captain America: Civil War</a>(2016), Scott Lang grapples with the consequences of his choices as both a superhero and a father. As he struggles to rebalance his home life with his responsibilities as <a href='/title/tt3498820?ref_=tt_stry_pl'>Ant-Man</a>, he's confronted by Hope van Dyne and Dr. Hank Pym with an urgent new mission. Scott must once again put on the suit and learn to fight alongside <a href='/title/tt3498820?ref_=tt_stry_pl'>The Wasp</a> as the team works together to uncover secrets from their past.</span>
-            mc = Regex.Matches(html, @"<h2>Storyline<\/h2>.+?<span>(?<SUMMARY>.+?)<\/span>", RE_options);
-            if (mc.Count > 0)
-            {
-                Summary = mc[0].Groups["SUMMARY"].Value;
-                if (Summary.Any(c=>c=='<')) //string contains '<a href>' links. We remove them here.
-                {
-                    var e = Summary.Split(new char[] { '<','>' });
-                    var sb = new StringBuilder(Summary.Length);
-                    for(int i=0; i< e.Length; i+=2)
+                    if (Plot.Contains("...<")) Plot = Plot.Substring(0, Plot.LastIndexOf("...<") + 3); //remove trailing "<a href="/title/tt2584642/plotsummary?ref_=tt_ov_pl">See full summary</a>&nbsp;»"
+                    if (Plot.Any(c => c == '<')) //string contains '<a href>' links. We remove them here.
                     {
-                        sb.Append(e[i].Trim());
-                        sb.Append(' ');
+                        var e = Plot.Split(new char[] { '<', '>' });
+                        var sb = new StringBuilder(Plot.Length);
+                        for (int i = 0; i < e.Length; i += 2)
+                        {
+                            sb.Append(e[i].Trim());
+                            sb.Append(' ');
+                        }
+                        sb.Length -= 1;
+                        Plot = sb.ToString();
                     }
-                    sb.Length -= 1;
-                    Summary = sb.ToString();
                 }
-            }
-
-            // <div class='credit_summary_item'><h4 class='inline'>Director:</h4><a href='/name/nm0000040/?ref_=tt_ov_dr' >Stanley Kubrick</a></div>
-            // <div class='credit_summary_item'><h4 class='inline'>Writers:</h4><a href='/name/nm0000040/?ref_=tt_ov_wr' >Stanley Kubrick</a> (screenplay), <a href='/name/nm0002009/?ref_=tt_ov_wr' >Arthur C. Clarke</a> (screenplay)</div>
-            // <div class='credit_summary_item'><h4 class='inline'>Stars:</h4><a href='/name/nm0001158/?ref_=tt_ov_st_sm' >Keir Dullea</a>, <a href='/name/nm0516972/?ref_=tt_ov_st_sm' >Gary Lockwood</a>, <a href='/name/nm0843213/?ref_=tt_ov_st_sm' >William Sylvester</a>
-            mc = Regex.Matches(html, @"<div class='credit_summary_item'><h4 class='inline'>(?<KEY>Creator|Director|Writer|Star)s?:<\/h4>(?:<a href='[^']+'>(?<VALUE>[^<]+)<\/a>(?:.*?))+<\/div>", RE_options);
-            if (mc.Count > 0)
-            {
-                foreach (Match m in mc)
+                else
                 {
-                    var list = new HashSet<string>(StringComparer.OrdinalIgnoreCase); //unique list of names
-                    foreach (Capture c in m.Groups["VALUE"].Captures)
+                    // <meta name='description' content='Directed by Stanley Kubrick.  With Keir Dullea, Gary Lockwood, William Sylvester, Daniel Richter. Humanity finds a mysterious, obviously artificial object buried beneath the Lunar surface and, with the intelligent computer HAL 9000, sets off on a quest.'/>
+                    // <meta property='og:description' content='Directed by Stanley Kubrick.  With Keir Dullea, Gary Lockwood, William Sylvester, Daniel Richter. Humanity finds a mysterious, obviously artificial object buried beneath the Lunar surface and, with the intelligent computer HAL 9000, sets off on a quest.'/>
+                    mc = Regex.Matches(html, @"(?:<meta name='description' content='|<meta property='og:description' content=')(?<PLOT>.+?)(?:'>|'\/>)", RE_options);
+                    if (mc.Count > 0)
                     {
-                        if (c.Value.StartsWith("See", StringComparison.OrdinalIgnoreCase)) continue;  //ignore "See full cast & crew"
-                        if (c.Value.Contains("credit")) continue;  //ignore "7 more credits" or "1 more credit"
-                        list.Add(c.Value);
+                        Plot = mc[0].Groups["PLOT"].Value;
                     }
-                    var sb = new StringBuilder();
-                    foreach (var s in list)
+                }
+            }
+
+            if (Summary.IsNullOrEmpty())
+            {
+                // <h2>Storyline</h2><div class='inline canwrap'><p><span>'2001' is a story of evolution. Sometime in the distant past, someone or something nudged evolution by placing a monolith on Earth (presumably elsewhere throughout the universe as well).</span>
+                // <h2>Storyline</h2><div class='inline canwrap'><p><span>In the aftermath of<a href='/title/tt3498820?ref_=tt_stry_pl'>Captain America: Civil War</a>(2016), Scott Lang grapples with the consequences of his choices as both a superhero and a father.</span>
+                // <h2>Storyline</h2><div class='inline canwrap'><p><span>In the aftermath of<a href='/title/tt3498820?ref_=tt_stry_pl'>Captain America: Civil War</a>(2016), Scott Lang grapples with the consequences of his choices as both a superhero and a father. As he struggles to rebalance his home life with his responsibilities as <a href='/title/tt3498820?ref_=tt_stry_pl'>Ant-Man</a>, he's confronted by Hope van Dyne and Dr. Hank Pym with an urgent new mission.</span>
+                // <h2>Storyline</h2><div class='inline canwrap'><p><span>In the aftermath of<a href='/title/tt3498820?ref_=tt_stry_pl'>Captain America: Civil War</a>(2016), Scott Lang grapples with the consequences of his choices as both a superhero and a father. As he struggles to rebalance his home life with his responsibilities as <a href='/title/tt3498820?ref_=tt_stry_pl'>Ant-Man</a>, he's confronted by Hope van Dyne and Dr. Hank Pym with an urgent new mission. Scott must once again put on the suit and learn to fight alongside <a href='/title/tt3498820?ref_=tt_stry_pl'>The Wasp</a> as the team works together to uncover secrets from their past.</span>
+                mc = Regex.Matches(html, @"<h2>Storyline<\/h2>.+?<span>(?<SUMMARY>.+?)<\/span>", RE_options);
+                if (mc.Count > 0)
+                {
+                    Summary = mc[0].Groups["SUMMARY"].Value;
+                    if (Summary.Any(c => c == '<')) //string contains '<a href>' links. We remove them here.
                     {
-                        sb.Append(s);
-                        sb.Append(", ");
+                        var e = Summary.Split(new char[] { '<', '>' });
+                        var sb = new StringBuilder(Summary.Length);
+                        for (int i = 0; i < e.Length; i += 2)
+                        {
+                            sb.Append(e[i].Trim());
+                            sb.Append(' ');
+                        }
+                        sb.Length -= 1;
+                        Summary = sb.ToString();
                     }
-                    if (sb.Length > 2) sb.Length -= 2;
-                    var value = sb.ToString();
-
-                    var key = m.Groups["KEY"].Value.ToUpperInvariant();
-                    if (key == "CREATOR") Creators = value;
-                    else if (key == "DIRECTOR") Directors = value;
-                    else if (key == "WRITER") Writers = value;
-                    else if (key == "STAR") Cast = value;
                 }
             }
 
-            // <h4 class='inline'>Genres:</h4><a href='/genre/Adventure?ref_=tt_stry_gnr'>Adventure</a>&nbsp;<span>|</span><a href='/genre/Sci-Fi?ref_=tt_stry_gnr'>Sci-Fi</a></div>
-            // <a href='/genre/Adventure?ref_=tt_ov_inf'>Adventure</a>,<a href='/genre/Sci-Fi?ref_=tt_ov_inf'>Sci-Fi</a>
-            // <a href='/search/title?genres=adventure&explore=title_type,genres&ref_=tt_ov_inf'>Adventure</a>,<a href='/search/title?genres=sci-fi&explore=title_type,genres&ref_=tt_ov_inf'>Sci-Fi</a>
-            mc = Regex.Matches(html, @"<a href='.+?genre[^']+'>(?<GENRE>[^<]+)<\/a>", RE_options);
-            if (mc.Count > 0)
+            if (Creators.IsNullOrEmpty() && Directors.IsNullOrEmpty() && Writers.IsNullOrEmpty() && Cast.IsNullOrEmpty())
             {
-                var list = new HashSet<string>();
-                foreach (Match m in mc)
+                // <div class='credit_summary_item'><h4 class='inline'>Director:</h4><a href='/name/nm0000040/?ref_=tt_ov_dr' >Stanley Kubrick</a></div>
+                // <div class='credit_summary_item'><h4 class='inline'>Writers:</h4><a href='/name/nm0000040/?ref_=tt_ov_wr' >Stanley Kubrick</a> (screenplay), <a href='/name/nm0002009/?ref_=tt_ov_wr' >Arthur C. Clarke</a> (screenplay)</div>
+                // <div class='credit_summary_item'><h4 class='inline'>Stars:</h4><a href='/name/nm0001158/?ref_=tt_ov_st_sm' >Keir Dullea</a>, <a href='/name/nm0516972/?ref_=tt_ov_st_sm' >Gary Lockwood</a>, <a href='/name/nm0843213/?ref_=tt_ov_st_sm' >William Sylvester</a>
+                mc = Regex.Matches(html, @"<div class='credit_summary_item'><h4 class='inline'>(?<KEY>Creator|Director|Writer|Star)s?:<\/h4>(?:<a href='[^']+'>(?<VALUE>[^<]+)<\/a>(?:.*?))+<\/div>", RE_options);
+                if (mc.Count > 0)
                 {
-                    var value = m.Groups["GENRE"].Value;
-                    if (value.StartsWith("Most", StringComparison.OrdinalIgnoreCase)) continue;
-                    list.Add(value);
+                    foreach (Match m in mc)
+                    {
+                        var list = new HashSet<string>(StringComparer.OrdinalIgnoreCase); //unique list of names
+                        foreach (Capture c in m.Groups["VALUE"].Captures)
+                        {
+                            if (c.Value.StartsWith("See", StringComparison.OrdinalIgnoreCase)) continue;  //ignore "See full cast & crew"
+                            if (c.Value.Contains("credit")) continue;  //ignore "7 more credits" or "1 more credit"
+                            list.Add(c.Value);
+                        }
+                        var sb = new StringBuilder();
+                        foreach (var s in list)
+                        {
+                            sb.Append(s);
+                            sb.Append(", ");
+                        }
+                        if (sb.Length > 2) sb.Length -= 2;
+                        var value = sb.ToString();
+
+                        var key = m.Groups["KEY"].Value.ToUpperInvariant();
+                        if (key == "CREATOR") Creators = value;
+                        else if (key == "DIRECTOR") Directors = value;
+                        else if (key == "WRITER") Writers = value;
+                        else if (key == "STAR") Cast = value;
+                    }
                 }
-                Genre = list.ToArray();
             }
 
-            // <a href='/title/tt0062622/releaseinfo?ref_=tt_ov_inf' title='See more release dates'>12 May 1968 (UK)</a>
-            // <a href='/title/tt4525842/releaseinfo?ref_=tt_ov_inf' title='See more release dates'>Episode aired 26 October 2015</a>
-            // <h4 class='inline'>Release Date:</h4> 12 May 1968 (UK)<
-            mc = Regex.Matches(html, @"(?:<h4 class='inline'>Release Date:<\/h4>|<a href='\/title\/[^\/]+\/releaseinfo[^']*'[^<]+>).*?(?<DATE>[0-9]{1,2} [a-z]+ [0-9]{4,4})", RE_options);
-            if (mc.Count > 0)
+            if (Genre.IsNullOrEmpty())
             {
-                DateTime dtMin = DateTime.MaxValue;
-                DateTime dt;
-                foreach (Match m in mc)
+                // <h4 class='inline'>Genres:</h4><a href='/genre/Adventure?ref_=tt_stry_gnr'>Adventure</a>&nbsp;<span>|</span><a href='/genre/Sci-Fi?ref_=tt_stry_gnr'>Sci-Fi</a></div>
+                // <a href='/genre/Adventure?ref_=tt_ov_inf'>Adventure</a>,<a href='/genre/Sci-Fi?ref_=tt_ov_inf'>Sci-Fi</a>
+                // <a href='/search/title?genres=adventure&explore=title_type,genres&ref_=tt_ov_inf'>Adventure</a>,<a href='/search/title?genres=sci-fi&explore=title_type,genres&ref_=tt_ov_inf'>Sci-Fi</a>
+                mc = Regex.Matches(html, @"<a href='.+?genre[^']+'>(?<GENRE>[^<]+)<\/a>", RE_options);
+                if (mc.Count > 0)
                 {
-                    if (DateTime.TryParse(m.Groups["DATE"].Value, out dt)) { if (dt < dtMin) dtMin = dt; }
+                    var list = new HashSet<string>();
+                    foreach (Match m in mc)
+                    {
+                        var value = m.Groups["GENRE"].Value;
+                        if (value.StartsWith("Most", StringComparison.OrdinalIgnoreCase)) continue;
+                        list.Add(value);
+                    }
+                    Genre = list.ToArray();
                 }
-                ReleaseDate = dtMin;
-                if (Year == 0) Year = dtMin.Year; 
             }
 
-            // Set this.MoviePosterUrl 
+            if (ReleaseDate == DateTime.MinValue)
+            {
+                // <a href='/title/tt0062622/releaseinfo?ref_=tt_ov_inf' title='See more release dates'>12 May 1968 (UK)</a>
+                // <a href='/title/tt4525842/releaseinfo?ref_=tt_ov_inf' title='See more release dates'>Episode aired 26 October 2015</a>
+                // <h4 class='inline'>Release Date:</h4> 12 May 1968 (UK)<
+                mc = Regex.Matches(html, @"(?:<h4 class='inline'>Release Date:<\/h4>|<a href='\/title\/[^\/]+\/releaseinfo[^']*'[^<]+>).*?(?<DATE>[0-9]{1,2} [a-z]+ [0-9]{4,4})", RE_options);
+                if (mc.Count > 0)
+                {
+                    DateTime dtMin = DateTime.MaxValue;
+                    DateTime dt;
+                    foreach (Match m in mc)
+                    {
+                        if (DateTime.TryParse(m.Groups["DATE"].Value, out dt)) { if (dt < dtMin) dtMin = dt; }
+                    }
+                    ReleaseDate = dtMin;
+                    if (Year == 0) Year = dtMin.Year;
+                }
+            }
+
+            // Set this.MoviePosterUrl. Must be after ReleaseDate initialization.
             SetMoviePosterUrl(html);
 
-            // Movie Type?
-            // <meta property='og:type' content='video.movie' />  == Movie (default value)
-            // <meta property='og:type' content='video.tv_show'>  == TV Show
-            // <meta property='og:type' content='video.episode'>  == TV Episode'
-            // <meta property='og:type' content='video.tv_show'>  == TV Mini
+            if (EpisodeCount == 0 && (MovieClass == "TV Mini-Series" || MovieClass == "TV Series"))
+            {
+                // Movie Type?
+                // <meta property='og:type' content='video.movie' />  == Movie (default value)
+                // <meta property='og:type' content='video.tv_show'>  == TV Show
+                // <meta property='og:type' content='video.episode'>  == TV Episode'
+                // <meta property='og:type' content='video.tv_show'>  == TV Mini
 
-            // <div class='bp_description'><div class='bp_heading'>Episode Guide</div><span class='bp_sub_heading'>101 episodes</span></div>
-            mc = Regex.Matches(html, @"<span class='bp_sub_heading'>(?<EPISODES>[0-9]+) episodes</span>", RE_options);
-            if (mc.Count > 0)
-            {
-                int i;
-                if (int.TryParse(mc[0].Groups["EPISODES"].Value, out i)) EpisodeCount = i;
-            }
-
-            // <div class='bp_description'><div class='bp_heading'>Season 4 <span class='ghost'>|</span> Episode 2</div></div>
-            mc = Regex.Matches(html, @"<div class='bp_heading'>Season (?<S>[0-9]{1,2}).+?Episode (?<E>[0-9]{1,2})</div>", RE_options);
-            if (mc.Count > 0)
-            {
-                int i;
-                if (int.TryParse(mc[0].Groups["S"].Value, out i)) Season = i;
-                if (int.TryParse(mc[0].Groups["E"].Value, out i)) Episode = i;
-            }
-
-            // <div class='ratingValue'><strong title='2.0 based on 2,085 user ratings'><span>2.0</span></strong><span class='grey'>/</span><span class='grey'>10</span></div>
-            // <div class='ratingValue'><strong title='8.3 based on 516,780 user ratings'><span itemprop='ratingValue'>8.3</span></strong><span class='grey'>/</span><span class='grey' itemprop='bestRating'>10</span></div>
-            mc = Regex.Matches(html, @"<div class='ratingValue'>.+?<span[^>]*>(?<RATING>[0-9\.]+)<\/span>", RE_options);
-            if (mc.Count > 0)
-            {
-                float i;
-                if (float.TryParse(mc[0].Groups["RATING"].Value, out i)) MovieRating = i > 10f ? i / 10f : i;
-            }
-            else
-            {
-                // <div class='metacriticScore score_favorable titleReviewBarSubItem'><span>82</span></div>
-                mc = Regex.Matches(html, @"<div class='metacriticScore[^']*'><span>(?<RATING>[0-9]+)</span></div>", RE_options);
+                // <div class='bp_description'><div class='bp_heading'>Episode Guide</div><span class='bp_sub_heading'>101 episodes</span></div>
+                mc = Regex.Matches(html, @"<span class='bp_sub_heading'>(?<EPISODES>[0-9]+) episodes</span>", RE_options);
                 if (mc.Count > 0)
                 {
                     int i;
-                    if (int.TryParse(mc[0].Groups["RATING"].Value, out i)) MovieRating = i / 10f;
+                    if (int.TryParse(mc[0].Groups["EPISODES"].Value, out i)) EpisodeCount = i;
                 }
+            }
+
+            if (Season == 0 && MovieClass == "TV Episode")
+            {
+                // <div class='bp_description'><div class='bp_heading'>Season 4 <span class='ghost'>|</span> Episode 2</div></div>
+                mc = Regex.Matches(html, @"<div class='bp_heading'>Season (?<S>[0-9]{1,2}).+?Episode (?<E>[0-9]{1,2})</div>", RE_options);
+                if (mc.Count > 0)
+                {
+                    int i;
+                    if (int.TryParse(mc[0].Groups["S"].Value, out i)) Season = i;
+                    if (int.TryParse(mc[0].Groups["E"].Value, out i)) Episode = i;
+                }
+            }
+
+            if (MovieRating == 0)
+            {
+                // <div class='ratingValue'><strong title='2.0 based on 2,085 user ratings'><span>2.0</span></strong><span class='grey'>/</span><span class='grey'>10</span></div>
+                // <div class='ratingValue'><strong title='8.3 based on 516,780 user ratings'><span itemprop='ratingValue'>8.3</span></strong><span class='grey'>/</span><span class='grey' itemprop='bestRating'>10</span></div>
+                mc = Regex.Matches(html, @"<div class='ratingValue'>.+?<span[^>]*>(?<RATING>[0-9\.]+)<\/span>", RE_options);
+                if (mc.Count > 0)
+                {
+                    float i;
+                    if (float.TryParse(mc[0].Groups["RATING"].Value, out i)) MovieRating = i > 10f ? i / 10f : i;
+                }
+                else
+                {
+                    // <div class='metacriticScore score_favorable titleReviewBarSubItem'><span>82</span></div>
+                    mc = Regex.Matches(html, @"<div class='metacriticScore[^']*'><span>(?<RATING>[0-9]+)</span></div>", RE_options);
+                    if (mc.Count > 0)
+                    {
+                        int i;
+                        if (int.TryParse(mc[0].Groups["RATING"].Value, out i)) MovieRating = i / 10f;
+                    }
+                }
+            }
+        }
+
+        private void ParseImdbPageV2(string html)
+        {
+            MatchCollection mc;
+
+            if (UrlLink.IsNullOrEmpty())
+            {
+                // <link rel='canonical' href='https://www.imdb.com/title/tt0062622/'/>
+                // <meta property='og:url' content='http://www.imdb.com/title/tt0062622/'/>
+                mc = Regex.Matches(html, @"(<link rel='canonical' href='|<meta property='og:url' content=')(?<URL>[^']+)'/>", RE_options);
+                if (mc.Count > 0) UrlLink = mc[0].Groups["URL"].Value;
+            }
+
+            if (MovieName.IsNullOrEmpty() || Year == 0 || MovieClass.IsNullOrEmpty())
+            {
+                // <title>2001: A Space Odyssey (1968) - IMDb</title>
+                // <meta name='title' content='2001: A Space Odyssey (1968) - IMDb'/>
+                // <meta property='og:title' content='2001: A Space Odyssey (1968)'/>
+                // <meta property='og:title' content='Epoch: Evolution (TV Movie 2003)'>
+                mc = Regex.Matches(html, @"(?:<title>|<meta name='title' content='|<meta property='og:title' content=')(?<TITLE>.+?)(?:<\/title>|'>|'\/>)", RE_options);
+                if (mc.Count > 0) ParsePageTitle(mc[0].Groups["TITLE"].Value);
+            }
+
+            if (Plot.IsNullOrEmpty())
+            {
+                mc = Regex.Matches(html, @"<span .*?class='GenresAndPlot__TextContainerBreakpointXL[^>]+'>(?<PLOT>[^<]+)<\/span>", RE_options);
+                if (mc.Count > 0) Plot = mc[0].Groups["PLOT"].Value;
+            }
+
+            if (Summary.IsNullOrEmpty())
+            {
+                mc = Regex.Matches(html, @"<div class='Storyline[^>]+>\s*<div class=[^>]+>\s*<div class=[^>]+>\s*<div>(?<SUMMARY>[^<]+)<\/div>", RE_options);
+                if (mc.Count > 0) Summary = mc[0].Groups["SUMMARY"].Value;
+            }
+
+            if (Creators.IsNullOrEmpty())
+            {
+                mc = Regex.Matches(html, @"<span [^>]+>Creators?<\/span><div [^>]+><ul [^>]+>(?:(?:<li [^>]+><a class=[^>]+>([^<]+)<\/a>.*?<\/li>)+)", RE_options);
+                if (mc.Count > 0)
+                {
+                    var xxxo = mc[0].Groups[1].Captures.Cast<Capture>().Select(p => p.Value).ToArray();
+                    Creators = string.Join(", ", xxxo);
+                }
+            }
+
+            if (Directors.IsNullOrEmpty())
+            {
+                mc = Regex.Matches(html, @"<span [^>]+>Directors?<\/span><div [^>]+><ul [^>]+>(?:(?:<li [^>]+><a class=[^>]+>([^<]+)<\/a>.*?<\/li>)+)", RE_options);
+                if (mc.Count > 0)
+                {
+                    var xxxo = mc[0].Groups[1].Captures.Cast<Capture>().Select(p => p.Value).ToArray();
+                    Directors = string.Join(", ", xxxo);
+                }
+            }
+
+            if (Writers.IsNullOrEmpty())
+            {
+                mc = Regex.Matches(html, @"<span [^>]+>Writers?<\/span><div [^>]+><ul [^>]+>(?:(?:<li [^>]+><a class=[^>]+>([^<]+)<\/a>.*?<\/li>)+)", RE_options);
+                if (mc.Count > 0)
+                {
+                    var xxxo = mc[0].Groups[1].Captures.Cast<Capture>().Select(p => p.Value).ToArray();
+                    Writers = string.Join(", ", xxxo);
+                }
+            }
+
+            if (Cast.IsNullOrEmpty())
+            {
+                mc = Regex.Matches(html, @"<a [^>]+>Stars?<\/a>\s*<div [^>]+>\s*<ul [^>]+>(?:(?:\s*<li [^>]+>\s*<a [^>]+>([^<]+)<\/a>\s*<\/li>)+)", RE_options);
+                if (mc.Count > 0)
+                {
+                    var xxxo = mc[0].Groups[1].Captures.Cast<Capture>().Select(p => p.Value).ToArray();
+                    Cast = string.Join(", ", xxxo);
+                }
+            }
+
+            if (Genre.IsNullOrEmpty())
+            {
+                mc = Regex.Matches(html, @"<a class='GenresAndPlot[^>]+>\s*<span [^>]+>(?<GENRE>[^<]+)<\/span>\s*<\/a>", RE_options);
+                if (mc.Count > 0) Genre = mc.Cast<Match>().Select(p => p.Groups["GENRE"].Value).ToArray();
+            }
+
+            if (Genre.IsNullOrEmpty())
+            {
+                mc = Regex.Matches(html, @"<a class=.*?href='\/search\/title\/\?genres[^>]+>(?<GENRE>[^<]+)<\/a>", RE_options);
+                if (mc.Count > 0) Genre = mc.Cast<Match>().Select(p => p.Groups["GENRE"].Value).ToArray();
+            }
+
+            if (ReleaseDate == DateTime.MinValue) //legacy
+            {
+                mc = Regex.Matches(html, @"<a class='ipc-metadata.+?ref_=tt_dt_rdat'>(?<RDATE>[^\(<]+)", RE_options);
+                if (mc.Count > 0)
+                    ReleaseDate = DateTime.TryParse(mc[0].Groups["RDATE"].Value, out var dt) ? dt : DateTime.MinValue;
+            }
+
+            // Set this.MoviePosterUrl. Must be after ReleaseDate initialization.
+            SetMoviePosterUrl(html);
+
+            if (EpisodeCount == 0 && MovieClass.EndsWith("Series"))
+            {
+                mc = Regex.Matches(html, @"<h3 class='ipc-title__text'>Episodes\s*<span class='ipc-title__subtext'>(?<EPISODECOUNT>[0-9]+)<\/span", RE_options);
+                if (mc.Count > 0) EpisodeCount = int.TryParse(mc[0].Groups["EPISODECOUNT"].Value, out var f) ? f : 0;
+            }
+
+            if (EpisodeCount == 0 && MovieClass.EndsWith("Series"))
+            {
+                mc = Regex.Matches(html, @"<span .+?EpisodeCountSpan[^>]+>(?<EPISODECOUNT>[0-9]+)<\/span>", RE_options);
+                if (mc.Count > 0) EpisodeCount = int.TryParse(mc[0].Groups["EPISODECOUNT"].Value, out var f) ? f : 0;
+            }
+
+            if (Season == 0 && MovieClass == "TV Episode")
+            {
+                mc = Regex.Matches(html, @"<span .+?SeasonEpisodeNumbersItem[^>]+>S(?<SEASON>[0-9]+)</span>", RE_options);
+                if (mc.Count > 0) Season = int.TryParse(mc[0].Groups["SEASON"].Value, out var f) ? f : 0;
+            }
+            if (Episode == 0 && MovieClass == "TV Episode")
+            {
+                mc = Regex.Matches(html, @"<span .+?SeasonEpisodeNumbersItem[^>]+>E(?<EPISODE>[0-9]+)</span>", RE_options);
+                if (mc.Count > 0) Episode = int.TryParse(mc[0].Groups["EPISODE"].Value, out var f) ? f : 0;
+            }
+
+            if (MovieRating == 0)
+            {
+                mc = Regex.Matches(html, @"span class='AggregateRatingButton__RatingScore[^>]+>(?<RATING>[^<]+)<\/span>", RE_options);
+                if (mc.Count > 0) MovieRating = float.TryParse(mc[0].Groups["RATING"].Value, out var f) ? f : 0.0f;
             }
         }
 
@@ -630,61 +777,135 @@ namespace VideoLibrarian
             float f;
             var js = SimpleJSON.JSON.Parse(json);
             UrlLink = js["head"].Linq.FirstOrDefault(p => p.Value[0].Value == "link" && p.Value[1]["rel"].Value == "canonical").Value?[1]["href"].Value ?? "";
+            var pageTitle = js["head"].Linq.FirstOrDefault(p => p.Value[0] == "title").Value[1]["children"].Value; //"Blade Runner: Black Lotus" Free Will (TV Episode 2022) - IMDb
+            ParsePageTitle(pageTitle);
 
             // The required data is in 2 node trees. It's a bit fuzzy which node actually contains the values we are looking for, so we look in both.
             // It 'appears' the node containing the fewest properties contains most of the values we are looking for. Magic...
             var tt = js["props"]["requestContext"]["pageConst"].Value;
             if (tt.IsNullOrEmpty()) tt = js["props"]["pageProps"]["requestContext"]["pageConst"].Value;
+            if (tt.IsNullOrEmpty()) tt = js["head"].Linq.FirstOrDefault(p => p.Value[0] == "meta" && p.Value[1]["property"].Value == "imdb:pageConst").Value[1]["content"].Value;  //tt9370072
+
             var urqls = js["props"]["urqlState"].Linq.Where(p => p.Value["data"]["title"]["id"] == tt).OrderBy(p => p.Value["data"]["title"].Count).ToArray();
-            if (urqls.Length==0) urqls = js["props"]["pageProps"]["urqlState"].Linq.Where(p => p.Value["data"]["title"]["id"] == tt).OrderBy(p => p.Value["data"]["title"].Count).ToArray();
-            var props1 = urqls[0].Value["data"]["title"];
-            var props2 = urqls[1].Value["data"]["title"];
+            if (urqls.Length == 0) urqls = js["props"]["pageProps"]["urqlState"].Linq.Where(p => p.Value["data"]["title"]["id"] == tt).OrderBy(p => p.Value["data"]["title"].Count).ToArray();
 
-            var movieClass = props1["titleType"]["id"].Value; //language independent ID
-            MovieClass = props1["titleType"]["text"].Value;
-            if (MovieClass == "Movie") MovieClass = "Feature Movie"; //make same as legacy scraped web page
-            else if (MovieClass == "TV Mini Series") MovieClass = "TV Mini-Series"; //make same as legacy scraped web page
-
-            MovieName = props1["series"]?["series"]?["titleText"]?["text"]?.Value;
-            if (MovieName.IsNullOrEmpty())
-                MovieName = props1["titleText"]?["text"]?.Value;
+            SimpleJSON.JSONNode props1 = null, props2 = null;
+            if (urqls.Length >= 2)
+            {
+                props1 = urqls[0].Value["data"]["title"];
+                props2 = urqls[1].Value["data"]["title"];
+            }
             else
-                MovieName = string.Concat(MovieName, " \xAD ", props1["titleText"]?["text"]?.Value ?? "");
+            {
+                //There's a JSON string within this JSON object. We take advantage of it.
+                var jx = js["head"].Linq.Where(p => p.Value[1]["type"].Value == "application/ld+json").ToArray()[0].Value[1]["dangerouslySetInnerHTML"]["__html"].Value;
+                js = SimpleJSON.JSON.Parse(jx);
+                if (MovieClass.IsNullOrEmpty())
+                {
+                    MovieClass = js["@type"]?.Value;
+                    switch (MovieClass.ToLowerInvariant())
+                    {
+                        case "tvseries": MovieClass = "TV Series"; break;
+                        case "tvepisode": MovieClass = "TV Episode"; break;
+                        case "tvminiseries": MovieClass = "TV Mini-Series"; break;
+                        case "": MovieClass = "Feature Movie"; break;
+                    }
+                }
 
-            Year = int.TryParse(props1["releaseYear"]["year"], out i) ? i : 1900;
-            var year  = int.TryParse(props1["releaseDate"]["year"], out i) ? i : Year;
-            var month = int.TryParse(props1["releaseDate"]["month"], out i) ? i : 1;
-            var day   = int.TryParse(props1["releaseDate"]["day"], out i) ? i : 1;
-            ReleaseDate = new DateTime(year, month, day);
-            if (Year == 1900) Year = year;
+                if (MovieName.IsNullOrEmpty()) MovieName = js["name"]?.Value;  //just the episode name
+                if (MoviePosterUrl.IsNullOrEmpty()) MoviePosterUrl = js["image"]?.Value;
+                if (Plot.IsNullOrEmpty()) Plot = js["description"]?.Value;
+                if (MovieRating == 0) MovieRating = float.TryParse(js["aggregateRating"]["ratingValue"], out f) ? f : 0;
 
-            YearEnd = int.TryParse(props1["releaseYear"]["endYear"], out i) ? i : 0;
+                if (Genre.IsNullOrEmpty()) Genre = js["genre"].Linq.Select(p => p.Value.Value).ToArray();
+                if (ReleaseDate == DateTime.MinValue && DateTime.TryParse(js["datePublished"]?.Value, out var dt))
+                {
+                    ReleaseDate = dt;
+                    Year = dt.Year;
+                }
 
-            if (MoviePath.IsNullOrEmpty() || !File.Exists(this.MoviePath))
+                if (Directors.IsNullOrEmpty())
+                {
+                    var credits = string.Join(", ", js["director"].Linq.Where(p => p.Value["@type"].Value == "Person").Select(p => p.Value["name"].Value).ToArray());
+                    if (!credits.IsNullOrEmpty()) Directors = credits;
+                }
+                if (Writers.IsNullOrEmpty())
+                {
+                    var credits = string.Join(", ", js["writer"].Linq.Where(p => p.Value["@type"].Value == "Person").Select(p => p.Value["name"].Value).ToArray());
+                    if (!credits.IsNullOrEmpty()) Writers = credits;
+                }
+                if (Cast.IsNullOrEmpty())
+                {
+                    var credits = string.Join(", ", js["actor"].Linq.Where(p => p.Value["@type"].Value == "Person").Select(p => p.Value["name"].Value).ToArray());
+                    if (!credits.IsNullOrEmpty()) Cast = credits;
+                }
+                if (Creators.IsNullOrEmpty())
+                {
+                    var credits = string.Join(", ", js["creator"].Linq.Where(p => p.Value["@type"].Value == "Person").Select(p => p.Value["name"].Value).ToArray());
+                    if (!credits.IsNullOrEmpty()) Creators = credits;
+                }
+
+                return;
+            }
+
+            //var movieClass = props1["titleType"]["id"].Value; //language independent ID
+
+            if (MovieClass.IsNullOrEmpty())
+            {
+                MovieClass = props1["titleType"]["text"].Value;
+                if (MovieClass == "") MovieClass = "Feature Movie"; //make same as legacy scraped web page
+                else if (MovieClass == "TV Mini Series") MovieClass = "TV Mini-Series"; //make same as legacy scraped web page
+            }
+
+            if (MovieName.IsNullOrEmpty())
+            {
+                MovieName = props1["series"]?["series"]?["titleText"]?["text"]?.Value;
+                if (MovieName.IsNullOrEmpty())
+                    MovieName = props1["titleText"]?["text"]?.Value;
+                else
+                    MovieName = string.Concat(MovieName, " \xAD ", props1["titleText"]?["text"]?.Value ?? "");
+            }
+
+            if (Year==0) Year = int.TryParse(props1["releaseYear"]["year"], out i) ? i : 1900;
+
+            if (ReleaseDate == DateTime.MinValue)
+            {
+                var year = int.TryParse(props1["releaseDate"]["year"], out i) ? i : Year;
+                var month = int.TryParse(props1["releaseDate"]["month"], out i) ? i : 1;
+                var day = int.TryParse(props1["releaseDate"]["day"], out i) ? i : 1;
+                ReleaseDate = new DateTime(year, month, day);
+            }
+
+            if (Year == 0 && ReleaseDate != DateTime.MinValue) Year = ReleaseDate.Year;
+            if (YearEnd == 0) YearEnd = int.TryParse(props1["releaseYear"]["endYear"], out i) ? i : 0;
+
+            if (Runtime==0 && (MoviePath.IsNullOrEmpty() || !File.Exists(this.MoviePath)))
             {
                 //This is normally set from async extract of video file properties: GetVideoFileProperties()
                 Runtime = int.TryParse(props1["runtime"]["seconds"], out i) ? i / 60 : 0;
                 if (Runtime == 0) Runtime = int.TryParse(props2["runtime"]["seconds"], out i) ? i / 60 : 0;
             }
 
-            MovieRating = float.TryParse(props1["ratingsSummary"]["aggregateRating"], out f) ? f : 0;
-            MoviePosterUrl = props1["primaryImage"]["url"]?.Value ?? "";
+            if (MovieRating == 0) MovieRating = float.TryParse(props1["ratingsSummary"]["aggregateRating"], out f) ? f : 0;
+            if (MoviePosterUrl.IsNullOrEmpty()) MoviePosterUrl = props1["primaryImage"]["url"]?.Value ?? "";
 
-            var glist = new List<string>();
-            foreach (var g in props1["genres"]["genres"])
+            if (Genre.IsNullOrEmpty()) Genre = props1["genres"]["genres"].Linq.Select(p => p.Value["text"].Value).ToArray();
+
+            if (Plot.IsNullOrEmpty())
             {
-                glist.Add(g.Value["text"].Value);
+                Plot = props1["plot"]?["plotText"]?["plainText"]?.Value;
+                if (Plot.IsNullOrEmpty()) Plot = props2["plot"]?["plotText"]?["plainText"]?.Value;
+                if (!Plot.IsNullOrEmpty() && Plot.Contains('&')) Plot = WebUtility.HtmlDecode(Plot);
             }
-            Genre = glist.ToArray();
 
-            Plot = props1["plot"]?["plotText"]?["plainText"]?.Value;
-            if (Plot.IsNullOrEmpty()) Plot = props2["plot"]?["plotText"]?["plainText"]?.Value;
-            if (!Plot.IsNullOrEmpty() && Plot.Contains('&')) Plot = WebUtility.HtmlDecode(Plot);
+            if (Summary.IsNullOrEmpty())
+            {
+                Summary = props1["summaries"]?["edges"]?[0]?["node"]?["plotText"]?["plaidHtml"]?.Value;
+                if (Summary.IsNullOrEmpty()) Summary = props2["summaries"]?["edges"]?[0]?["node"]?["plotText"]?["plaidHtml"]?.Value;
+                if (!Summary.IsNullOrEmpty() && Summary.Contains('&')) Summary = WebUtility.HtmlDecode(Summary);
+            }
 
-            Summary = props1["summaries"]?["edges"]?[0]?["node"]?["plotText"]?["plaidHtml"]?.Value;
-            if (Summary.IsNullOrEmpty()) Summary = props2["summaries"]?["edges"]?[0]?["node"]?["plotText"]?["plaidHtml"]?.Value;
-            if (!Summary.IsNullOrEmpty() && Summary.Contains('&')) Summary = WebUtility.HtmlDecode(Summary);
-
+            // Directors/Writers/Cast/Creators
             var sb = new StringBuilder();
             foreach (var pc in props1["principalCredits"])
             {
@@ -696,24 +917,66 @@ namespace VideoLibrarian
                     sb.Append(cr.Value["name"]["nameText"]["text"].Value);
                     comma = ", ";
                 }
+                var value = sb.ToString();
+                sb.Length = 0;
                 switch (id)
                 {
-                    case "director": Directors = sb.ToString(); break;
-                    case "writer": Writers = sb.ToString(); break;
-                    case "cast": Cast = sb.ToString(); break;
-                    case "creator": Creators = sb.ToString(); break;
+                    case "director": if (!value.IsNullOrEmpty()) Directors = value; break;
+                    case "writer": if (!value.IsNullOrEmpty()) Writers = value; break;
+                    case "cast": if (!value.IsNullOrEmpty()) Cast = value; break;
+                    case "creator": if (!value.IsNullOrEmpty()) Creators = value; break;
                 }
-                sb.Length = 0;
             }
 
-            Episode = int.TryParse(props1["series"]?["episodeNumber"]?["episodeNumber"], out i) ? i : 0;
-            if (Episode == 0) Episode = int.TryParse(props2["series"]?["episodeNumber"]?["episodeNumber"], out i) ? i : 0;
+            if (Episode == 0 && MovieClass == "TV Episode")
+            {
+                Episode = int.TryParse(props1["series"]?["episodeNumber"]?["episodeNumber"], out i) ? i : 0;
+                if (Episode == 0) Episode = int.TryParse(props2["series"]?["episodeNumber"]?["episodeNumber"], out i) ? i : 0;
+            }
+            if (Season == 0 && MovieClass == "TV Episode")
+            {
+                Season = int.TryParse(props1["series"]?["episodeNumber"]?["seasonNumber"], out i) ? i : 0;
+                if (Season == 0) Season = int.TryParse(props2["series"]?["episodeNumber"]?["seasonNumber"], out i) ? i : 0;
+            }
 
-            Season = int.TryParse(props1["series"]?["episodeNumber"]?["seasonNumber"], out i) ? i : 0;
-            if (Season == 0) Season = int.TryParse(props2["series"]?["episodeNumber"]?["seasonNumber"], out i) ? i : 0;
+            if (EpisodeCount == 0 && MovieClass.EndsWith("Series"))
+            {
+                EpisodeCount = int.TryParse(props1["episodes"]?["episodes"]?["total"], out i) ? i : 0;
+                if (EpisodeCount == 0) EpisodeCount = int.TryParse(props2["episodes"]?["episodes"]?["total"], out i) ? i : 0;
+            }
+        }
 
-            EpisodeCount = int.TryParse(props1["episodes"]?["episodes"]?["total"], out i) ? i : 0;
-            if (EpisodeCount == 0) EpisodeCount = int.TryParse(props2["episodes"]?["episodes"]?["total"], out i) ? i : 0;
+        private void ParsePageTitle(string title)
+        {
+            if (!MovieName.IsNullOrEmpty() && Year != 0 && !MovieClass.IsNullOrEmpty()) return;
+
+            // Childhood's End (TV Mini-Series 2015) - IMDb
+            // Gotham (TV Series 2014- ) - IMDb
+            // Gotham (TV Series 2014-2019) - IMDb
+            // "Gotham" A Dark Knight: The Fear Reaper (TV Episode 2017) - IMDb
+            // "BrainDead" Back to Work: A Behind-the-Scenes Look at Congress and How It Gets Things Done (and Often Doesn't) (TV Episode 2016) - IMDb
+            // 1492: Conquest of Paradise (1992) - IMDb
+            // Primeval: New World (TV Series 2013) - IMDb
+            // Primeval: New World (TV Series 2012–2013) - IMDb
+            // "Primeval: New World" The New World (TV Episode 2012) - IMDb
+            // Ant-Man (2015) - IMDb
+            // "Threshold" Trees Made of Glass: Part 1 (TV Episode 2005) - IMDb
+            // Epoch: Evolution (TV Movie 2003)
+            title = WebUtility.HtmlDecode(title);
+            var mc = Regex.Matches(title, @"^(?:(?:""(?<TITLE>[^""]+)"" (?<EPISODE>.+) (?=\([^\(]+$))|(?<TITLE2>.+))\((?:(?<TYPE>.+?) )?(?<YEAR>[0-9]{4,4})[–-]?(?<YEAREND>[0-9]{4,4})?", RE_options);
+            if (mc.Count > 0)
+            {
+                var titlex = mc[0].Groups["TITLE"].Value.Trim();
+                if (titlex.IsNullOrEmpty()) titlex = mc[0].Groups["TITLE2"].Value.Trim();
+                var episodeTitle = mc[0].Groups["EPISODE"].Value.Trim();
+                if (MovieName.IsNullOrEmpty()) MovieName = episodeTitle.Length > 1 ? string.Concat(titlex, " \xAD ", episodeTitle) : titlex;
+                var year = mc[0].Groups["YEAR"].Value;
+                if (Year == 0 && !year.IsNullOrEmpty()) Year = int.Parse(year);
+                var yearend = mc[0].Groups["YEAREND"].Value;
+                if (!yearend.IsNullOrEmpty()) YearEnd = int.Parse(yearend);
+                var type = mc[0].Groups["TYPE"].Value;
+                if (MovieClass.IsNullOrEmpty()) MovieClass = type.IsNullOrEmpty() ? "Feature Movie" : type;
+            }
         }
 
         /// <summary>
@@ -742,81 +1005,82 @@ namespace VideoLibrarian
                 html = FileEx.ReadHtml(HtmlPath);  //no duplicate whitespace, no whitespace before '<' and no whitespace after '>'
             }
 
-            // <div class='poster'><a href='/title/tt0401729/mediaviewer/rm3022336?ref_=tt_ov_i'><img alt='John Carter Poster' title='John Carter Poster' src='https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_UY268_CR6,0,182,268_AL_.jpg'></a></div>
-            var mc = Regex.Matches(html, @"<div class='poster'><a href='(?<URL>\/title\/[^\/]+\/mediaviewer\/(?<ID>[0-9a-z]+)[^']+).+? src='(?<POSTER>[^']+)'", RE_options);
-            if (mc.Count > 0)
-            {
-                var posterUrl = mc[0].Groups["POSTER"].Value; //get the small poster image in the page, but we continue to look for a larger/better image.
-                var id = mc[0].Groups["ID"].Value;
-                var mediaViewerUrl = FileEx.GetAbsoluteUrl(this.UrlLink, mc[0].Groups["URL"].Value);
-
-                var fn = Path.Combine(Path.GetDirectoryName(this.MoviePosterPath), "MediaViewer.htm"); //temporary uncached web page containing large poster images.
-                var job = new FileEx.Job(mediaViewerUrl, fn);
-                if (FileEx.Download(job))
-                {
-                    var html2 = FileEx.ReadHtml(job.Filename);
-                    File.Delete(job.Filename); //no longer needed. extension already used for this cache file.
-                    // {'editTagsLink':'/registration/signin','id':'rm3022336','h':1000,'msrc':'https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_SY500_CR0,0,364,500_AL_.jpg','src':'https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_SY1000_CR0,0,728,1000_AL_.jpg','w':728,'imageCount':164,'altText':'Taylor Kitsch in John Carter (2012)','caption':'<a href=\'/name/nm2018237/\'>Taylor Kitsch</a> in <a href=\'/title/tt0401729/\'>John Carter (2012)</a>','imageType':'poster','relatedNames':[{'constId':'nm2018237','displayName':'Taylor Kitsch','url':'/name/nm2018237?ref_=tt_mv'}],'relatedTitles':[{'constId':'tt0401729','displayName':'John Carter','url':'/title/tt0401729?ref_=tt_mv'}],'reportImageLink':'/registration/signin','tracking':'/title/tt0401729/mediaviewer/rm3022336/tr','voteData':{'totalLikeVotes':0,'userVoteStatus':'favorite-off'},'votingLink':'/registration/signin'}],'baseUrl':'/title/tt0401729/mediaviewer','galleryIndexUrl':'/title/tt0401729/mediaindex','galleryTitle':'John Carter (2012)','id':'tt0401729','interstitialModel':
-                    mc = Regex.Matches(html2, string.Concat("'id':'", id, "'.+?'src':'(?<POSTER>[^']+)'"), RE_options);
-                    if (mc.Count > 0) posterUrl = mc[0].Groups["POSTER"].Value;
-                    else
-                    {
-                        // <meta property='og:image' content='https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_SY500_CR0,0,364,500_AL_.jpg'/>
-                        // <meta itemprop='image' content='https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_SY500_CR0,0,364,500_AL_.jpg'/>
-                        // <meta name='twitter:image' content='https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_SY500_CR0,0,364,500_AL_.jpg'/>
-                        mc = Regex.Matches(html2, @"<meta (?:property='og:image'|itemprop='image'|name='twitter:image') content='(?<POSTER>[^']+)'", RE_options);
-                        foreach (Match m in mc)
-                        {
-                            var x = m.Groups["POSTER"].Value;
-                            // Value may contain "...\imdb_logo.png". All real posters are jpg files.
-                            if (!x.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)) continue;
-                            posterUrl = x;
-                            break;
-                        }
-                    }
-                }
-
-                this.MoviePosterUrl = posterUrl;
-                return true;
-            }
+            //// <div class='poster'><a href='/title/tt0401729/mediaviewer/rm3022336?ref_=tt_ov_i'><img alt='John Carter Poster' title='John Carter Poster' src='https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_UY268_CR6,0,182,268_AL_.jpg'></a></div>
+            // var mc = Regex.Matches(html, @"<div class='poster'><a href='(?<URL>\/title\/[^\/]+\/mediaviewer\/(?<ID>[0-9a-z]+)[^']+).+? src='(?<POSTER>[^']+)'", RE_options);
+            // if (mc.Count > 0)
+            // {
+            //    var posterUrl = mc[0].Groups["POSTER"].Value; //get the small poster image in the page, but we continue to look for a larger/better image.
+            //    var id = mc[0].Groups["ID"].Value;
+            //    var mediaViewerUrl = FileEx.GetAbsoluteUrl(this.UrlLink, mc[0].Groups["URL"].Value);
+            //
+            //    var fn = Path.Combine(Path.GetDirectoryName(this.MoviePosterPath), "MediaViewer.htm"); //temporary uncached web page containing large poster images.
+            //    var job = new FileEx.Job(mediaViewerUrl, fn);
+            //    if (FileEx.Download(job))
+            //    {
+            //        var html2 = FileEx.ReadHtml(job.Filename);
+            //        File.Delete(job.Filename); //no longer needed. extension already used for this cache file.
+            //        // {'editTagsLink':'/registration/signin','id':'rm3022336','h':1000,'msrc':'https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_SY500_CR0,0,364,500_AL_.jpg','src':'https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_SY1000_CR0,0,728,1000_AL_.jpg','w':728,'imageCount':164,'altText':'Taylor Kitsch in John Carter (2012)','caption':'<a href=\'/name/nm2018237/\'>Taylor Kitsch</a> in <a href=\'/title/tt0401729/\'>John Carter (2012)</a>','imageType':'poster','relatedNames':[{'constId':'nm2018237','displayName':'Taylor Kitsch','url':'/name/nm2018237?ref_=tt_mv'}],'relatedTitles':[{'constId':'tt0401729','displayName':'John Carter','url':'/title/tt0401729?ref_=tt_mv'}],'reportImageLink':'/registration/signin','tracking':'/title/tt0401729/mediaviewer/rm3022336/tr','voteData':{'totalLikeVotes':0,'userVoteStatus':'favorite-off'},'votingLink':'/registration/signin'}],'baseUrl':'/title/tt0401729/mediaviewer','galleryIndexUrl':'/title/tt0401729/mediaindex','galleryTitle':'John Carter (2012)','id':'tt0401729','interstitialModel':
+            //        mc = Regex.Matches(html2, string.Concat("'id':'", id, "'.+?'src':'(?<POSTER>[^']+)'"), RE_options);
+            //        if (mc.Count > 0) posterUrl = mc[0].Groups["POSTER"].Value;
+            //        else
+            //        {
+            //            // <meta property='og:image' content='https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_SY500_CR0,0,364,500_AL_.jpg'/>
+            //            // <meta itemprop='image' content='https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_SY500_CR0,0,364,500_AL_.jpg'/>
+            //            // <meta name='twitter:image' content='https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_SY500_CR0,0,364,500_AL_.jpg'/>
+            //            mc = Regex.Matches(html2, @"<meta (?:property='og:image'|itemprop='image'|name='twitter:image') content='(?<POSTER>[^']+)'", RE_options);
+            //            foreach (Match m in mc)
+            //            {
+            //                var x = m.Groups["POSTER"].Value;
+            //                // Value may contain "...\imdb_logo.png". All real posters are jpg files.
+            //                if (!x.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)) continue;
+            //                posterUrl = x;
+            //                break;
+            //            }
+            //        }
+            //    }
+            //
+            //    this.MoviePosterUrl = posterUrl;
+            //    return true;
+            // }
 
             // Added 05/29/2021. Meta image properties now contain large poster image url's
 
             //<meta property='og:image' content='https://m.media-amazon.com/images/M/MV5BMTY5MzM2MzkxNF5BMl5BanBnXkFtZTgwNTMzMDcyNzM@._V1_FMjpg_UX1000_.jpg'/>
             //<meta property='twitter:image' content='https://m.media-amazon.com/images/M/MV5BMTY5MzM2MzkxNF5BMl5BanBnXkFtZTgwNTMzMDcyNzM@._V1_FMjpg_UX1000_.jpg'/>
-            mc = Regex.Matches(html, @"<meta property='(?:og|twitter):image' content='(?<URL>https:[^']+\.jpg)'", RE_options);
+            var mc = Regex.Matches(html, @"<meta property='(?:og|twitter):image' content='(?<URL>https:[^']+\.jpg)'", RE_options);
             if (mc.Count > 0)
             {
                 this.MoviePosterUrl = mc[0].Groups["URL"].Value;
                 return true;
             }
 
-            //If it doesn't exist, get first image from poster carousel.
-
-            //Url always contains 'mediaviewer' with property '?ref_=tt_ov_i'
-            mc = Regex.Matches(html, @"href='(?<URL>\/title\/tt[^\/]+\/mediaviewer\/rm[^\/]+\/\?ref_=tt_ov_i)'", RE_options);
-            if (mc.Count > 0)
-            {
-                var mediaViewerUrl = FileEx.GetAbsoluteUrl(this.UrlLink, mc[0].Groups["URL"].Value);
-
-                var fn = Path.Combine(Path.GetDirectoryName(this.MoviePosterPath), "MediaViewer.htm"); //temporary uncached web page containing large poster images.
-                var job = new FileEx.Job(mediaViewerUrl, fn);
-                if (FileEx.Download(job))
-                {
-                    var html2 = FileEx.ReadHtml(job.Filename);
-                    File.Delete(job.Filename); //no longer needed. extension already used for this cache file.
-                    mc = Regex.Matches(html2, @"'(?<URL>https:\/\/m\.media-amazon\.com\/images\/[^' ]+\.jpg)'", RE_options);
-                    if (mc.Count > 0)
-                    {
-                        this.MoviePosterUrl = mc[0].Groups["URL"].Value;
-                        return true;
-                    }
-                }
-            }
+            // If it doesn't exist, get first image from poster carousel.
+            // Url always contains 'mediaviewer' with property '?ref_=tt_ov_i'
+            // mc = Regex.Matches(html, @"href='(?<URL>\/title\/tt[^\/]+\/mediaviewer\/rm[^\/]+\/\?ref_=tt_ov_i)'", RE_options);
+            // if (mc.Count > 0)
+            // {
+            //    var mediaViewerUrl = FileEx.GetAbsoluteUrl(this.UrlLink, mc[0].Groups["URL"].Value);
+            //
+            //    var fn = Path.Combine(Path.GetDirectoryName(this.MoviePosterPath), "MediaViewer.htm"); //temporary uncached web page containing large poster images.
+            //    var job = new FileEx.Job(mediaViewerUrl, fn);
+            //    if (FileEx.Download(job))
+            //    {
+            //        var html2 = FileEx.ReadHtml(job.Filename);
+            //        File.Delete(job.Filename); //no longer needed. extension already used for this cache file.
+            //        mc = Regex.Matches(html2, @"'(?<URL>https:\/\/m\.media-amazon\.com\/images\/[^' ]+\.jpg)'", RE_options);
+            //        if (mc.Count > 0)
+            //        {
+            //            this.MoviePosterUrl = mc[0].Groups["URL"].Value;
+            //            return true;
+            //        }
+            //    }
+            // }
 
             // The source IMDB page may not be complete because IMDB does not have the poster jpg's yet.
             // It also presumes that the other properties are not up to date either. Maybe the next time VideoLibrarian is run.
-            this.DeleteFileCacheUponExit = FileCacheScope.All;
+            //But give up on movies/episodes that have not added a poster image after a month. Likely an image will never be added...
+            if (ReleaseDate.AddMonths(1) > DateTime.Now)
+                this.DeleteFileCacheUponExit = FileCacheScope.All;
             return false; //no change. couldn't find poster url.
         }
 
@@ -1047,7 +1311,10 @@ namespace VideoLibrarian
                 {
                     if (line.StartsWith("URL="))
                     {
-                        return line.Substring(4).Trim();
+                        var url = line.Substring(4).Trim();
+                        var i = url.IndexOf('?');
+                        if (i != -1) url = url.Substring(0, i);
+                        return url;
                     }
                 }
             }
