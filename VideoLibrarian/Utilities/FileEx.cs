@@ -268,7 +268,8 @@ namespace VideoLibrarian
         /// <returns>True if successfully downloaded</returns>
         public static bool Download(Job data)
         {
-            const string UserAgent = @"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0"; //DO NOT include "User-Agent: " prefix!
+            //This string is apparently not stored anywhere. It must be retrieved as a response from a web service via the browser of choice. It cannot be retrieved offline! Arrgh! Google: what is my useragent
+            const string UserAgent = @"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:96.0) Gecko/20100101 Firefox/96.0";
 
             Uri uri = null;
             int t1 = Environment.TickCount;
@@ -295,6 +296,7 @@ namespace VideoLibrarian
                     web.Headers[HttpRequestHeader.UserAgent] = UserAgent;
                     if (!data.Referer.IsNullOrEmpty()) web.Headers[HttpRequestHeader.Referer] = data.Referer;
                     if (!data.Cookie.IsNullOrEmpty()) web.Headers[HttpRequestHeader.Cookie] = data.Cookie;
+                    web.Headers[HttpRequestHeader.AcceptLanguage] = "en-US,en;q=0.5"; //always set language to english so our web scraper only has to deal with only a single language.
                     data.Filename = FileEx.GetUniqueFilename(data.Filename); //creates empty file as placeholder
 
                     web.DownloadFile(data.Url, data.Filename);
@@ -330,7 +332,25 @@ namespace VideoLibrarian
             catch (Exception ex)
             {
                 File.Delete(data.Filename);
-                Log.Write(Severity.Error, $"duration={((Environment.TickCount - t1) / 1000f):F2} sec, {data.Url} ==> {Path.GetFileName(data.Filename)}: {ex.GetType().Name}:{ex.Message}");
+
+                HttpStatusCode responseStatus = (HttpStatusCode)0;
+                WebExceptionStatus status = WebExceptionStatus.Success;
+                if (ex is WebException)
+                {
+                    WebException we = (WebException)ex;
+                    HttpWebResponse response = we.Response as System.Net.HttpWebResponse;
+                    responseStatus = (response == null ? (HttpStatusCode)0 : response.StatusCode);
+                    status = we.Status;
+                }
+                if (responseStatus == (HttpStatusCode)308) //The remote server returned an error: (308) Permanent Redirect.
+                {
+                    Log.Write(Severity.Error, $"duration={((Environment.TickCount - t1) / 1000f):F2} sec, {data.Url} ==> {Path.GetFileName(data.Filename)}: {ex.GetType().Name}:{ex.Message}\n       Shortcut may be corrupted!");
+                }
+                else
+                {
+                    Log.Write(Severity.Error, $"duration={((Environment.TickCount - t1) / 1000f):F2} sec, {data.Url} ==> {Path.GetFileName(data.Filename)}: {ex.GetType().Name}:{ex.Message}");
+                }
+
                 return false;
             }
         }
