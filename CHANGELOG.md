@@ -64,6 +64,16 @@
 * Fixed bug in filtering Rating where rating==0
 * Fixed parsing IMDB movie names (didn't support '()' in movie names)
 
+#### Version 2.3
+* Added Video Validator console app to verify that videos are not changed or corrupted.
+* Added folder exclusion pattern to block movie search thru excluded folders. 
+* Recover from missing poster when source IMDB page has not yet been completely updated. Mainly occurs with TV episodes.
+* Enabled fatal error messagebox rather than have app just mysteriously disappear. Log shows details.
+* Fixed IMDB web page scraper because of major IMDB design update on 06-04-2021.
+
+
+### Notes
+
 #### Not a bug
 At runtime, if there are 2 identical TV Series in 2 different root folders, all episodes
 will be merged under single TV Series tile with the other one containing no episodes
