@@ -65,11 +65,21 @@
 * Fixed parsing IMDB movie names (didn't support '()' in movie names)
 
 #### Version 2.3
-* Added Video Validator console app to verify that videos are not changed or corrupted.
+* Fixed Summary popup bottom did not fit within the screen dimensions. 
+* Truncate plot strings to fit tile fields
+* Added logging severity
+* Added verbose-level download performance metrics.
+* Fixed sorting by multiple keys.
+* MouseWheel was going in the wrong direction relative to other apps.
+
+#### Version 2.4
+* Added video validator console app to verify that videos files are not changed or corrupted.
 * Added folder exclusion pattern to block movie search thru excluded folders. 
 * Recover from missing poster when source IMDB page has not yet been completely updated. Mainly occurs with TV episodes.
-* Enabled fatal error messagebox rather than have app just mysteriously disappear. Log shows details.
 * Fixed IMDB web page scraper because of major IMDB design update on 06-04-2021.
+* Increased MouseWheel click to 2 line scroll events for faster scrolling.
+* Outstanding Bug - Rare crash due to multi-threaded access to an image. 
+* Enabled fatal error message box rather than have app just mysteriously disappear. Log shows details.
 
 
 ### Notes

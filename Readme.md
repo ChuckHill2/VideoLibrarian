@@ -82,6 +82,7 @@ unique to each shortcut.
 - tt1234567L.png – cached UI movie information tile.
 
 If any of these files are deleted, they will be recreated.
+*Note:* "tt1234567" also happens to be the IMDB movie code.
 
 ### Manually Retrieving IMDB Movie Internet Shortcut
 
