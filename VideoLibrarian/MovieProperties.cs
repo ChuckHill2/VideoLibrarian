@@ -988,6 +988,7 @@ namespace VideoLibrarian
         private bool SetMoviePosterUrl(string html)
         {
             if (!this.MoviePosterUrl.IsNullOrEmpty()) return false;
+            MatchCollection mc;
 
             if (html.IsNullOrEmpty())  //Occurs when this method is lazily called by MoviePosterImg getter so we must load our cached copy of the IMDB movie page.
             {
@@ -1006,75 +1007,75 @@ namespace VideoLibrarian
             }
 
             //// <div class='poster'><a href='/title/tt0401729/mediaviewer/rm3022336?ref_=tt_ov_i'><img alt='John Carter Poster' title='John Carter Poster' src='https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_UY268_CR6,0,182,268_AL_.jpg'></a></div>
-            // var mc = Regex.Matches(html, @"<div class='poster'><a href='(?<URL>\/title\/[^\/]+\/mediaviewer\/(?<ID>[0-9a-z]+)[^']+).+? src='(?<POSTER>[^']+)'", RE_options);
-            // if (mc.Count > 0)
-            // {
-            //    var posterUrl = mc[0].Groups["POSTER"].Value; //get the small poster image in the page, but we continue to look for a larger/better image.
-            //    var id = mc[0].Groups["ID"].Value;
-            //    var mediaViewerUrl = FileEx.GetAbsoluteUrl(this.UrlLink, mc[0].Groups["URL"].Value);
-            //
-            //    var fn = Path.Combine(Path.GetDirectoryName(this.MoviePosterPath), "MediaViewer.htm"); //temporary uncached web page containing large poster images.
-            //    var job = new FileEx.Job(mediaViewerUrl, fn);
-            //    if (FileEx.Download(job))
-            //    {
-            //        var html2 = FileEx.ReadHtml(job.Filename);
-            //        File.Delete(job.Filename); //no longer needed. extension already used for this cache file.
-            //        // {'editTagsLink':'/registration/signin','id':'rm3022336','h':1000,'msrc':'https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_SY500_CR0,0,364,500_AL_.jpg','src':'https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_SY1000_CR0,0,728,1000_AL_.jpg','w':728,'imageCount':164,'altText':'Taylor Kitsch in John Carter (2012)','caption':'<a href=\'/name/nm2018237/\'>Taylor Kitsch</a> in <a href=\'/title/tt0401729/\'>John Carter (2012)</a>','imageType':'poster','relatedNames':[{'constId':'nm2018237','displayName':'Taylor Kitsch','url':'/name/nm2018237?ref_=tt_mv'}],'relatedTitles':[{'constId':'tt0401729','displayName':'John Carter','url':'/title/tt0401729?ref_=tt_mv'}],'reportImageLink':'/registration/signin','tracking':'/title/tt0401729/mediaviewer/rm3022336/tr','voteData':{'totalLikeVotes':0,'userVoteStatus':'favorite-off'},'votingLink':'/registration/signin'}],'baseUrl':'/title/tt0401729/mediaviewer','galleryIndexUrl':'/title/tt0401729/mediaindex','galleryTitle':'John Carter (2012)','id':'tt0401729','interstitialModel':
-            //        mc = Regex.Matches(html2, string.Concat("'id':'", id, "'.+?'src':'(?<POSTER>[^']+)'"), RE_options);
-            //        if (mc.Count > 0) posterUrl = mc[0].Groups["POSTER"].Value;
-            //        else
-            //        {
-            //            // <meta property='og:image' content='https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_SY500_CR0,0,364,500_AL_.jpg'/>
-            //            // <meta itemprop='image' content='https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_SY500_CR0,0,364,500_AL_.jpg'/>
-            //            // <meta name='twitter:image' content='https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_SY500_CR0,0,364,500_AL_.jpg'/>
-            //            mc = Regex.Matches(html2, @"<meta (?:property='og:image'|itemprop='image'|name='twitter:image') content='(?<POSTER>[^']+)'", RE_options);
-            //            foreach (Match m in mc)
-            //            {
-            //                var x = m.Groups["POSTER"].Value;
-            //                // Value may contain "...\imdb_logo.png". All real posters are jpg files.
-            //                if (!x.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)) continue;
-            //                posterUrl = x;
-            //                break;
-            //            }
-            //        }
-            //    }
-            //
-            //    this.MoviePosterUrl = posterUrl;
-            //    return true;
-            // }
+            mc = Regex.Matches(html, @"<div class='poster'><a href='(?<URL>\/title\/[^\/]+\/mediaviewer\/(?<ID>[0-9a-z]+)[^']+).+? src='(?<POSTER>[^']+)'", RE_options);
+            if (mc.Count > 0)
+            {
+                var posterUrl = mc[0].Groups["POSTER"].Value; //get the small poster image in the page, but we continue to look for a larger/better image.
+                var id = mc[0].Groups["ID"].Value;
+                var mediaViewerUrl = FileEx.GetAbsoluteUrl(this.UrlLink, mc[0].Groups["URL"].Value);
+
+                var fn = Path.Combine(Path.GetDirectoryName(this.MoviePosterPath), "MediaViewer.htm"); //temporary uncached web page containing large poster images.
+                var job = new FileEx.Job(mediaViewerUrl, fn);
+                if (FileEx.Download(job))
+                {
+                    var html2 = FileEx.ReadHtml(job.Filename);
+                    File.Delete(job.Filename); //no longer needed. extension already used for this cache file.
+                    // {'editTagsLink':'/registration/signin','id':'rm3022336','h':1000,'msrc':'https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_SY500_CR0,0,364,500_AL_.jpg','src':'https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_SY1000_CR0,0,728,1000_AL_.jpg','w':728,'imageCount':164,'altText':'Taylor Kitsch in John Carter (2012)','caption':'<a href=\'/name/nm2018237/\'>Taylor Kitsch</a> in <a href=\'/title/tt0401729/\'>John Carter (2012)</a>','imageType':'poster','relatedNames':[{'constId':'nm2018237','displayName':'Taylor Kitsch','url':'/name/nm2018237?ref_=tt_mv'}],'relatedTitles':[{'constId':'tt0401729','displayName':'John Carter','url':'/title/tt0401729?ref_=tt_mv'}],'reportImageLink':'/registration/signin','tracking':'/title/tt0401729/mediaviewer/rm3022336/tr','voteData':{'totalLikeVotes':0,'userVoteStatus':'favorite-off'},'votingLink':'/registration/signin'}],'baseUrl':'/title/tt0401729/mediaviewer','galleryIndexUrl':'/title/tt0401729/mediaindex','galleryTitle':'John Carter (2012)','id':'tt0401729','interstitialModel':
+                    mc = Regex.Matches(html2, string.Concat("'id':'", id, "'.+?'src':'(?<POSTER>[^']+)'"), RE_options);
+                    if (mc.Count > 0) posterUrl = mc[0].Groups["POSTER"].Value;
+                    else
+                    {
+                        // <meta property='og:image' content='https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_SY500_CR0,0,364,500_AL_.jpg'/>
+                        // <meta itemprop='image' content='https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_SY500_CR0,0,364,500_AL_.jpg'/>
+                        // <meta name='twitter:image' content='https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_SY500_CR0,0,364,500_AL_.jpg'/>
+                        mc = Regex.Matches(html2, @"<meta (?:property='og:image'|itemprop='image'|name='twitter:image') content='(?<POSTER>[^']+)'", RE_options);
+                        foreach (Match m in mc)
+                        {
+                            var x = m.Groups["POSTER"].Value;
+                            // Value may contain "...\imdb_logo.png". All real posters are jpg files.
+                            if (!x.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)) continue;
+                            posterUrl = x;
+                            break;
+                        }
+                    }
+                }
+
+                this.MoviePosterUrl = posterUrl;
+                return true;
+            }
 
             // Added 05/29/2021. Meta image properties now contain large poster image url's
 
             //<meta property='og:image' content='https://m.media-amazon.com/images/M/MV5BMTY5MzM2MzkxNF5BMl5BanBnXkFtZTgwNTMzMDcyNzM@._V1_FMjpg_UX1000_.jpg'/>
             //<meta property='twitter:image' content='https://m.media-amazon.com/images/M/MV5BMTY5MzM2MzkxNF5BMl5BanBnXkFtZTgwNTMzMDcyNzM@._V1_FMjpg_UX1000_.jpg'/>
-            var mc = Regex.Matches(html, @"<meta property='(?:og|twitter):image' content='(?<URL>https:[^']+\.jpg)'", RE_options);
+            mc = Regex.Matches(html, @"<meta property='(?:og|twitter):image' content='(?<URL>https:[^']+\.jpg)'", RE_options);
             if (mc.Count > 0)
             {
                 this.MoviePosterUrl = mc[0].Groups["URL"].Value;
                 return true;
             }
 
-            // If it doesn't exist, get first image from poster carousel.
+            //If it doesn't exist, get first image from poster carousel.
             // Url always contains 'mediaviewer' with property '?ref_=tt_ov_i'
-            // mc = Regex.Matches(html, @"href='(?<URL>\/title\/tt[^\/]+\/mediaviewer\/rm[^\/]+\/\?ref_=tt_ov_i)'", RE_options);
-            // if (mc.Count > 0)
-            // {
-            //    var mediaViewerUrl = FileEx.GetAbsoluteUrl(this.UrlLink, mc[0].Groups["URL"].Value);
-            //
-            //    var fn = Path.Combine(Path.GetDirectoryName(this.MoviePosterPath), "MediaViewer.htm"); //temporary uncached web page containing large poster images.
-            //    var job = new FileEx.Job(mediaViewerUrl, fn);
-            //    if (FileEx.Download(job))
-            //    {
-            //        var html2 = FileEx.ReadHtml(job.Filename);
-            //        File.Delete(job.Filename); //no longer needed. extension already used for this cache file.
-            //        mc = Regex.Matches(html2, @"'(?<URL>https:\/\/m\.media-amazon\.com\/images\/[^' ]+\.jpg)'", RE_options);
-            //        if (mc.Count > 0)
-            //        {
-            //            this.MoviePosterUrl = mc[0].Groups["URL"].Value;
-            //            return true;
-            //        }
-            //    }
-            // }
+            mc = Regex.Matches(html, @"href='(?<URL>\/title\/tt[^\/]+\/mediaviewer\/rm[^\/]+\/\?ref_=tt_ov_i)'", RE_options);
+            if (mc.Count > 0)
+            {
+                var mediaViewerUrl = FileEx.GetAbsoluteUrl(this.UrlLink, mc[0].Groups["URL"].Value);
+
+                var fn = Path.Combine(Path.GetDirectoryName(this.MoviePosterPath), "MediaViewer.htm"); //temporary uncached web page containing large poster images.
+                var job = new FileEx.Job(mediaViewerUrl, fn);
+                if (FileEx.Download(job))
+                {
+                    var html2 = FileEx.ReadHtml(job.Filename);
+                    File.Delete(job.Filename); //no longer needed. extension already used for this cache file.
+                    mc = Regex.Matches(html2, @"'(?<URL>https:\/\/m\.media-amazon\.com\/images\/[^' ]+\.jpg)'", RE_options);
+                    if (mc.Count > 0)
+                    {
+                        this.MoviePosterUrl = mc[0].Groups["URL"].Value;
+                        return true;
+                    }
+                }
+            }
 
             // The source IMDB page may not be complete because IMDB does not have the poster jpg's yet.
             // It also presumes that the other properties are not up to date either. Maybe the next time VideoLibrarian is run.
