@@ -527,6 +527,7 @@ namespace VideoOrganizer
             //  2036 - Origin Unknown (2018) 1080p.mp4
             //  Space.1999.The.End.1981.1080p.WEBRip.x264-[YTS.LT].mkv
             //  Space.1999.1981.1080p.WEBRip.x264-[YTS.LT].mkv
+            //  Dead End  (Crime Drama 1937)  Humphrey Bogart, Sylvia Sidney & Joel McCrea.mp4
             var pattern2 = @"
                 ^(?<NAME>.+?)\(?(?<YEAR>[0-9]{4,4})
                 (?:(?<NAME2>.+?)\(?(?<YEAR2>[0-9]{4,4}))?
@@ -535,9 +536,12 @@ namespace VideoOrganizer
             mc = Regex.Matches(movieFileName, pattern2, RegexOptions.Compiled | RegexOptions.IgnorePatternWhitespace);
             if (mc.Count > 0)
             {
-                var name = mc[0].Groups["NAME"].Value.Replace('.', ' ').Trim();
-                var name2 = mc[0].Groups["NAME"].Value.Replace('.', ' ').Trim();
+                var name =  mc[0].Groups["NAME"].Value.Replace('.', ' ').Trim();
+                var i = name.IndexOf('(');  //"Dead End  (Crime Drama 1937)  Humphrey Bogart, Sylvia Sidney & Joel McCrea.mp4" => name2 == "Dead End  (Crime Drama"
+                if (i != -1) name = name.Substring(0, i).Trim();
+                var name2 = name;
                 name2 = name2 == string.Empty ? name2 : " " + name2;
+
                 if (int.TryParse(mc[0].Groups["YEAR2"].Value, out int year) && year <= DateTime.Now.Year && year > 1900) name = $"{name} {mc[0].Groups["YEAR2"].Value}{name2} ({year})";
                 else if (int.TryParse(mc[0].Groups["YEAR"].Value, out year) && year <= DateTime.Now.Year && year > 1900) name = $"{name} ({year})";
 
