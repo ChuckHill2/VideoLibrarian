@@ -80,6 +80,8 @@ namespace VideoLibrarian
             mouseHook.MouseLeave += mouseHook_MouseLeave;
 
             FormMainProperties data = FormMainProperties.Deserialize();
+            //if DesktopBounds NOT visible on screen, reset it to fullscreen.
+            if (!Screen.GetWorkingArea(new Point(10, 10)).IntersectsWith(data.DesktopBounds)) data.DesktopBounds = Screen.GetWorkingArea(new Point(10, 10));
 
             //this.DesktopBounds = data.DesktopBounds;
             this.Tag = (Rectangle)data.DesktopBounds; //Set AFTER all tiles have been loaded. See LoadTiles()

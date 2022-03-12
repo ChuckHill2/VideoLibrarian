@@ -28,6 +28,7 @@
 // <author>Chuck Hill</author>
 //--------------------------------------------------------------------------
 using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.Reflection;
 using System.Windows.Forms;
@@ -64,6 +65,7 @@ namespace VideoLibrarian
                 if (fc != null && fc.Count > 0) owner = fc[0];
             }
             if (owner != null) this.DesktopBounds = owner.DesktopBounds;
+            if (!Screen.GetWorkingArea(new Point(10, 10)).IntersectsWith(this.DesktopBounds)) this.DesktopBounds = Screen.GetWorkingArea(new Point(10, 10));
 
             this.DPIScaling = GDI.DpiScalingFactor();
             this.Version = Assembly.GetExecutingAssembly().GetName().Version;
