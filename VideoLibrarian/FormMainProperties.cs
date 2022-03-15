@@ -39,6 +39,7 @@ namespace VideoLibrarian
 {
     [XmlRoot("StateData")]
     [XmlInclude(typeof(ViewType))]
+    [XmlInclude(typeof(Severity))]
     public class FormMainProperties
     {
         private static readonly string FileName = Path.ChangeExtension(Process.GetCurrentProcess().MainModule.FileName, "SavedState.xml");
@@ -75,7 +76,7 @@ namespace VideoLibrarian
             //this.Filters = new FilterProperties();
             this.ScrollPosition = 0;
             this.MaxLoadedProperties = 0;
-            this.LogSeverity = Severity.Info;
+            this.LogSeverity = Severity.Warning;
         }
 
         public void Serialize()

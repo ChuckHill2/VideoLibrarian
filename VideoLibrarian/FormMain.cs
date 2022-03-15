@@ -201,18 +201,34 @@ namespace VideoLibrarian
         {
             if (p.DeleteFileCacheUponExit == VideoLibrarian.MovieProperties.FileCacheScope.All)
             {
-                File.Delete(p.MoviePosterPath);
-                File.Delete(p.PropertiesPath);
-                File.Delete(p.HtmlPath);
-                File.Delete(p.PathPrefix + "S.png");
-                File.Delete(p.PathPrefix + "M.png");
-                File.Delete(p.PathPrefix + "L.png");
+                Log.Write(Severity.Verbose, $"Deleting all properties for {p.MoviePath}");
+                FileDelete(p.MoviePosterPath);
+                FileDelete(p.PropertiesPath);
+                FileDelete(p.HtmlPath);
+                FileDelete(p.PathPrefix + "S.png");
+                FileDelete(p.PathPrefix + "M.png");
+                FileDelete(p.PathPrefix + "L.png");
             }
             else if (p.DeleteFileCacheUponExit == VideoLibrarian.MovieProperties.FileCacheScope.ImagesOnly)
             {
-                File.Delete(p.PathPrefix + "S.png");
-                File.Delete(p.PathPrefix + "M.png");
-                File.Delete(p.PathPrefix + "L.png");
+                Log.Write(Severity.Verbose, $"Deleting only tile images for {p.MoviePath}");
+                FileDelete(p.PathPrefix + "S.png");
+                FileDelete(p.PathPrefix + "M.png");
+                FileDelete(p.PathPrefix + "L.png");
+            }
+        }
+
+        private static bool FileDelete(string fn)
+        {
+            try
+            {
+                File.Delete(fn);
+                return true;
+            }
+            catch(Exception ex)
+            {
+                Log.Write(Severity.Warning, $"Could not delete {fn}: {ex.Message}");
+                return false;
             }
         }
 
