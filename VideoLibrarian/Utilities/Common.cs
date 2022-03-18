@@ -60,6 +60,9 @@ namespace VideoLibrarian
         Verbose  //Detailed action status, Color.LightBlue
     }
 
+    /// <summary>
+    /// Official event logging.
+    /// </summary>
     public static class Log
     {
         private static readonly string _logName = Path.ChangeExtension(Process.GetCurrentProcess().MainModule.FileName, ".log");
@@ -67,10 +70,27 @@ namespace VideoLibrarian
         private static StreamWriter LogStream = null;
         private static readonly object lockObj = new object();
 
+        /// <summary>
+        /// Event handler for cloning messages to an alternate destination.
+        /// </summary>
         public static event Action<Severity, string> MessageCapture;
 
+        /// <summary>
+        /// Only allow messages this severe to be logged. Less severe messages are ignored.
+        /// </summary>
         public static Severity SeverityFilter { get; set; } = Severity.Info; //default == all except verbose messages
 
+        /// <summary>
+        /// Write log message with severity level.
+        /// </summary>
+        /// <param name="severity">Severity level</param>
+        /// <param name="fmt">A composite format string.</param>
+        /// <param name="args">An object array that contains zero or more objects to format.</param>
+        /// <remarks>
+        /// An interpolated format string may be used, however evaluation may be postponed when using a composite format
+        /// string.  This is more efficient when some severity levels are ignored.In addition, passing exception objects get
+        /// trimmed to just the message part for all messages except Verbose messages or when Verbose severity filter is set.
+        /// </remarks>
         public static void Write(Severity severity, string fmt, params object[] args)
         {
             if (severity > SeverityFilter) return;
@@ -100,7 +120,7 @@ namespace VideoLibrarian
                 //When not in verbose mode, do not include an exception call stack.
                 if (args != null && args.Length > 0)
                 {
-                    if (severity == Severity.Verbose)
+                    if (severity == Severity.Verbose || SeverityFilter == Severity.Verbose)
                         fmt = string.Format(fmt, args);
                     else
                     {
@@ -119,7 +139,55 @@ namespace VideoLibrarian
             }
         }
 
+        /// <summary>
+        /// Close the log file. Equivalant to Log.Write(0,null). Log will automatically be reopened if writing a message again.
+        /// </summary>
         public static void Dispose() => Write(0, null);
+    }
+
+    /// <summary>
+    /// Alternate debugging log. For developer use only.
+    /// </summary>
+    public static class DebugLog
+    {
+        private static readonly string _logName = Path.Combine(Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName), "Debug.log");
+        public static string LogName { get { return _logName; } }
+        private static StreamWriter LogStream = null;
+        private static readonly object lockObj = new object();
+
+        [Conditional("DEBUG")]
+        public static void Write(string fmt, params object[] args)
+        {
+            if (fmt == null && LogStream == null) return; //Nothing to do
+            if (fmt == null && LogStream != null) //Close
+            {
+                lock (lockObj) { LogStream.Close(); LogStream.Dispose(); LogStream = null; }
+                return;
+            }
+            if (fmt != null && LogStream == null) //Open
+            {
+                lock (lockObj)
+                {
+                    //Roll over log at 100MB
+                    if (File.Exists(LogName) && new FileInfo(LogName).Length > (1024 * 1024 * 100)) File.Delete(LogName);
+                    var fs = File.Open(LogName, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
+                    LogStream = new StreamWriter(fs) { AutoFlush = true };
+                    LogStream.WriteLine(@"-------- {0:MM/dd/yyyy hh:mm:ss tt} ------------------------------------------", DateTime.Now);
+                }
+            }
+
+            if (LogStream != null) lock (lockObj)
+            {
+                if (args != null && args.Length > 0)
+                    fmt = string.Format(fmt, args);
+
+                LogStream.WriteLine(fmt);
+                LogStream.BaseStream.Flush();
+            }
+        }
+
+        [Conditional("DEBUG")]
+        public static void Dispose() => Write(null);
     }
 
     public static class Diagnostics

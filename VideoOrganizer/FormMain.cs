@@ -225,7 +225,7 @@ namespace VideoOrganizer
                     if (folder == previousFolder || folder == prevNewFolder || folder == RootFolder) { CreateFolder(newFolder); MoveFile(oldPath, newPath); }
                     else { MoveFolder(folder, newFolder);  }
                     if (!File.Exists(oldPath)) oldPath = Path.Combine(newFolder, Path.GetFileName(oldPath));
-                    CreateTTShortcut(Path.Combine(newFolder, imdbParts.MovieName + ".url"), imdbParts.ttMovie);
+                    MovieProperties.CreateTTShortcut(Path.Combine(newFolder, imdbParts.MovieName + ".url"), imdbParts.ttMovie);
 
                     if (imdbParts.Series != null) //TV Series Episode
                     {
@@ -233,7 +233,7 @@ namespace VideoOrganizer
                         newPath = Path.Combine(newSeriesFolder, Path.GetFileName(oldPath));
                         CreateFolder(newSeriesFolder);
                         MoveFile(oldPath, newPath);
-                        CreateTTShortcut(Path.Combine(newSeriesFolder, $"{imdbParts.MovieName}.{imdbParts.Series}.url"), imdbParts.ttSeries);
+                        MovieProperties.CreateTTShortcut(Path.Combine(newSeriesFolder, $"{imdbParts.MovieName}.{imdbParts.Series}.url"), imdbParts.ttSeries);
                     }
 
                     previousFolder = folder;
@@ -249,41 +249,6 @@ namespace VideoOrganizer
             DebugExportCache();
             SetStatus(Severity.None, string.Empty);
             SetStatus(Severity.Success, "Completed.");
-        }
-
-        public void CreateTTShortcut(string filepath, string tt)
-        {
-            if (File.Exists(filepath)) return;
-            //http://www.lyberty.com/encyc/articles/tech/dot_url_format_-_an_unofficial_guide.html
-
-            //One cannot use the website favicon for the shortcut icon directly from the website url. It must be downloaded to a local file before it can be used!
-            //https://docs.microsoft.com/en-us/answers/questions/120626/internet-shortcut-url-file-no-longer-supports-remo.html
-            var favicon = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonPictures), "favicon_imdb.ico");
-            if (!File.Exists(favicon))
-            {
-                var job = new FileEx.Job("https://www.imdb.com/favicon.ico", favicon);
-                FileEx.Download(job);
-                if (!favicon.Equals(job.Filename)) File.Move(job.Filename, favicon);
-            }
-
-            //Delete all other IMDB shortcuts
-            foreach (var f in Directory.EnumerateFiles(Path.GetDirectoryName(filepath), "*.url", SearchOption.TopDirectoryOnly))
-            {
-                var link = MovieProperties.GetUrlFromShortcut(f);
-                if (link == null) continue;
-                if (!link.ContainsI("imdb.com/title/tt") && !link.StartsWith("file:///")) continue;
-                File.Delete(f);
-            }
-
-            if (tt==MovieProperties.EmptyTitleID)
-            {
-                File.WriteAllText(filepath, $"[InternetShortcut]\r\nURL={new Uri(Path.GetDirectoryName(filepath))}\r\nIconIndex=129\r\nIconFile=C:\\Windows\\System32\\SHELL32.dll\r\nAuthor=VideoLibrarian.exe");
-            }
-            else
-            {
-                File.WriteAllText(filepath, $"[InternetShortcut]\r\nURL=https://www.imdb.com/title/{tt}/ \r\nIconFile={favicon}\r\nIconIndex=0\r\nHotKey=0\r\nIDList=\r\nAuthor=VideoLibrarian.exe");
-            }
-            SetStatus(Severity.Info, $"Created shortcut {Path.GetFileNameWithoutExtension(filepath)} ==> https://www.imdb.com/title/{tt}/");
         }
 
         //Bug in Regex.Escape(@"~`'!@#$%^&*(){}[].,;+_=-"). It doesn't escape ']'

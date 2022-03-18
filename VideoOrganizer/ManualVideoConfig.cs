@@ -370,7 +370,7 @@ namespace VideoOrganizer
             var tempExt = $".X{Environment.TickCount}X"; //create unique temporary backup extension
             Directory.GetFiles(RootFolder, "*.url").ForEach(f => File.Move(f, f + tempExt)); //backup other shortcuts to avoid conflicts
             var shortcutPath = Path.Combine(RootFolder, "TEMP.url");  //Create temp shortcut. Will delete upon success.
-            CreateTTShortcut(shortcutPath, tt);
+            MovieProperties.CreateTTShortcut(shortcutPath, tt);
 
             var propertiesPath = Path.Combine(RootFolder, tt + ".xml"); //backup cache xml file to force MovieProperties to recreate it.
             if (File.Exists(propertiesPath)) File.Move(propertiesPath, propertiesPath + tempExt);
@@ -674,7 +674,7 @@ namespace VideoOrganizer
 
                 if (!_mp.UrlLink.EqualsI(url))
                 {
-                    CreateTTShortcut(shortcutPath, tt);
+                    MovieProperties.CreateTTShortcut(shortcutPath, tt);
                 }
 
                 mp2.UrlLink = url;
@@ -690,7 +690,7 @@ namespace VideoOrganizer
 
                 if (_mp.UrlLink.IsNullOrEmpty() || url != new Uri(_mp.UrlLink).ToString() || !File.Exists(shortcutPath))
                 {
-                    CreateTTShortcut(shortcutPath, MovieProperties.EmptyTitleID);
+                    MovieProperties.CreateTTShortcut(shortcutPath, MovieProperties.EmptyTitleID);
                 }
 
                 mp2.UrlLink = url;
@@ -714,8 +714,6 @@ namespace VideoOrganizer
             }
             return true;
         }
-
-        private void CreateTTShortcut(string filepath, string tt) => ((FormMain)this.Owner).CreateTTShortcut(filepath, tt);
 
         private static void DeleteFile(string file)
         {

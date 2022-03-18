@@ -386,8 +386,13 @@ namespace VideoLibrarian
             {
                 Request = base.GetWebRequest(address);
                 HttpWebRequest request = Request as HttpWebRequest; //there are others: e.g. FtpWebRequest (ftp://) and FileWebRequest (file://).
-                //Allow this API to decompress http output.
-                if (request!= null) request.AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip;
+                
+                if (request != null)
+                {
+                    request.AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip;  //Allow this API to decompress http output.
+                    request.AllowAutoRedirect = true;
+                }
+
                 return Request;
             }
         }
