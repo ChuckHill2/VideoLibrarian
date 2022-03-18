@@ -74,7 +74,6 @@ Because hard drives are not infallible, video files may get corrupted over time.
 ### Generated Cache Files
 These cache files reside in the same folders as the shortcut files. They are 
 unique to each shortcut.
-- tt1234567.htm – downloaded IMDB web page.
 - tt1234567.jpg – downloaded movie poster.
 - tt1234567.xml – extracted movie information.
 - tt1234567S.png – cached UI movie information tile.

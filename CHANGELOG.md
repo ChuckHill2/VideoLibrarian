@@ -81,9 +81,17 @@
 * Outstanding Bug - Rare crash due to multi-threaded access to an image. 
 * Enabled fatal error message box rather than have app just mysteriously disappear. Log shows details.
 
+#### Version 2.4.1
+###### <small>*VideoLibrarian*</small>
+* IMDB changed their web page layout once again so we needed to update the web scraper. 
+  This will no doubt be a continuous wack-a-mole issue.
+* Fixed bug in restoring window size and position.
+* Better handle http download redirect by updating shortcut as necessary.
+###### <small>*VideoOrganizer*</small>
+* Added support for parsing another video file name format.
+
 
 ### Notes
-
 #### Not a bug
 At runtime, if there are 2 identical TV Series in 2 different root folders, all episodes
 will be merged under single TV Series tile with the other one containing no episodes

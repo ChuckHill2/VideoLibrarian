@@ -300,7 +300,7 @@ namespace VideoLibrarian
                 if (new Uri(UrlLink) != newUri) CreateTTShortcut(ShortcutPath, newUri.AbsoluteUri); //must have been redirected from above...
                 HtmlPath = job.Filename;
                 ParseImdb(job);
-                File.Delete(HtmlPath); //We no longer keep the web page because the layour changes sooo frequently!
+                File.Delete(HtmlPath); //We no longer keep the web page because the layout changes sooo frequently!
 
                 // Rename url shortcut filename to friendly name.
                 var dst = Path.Combine(Path.GetDirectoryName(this.ShortcutPath), this.FullMovieName + Path.GetExtension(this.ShortcutPath));
