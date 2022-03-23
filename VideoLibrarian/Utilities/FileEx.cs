@@ -85,20 +85,6 @@ namespace VideoLibrarian
             return newFilename;
         }
 
-        private static MD5CryptoServiceProvider __MD5CryptoServiceProvider = null;
-        private static MD5CryptoServiceProvider MD5CryptoServiceProvider
-        {
-            get
-            {
-                if (__MD5CryptoServiceProvider == null)
-                {
-                    if (FIPSCompliance) FIPSCompliance = false;
-                    __MD5CryptoServiceProvider = new MD5CryptoServiceProvider();
-                }
-                return __MD5CryptoServiceProvider;
-            }
-        }
-
         /// <summary>
         /// Compute unique MD5 hash of file contents.
         /// DO NOT USE for security encryption.
@@ -112,7 +98,10 @@ namespace VideoLibrarian
             {
                 using (var fs = new FileStream(filename, FileMode.Open, System.Security.AccessControl.FileSystemRights.Read, FileShare.ReadWrite, 1024 * 1024, FileOptions.SequentialScan))
                 {
-                    return new Guid(MD5CryptoServiceProvider.ComputeHash(fs));
+                    var md5 = new MD5CryptoServiceProvider(); //to be multi-threaded compliant, this must not be a static variable.
+                    var result = new Guid(md5.ComputeHash(fs));
+                    md5.Dispose();
+                    return result;
                 }
             }
             catch
@@ -209,6 +198,25 @@ namespace VideoLibrarian
 
             //Forget hi-precision and DateTimeKind. It just complicates comparisons. This is more than good enough.
             return new DateTime(dtMin.Year, dtMin.Month, dtMin.Day, dtMin.Hour, dtMin.Minute, 0);
+        }
+
+        /// <summary>
+        /// Safe file delete. Will not throw exception. Instead will log it as a warning.
+        /// </summary>
+        /// <param name="fn">Name of file to delete.</param>
+        /// <returns>True if successfully deleted</returns>
+        public static bool FileDelete(string fn)
+        {
+            try
+            {
+                File.Delete(fn);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Log.Write(Severity.Warning, $"Could not delete {fn}: {ex.Message}");
+                return false;
+            }
         }
 
         /// <summary>

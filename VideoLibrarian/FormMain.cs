@@ -56,7 +56,7 @@ namespace VideoLibrarian
         private int MaxLoadedProperties;
 
         private ViewTiles CurrentViewTiles = new ViewTiles();
-        private List<MovieProperties> MovieProperties = new List<MovieProperties>();
+        private List<MovieProperties> MoviePropertiesList = new List<MovieProperties>();
         private GlobalMouseHook mouseHook;
         private bool needsCacheRebuild = false;
         private bool forcePropertiesUpdate = false;
@@ -124,14 +124,14 @@ namespace VideoLibrarian
 
             Regex.CacheSize = prevCacheSize;
 
-            if (MovieProperties.Count == 0)
+            if (MoviePropertiesList.Count == 0)
             {
                 MiniMessageBox.Show(this, "The media folders specified in File->Settings\nare invalid or no longer contain any movies.\nPlease review File->Status Log for any errors.", "Movie Properties", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
             LoadTiles();
-            EnableMenuBar(MovieProperties.Count > 0);
+            EnableMenuBar(MoviePropertiesList.Count > 0);
         }
 
         protected override CreateParams CreateParams
@@ -177,7 +177,7 @@ namespace VideoLibrarian
             {
                 try
                 {
-                    foreach (var p in MovieProperties)
+                    foreach (var p in MoviePropertiesList)
                     {
                         if (p.Episodes != null)
                         {
@@ -202,33 +202,19 @@ namespace VideoLibrarian
             if (p.DeleteFileCacheUponExit == VideoLibrarian.MovieProperties.FileCacheScope.All)
             {
                 Log.Write(Severity.Verbose, $"Deleting all properties for {p.MoviePath}");
-                FileDelete(p.MoviePosterPath);
-                FileDelete(p.PropertiesPath);
-                FileDelete(p.HtmlPath);
-                FileDelete(p.PathPrefix + "S.png");
-                FileDelete(p.PathPrefix + "M.png");
-                FileDelete(p.PathPrefix + "L.png");
+                FileEx.FileDelete(p.MoviePosterPath);
+                FileEx.FileDelete(p.PropertiesPath);
+                FileEx.FileDelete(p.HtmlPath);
+                FileEx.FileDelete(p.PathPrefix + "S.png");
+                FileEx.FileDelete(p.PathPrefix + "M.png");
+                FileEx.FileDelete(p.PathPrefix + "L.png");
             }
             else if (p.DeleteFileCacheUponExit == VideoLibrarian.MovieProperties.FileCacheScope.ImagesOnly)
             {
                 Log.Write(Severity.Verbose, $"Deleting only tile images for {p.MoviePath}");
-                FileDelete(p.PathPrefix + "S.png");
-                FileDelete(p.PathPrefix + "M.png");
-                FileDelete(p.PathPrefix + "L.png");
-            }
-        }
-
-        private static bool FileDelete(string fn)
-        {
-            try
-            {
-                File.Delete(fn);
-                return true;
-            }
-            catch(Exception ex)
-            {
-                Log.Write(Severity.Warning, $"Could not delete {fn}: {ex.Message}");
-                return false;
+                FileEx.FileDelete(p.PathPrefix + "S.png");
+                FileEx.FileDelete(p.PathPrefix + "M.png");
+                FileEx.FileDelete(p.PathPrefix + "L.png");
             }
         }
 
@@ -237,7 +223,7 @@ namespace VideoLibrarian
             //Nothing to save if there are no movie property objects for whatever reason. 
             //e.g. Media folder no longer exists or is empty or USB drive is unplugged. 
             //See LoadMovieInfo().
-            if (MovieProperties.Count == 0) return;
+            if (MoviePropertiesList.Count == 0) return;
 
             if (this.InvokeRequired)
             {
@@ -280,9 +266,9 @@ namespace VideoLibrarian
         {
             ViewTiles view;
 
-            if (mp == null || mp == MovieProperties)
+            if (mp == null || mp == MoviePropertiesList)
             {
-                mp = MovieProperties;
+                mp = MoviePropertiesList;
                 title = string.Empty;
             }
 
@@ -290,7 +276,7 @@ namespace VideoLibrarian
 
             if (Views.TryGetValue(key, out view)) 
             {
-                if (mp == MovieProperties)
+                if (mp == MoviePropertiesList)
                 {
                     if (Filters != null && Filters.Filter(view.Tiles)) view.ScrollPosition = -1; //flag caller to compute position based upon 'current' tile.
                     if (SortKeys != null && SortKeys.Sort(view.Tiles)) view.ScrollPosition = -1; 
@@ -348,7 +334,7 @@ namespace VideoLibrarian
                 Log.Write(Severity.Warning, $"Number of movies found ({mp.Count}) exceeds the {maxTiles} memory limit for {this.View}. Truncating list.");
 
             Views.Add(key, view);
-            if (mp == MovieProperties) 
+            if (mp == MoviePropertiesList) 
             {
                 if (Filters != null) Filters.Filter(view.Tiles);
                 if (SortKeys != null) SortKeys.Sort(view.Tiles);
@@ -419,8 +405,8 @@ namespace VideoLibrarian
             m_flowPanel.VerticalScroll.Value = CurrentViewTiles.ScrollPosition;
             m_flowPanel.ResumeLayout();
 
-            EnableMenuBar(mp == null || mp == MovieProperties);
-            m_miBack.Enabled = (mp != null && mp != MovieProperties);
+            EnableMenuBar(mp == null || mp == MoviePropertiesList);
+            m_miBack.Enabled = (mp != null && mp != MoviePropertiesList);
 
             if (CurrentViewTiles.Tiles.Length > 0 && !CurrentViewTiles.Tiles.Any(m => m.IsVisible))
             {
@@ -428,33 +414,6 @@ namespace VideoLibrarian
             }
         }
 
-        //Bug in Regex.Escape(@"~`'!@#$%^&*(){}[].,;+_=-"). It doesn't escape ']'
-        //const string BracketPattern = @"\\[~`'!@\#\$%\^&\*\(\{\[\.,;\+_=-][^\\]+[~`'!@\#\$%\^&\*\)\}\]\.,;\+_=-]\\";  //fast and loose bracket pattern.
-        //Create strict bracket pattern; whatever bracket char folder name starts with, it must also end with.
-        const string BracketPattern = @"\\(
-            (~[^\\]+~)|
-            (`[^\\]+`)|
-            ('[^\\]+')|
-            (![^\\]+!)|
-            (@[^\\]+@)|
-            (\#[^\\]+\#)|
-            (\$[^\\]+\$)|
-            (%[^\\]+%)|
-            (\^[^\\]+\^)|
-            (&[^\\]+&)|
-            (\*[^\\]+\*)|
-            (\.[^\\]+\.)|
-            (,[^\\]+,)|
-            (;[^\\]+;)|
-            (\+[^\\]+\+)|
-            (_[^\\]+_)|
-            (=[^\\]+=)|
-            (-[^\\]+-)|
-            (\([^\\]+\))|
-            (\{[^\\]+\})|
-            (\[[^\\]+\])
-            )\\";
-        private static readonly Regex reIgnoredFolder = new Regex(BracketPattern, RegexOptions.Compiled | RegexOptions.IgnorePatternWhitespace);
         public void LoadMovieInfo()
         {
             //This may take awhile. Don't lock up the UI.
@@ -468,30 +427,8 @@ namespace VideoLibrarian
                         continue;
                     }
 
-                    var hs = new HashSet<string>(StringComparer.OrdinalIgnoreCase); //There may be multiple shortcuts in a folder, but we may only list the folder once. 
-                    string fx = "beginning of search";
-                    try
-                    {
-                        foreach (string f in Directory.EnumerateFiles(mf, "*.url", SearchOption.AllDirectories))
-                        {
-                            fx = f;
-                            var folder = Path.GetDirectoryName(f);
-                            if (folder == mf) continue; //ignore shortcuts in the root folder
-
-                            //Special: if shortcut is in a bracketed folder (or any of its child folders) the video is ignored. 
-                            if (reIgnoredFolder.IsMatch(folder + "\\")) continue;
-
-                            hs.Add(folder);
-                        }
-                    }
-                    catch(Exception ex) //System.IO.IOException: The file or directory is corrupted and unreadable.
-                    {
-                        var emsg = $"{ex.GetType().FullName}: {ex.Message}\nFatal Error enumerating movie folder immediately following {fx}.";
-                        MessageBox.Show(this, emsg+"\n\nPress OK to exit.", "Enumerating Media Folders", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        Log.Write(Severity.Error, emsg);
-                        Log.Dispose();
-                        Environment.Exit(1);
-                    }
+                    var hs = MovieProperties.GetMovieFolders(mf);
+                    if (hs == null) continue;
 
                     int added = 0;
                     foreach (string d in hs.OrderBy(x => x))
@@ -502,7 +439,7 @@ namespace VideoLibrarian
                             if (p.ToString() == "UNKNOWN") //Incomplete/corrupted movie property. See log file. Ignore for now.
                                 throw new InvalidDataException($"Incomplete/corrupted movie property for folder: {d}");
 
-                            MovieProperties.Add(p);
+                            MoviePropertiesList.Add(p);
                             added++;
 
                             if (needsCacheRebuild) TileBase.PurgeTileImages(d); //DPI changed
@@ -515,20 +452,20 @@ namespace VideoLibrarian
 
                     Log.Write(Severity.Info, $"{added} movie properties loaded from {mf}");
                 }
-                if (MovieProperties.Count == 0) return;
+                if (MoviePropertiesList.Count == 0) return;
 
                 needsCacheRebuild = false;
                 forcePropertiesUpdate = false;
 
                 //Group series under parent.
-                MovieProperties.Sort(Comparer<MovieProperties>.Create((a, b) => string.CompareOrdinal(a.SortKey, b.SortKey)));
+                MoviePropertiesList.Sort(Comparer<MovieProperties>.Create((a, b) => string.CompareOrdinal(a.SortKey, b.SortKey)));
 
-                int kount = MovieProperties.Count;
+                int kount = MoviePropertiesList.Count;
                 MovieProperties series = null;
                 bool seriesFound = false; //handle parent followed by non-series movie followed by the series
                 for (int i = 0; i < kount; i++)
                 {
-                    var p = MovieProperties[i];
+                    var p = MoviePropertiesList[i];
                     if (p.EpisodeCount > 0)  //MovieClass="TV Series"
                     {
                         series = p;
@@ -540,7 +477,7 @@ namespace VideoLibrarian
                     {
                         seriesFound = true;
                         series.Episodes.Add(p);
-                        MovieProperties.RemoveAt(i);
+                        MoviePropertiesList.RemoveAt(i);
                         i--;
                         kount--;
                         continue;
@@ -548,14 +485,14 @@ namespace VideoLibrarian
                     if (seriesFound) { seriesFound = false; series = null; } //force to null so series without a parent are handled as normal movies
                 }
 
-                if (this.MaxLoadedProperties > 0 && MovieProperties.Count >= this.MaxLoadedProperties)
+                if (this.MaxLoadedProperties > 0 && MoviePropertiesList.Count >= this.MaxLoadedProperties)
                 {
-                    Log.Write(Severity.Warning, $"Number of movies found ({MovieProperties.Count}) exceeds the {this.MaxLoadedProperties} user limit MovieProperties. Truncating list.");
-                    MovieProperties.RemoveRange(this.MaxLoadedProperties, MovieProperties.Count - this.MaxLoadedProperties);
+                    Log.Write(Severity.Warning, $"Number of movies found ({MoviePropertiesList.Count}) exceeds the {this.MaxLoadedProperties} user limit MovieProperties. Truncating list.");
+                    MoviePropertiesList.RemoveRange(this.MaxLoadedProperties, MoviePropertiesList.Count - this.MaxLoadedProperties);
                 }
 
-                MovieProperties.TrimExcess();
-                FilterProperties.InitAvailableValues(MovieProperties);
+                MoviePropertiesList.TrimExcess();
+                FilterProperties.InitAvailableValues(MoviePropertiesList);
             });
         }
 
@@ -572,8 +509,8 @@ namespace VideoLibrarian
             bool foldersChanged = (result.MediaFolders.Length != Settings.MediaFolders.Length || !result.MediaFolders.SequenceEqual(Settings.MediaFolders));
             Settings = result;
 
-            EnableMenuBar(MovieProperties.Count > 0);
-            if (foldersChanged) { LoadMovieInfo(); LoadTiles(); EnableMenuBar(MovieProperties.Count > 0); }
+            EnableMenuBar(MoviePropertiesList.Count > 0);
+            if (foldersChanged) { LoadMovieInfo(); LoadTiles(); EnableMenuBar(MoviePropertiesList.Count > 0); }
         }
 
         private void m_miStatusLog_Click(object sender, EventArgs e)

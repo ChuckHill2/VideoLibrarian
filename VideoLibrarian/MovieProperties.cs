@@ -296,8 +296,28 @@ namespace VideoLibrarian
                 File.Delete(HtmlPath);
                 var job = new FileEx.Job(UrlLink, HtmlPath);
                 if (!FileEx.Download(job)) return; // FileEx.Download() logs its own errors. It will also update data.Url to redirected path and job.Filename
-                var newUri = new Uri(job.Url);
-                if (new Uri(UrlLink) != newUri) CreateTTShortcut(ShortcutPath, newUri.AbsoluteUri); //must have been redirected from above...
+
+                //Update filenames if download http redirect (30x) ocurred. 
+                var ttOld = GetTitleId(UrlLink);
+                var ttNew = GetTitleId(job.Url);
+                if (ttOld != ttNew)
+                {
+                    foreach (string fOld in Directory.EnumerateFiles(path, $"{ttOld}*.*"))
+                    {
+                        var fNew = fOld.Replace(ttOld, ttNew);
+                        File.Delete(fNew);
+                        File.Move(fOld, fNew);
+                    }
+
+                    CreateTTShortcut(ShortcutPath, ttNew);
+                    UrlLink = $"https://www.imdb.com/title/{ttNew}/";
+                    PathPrefix = string.Concat(path, "\\", ttNew);
+                    PropertiesPath = PathPrefix + ".xml";
+                    HtmlPath = PathPrefix + ".htm";
+                    MoviePosterPath = PathPrefix + ".jpg";
+                    job.Filename = HtmlPath;
+                }
+
                 HtmlPath = job.Filename;
                 ParseImdb(job);
                 File.Delete(HtmlPath); //We no longer keep the web page because the layout changes sooo frequently!
@@ -359,7 +379,6 @@ namespace VideoLibrarian
             {
                 var link = GetUrlFromShortcut(f);
                 if (link.IsNullOrEmpty()) continue;
-
 
                 var tt = GetTitleId(link);
                 if (tt.IsNullOrEmpty()) continue;
@@ -893,6 +912,309 @@ namespace VideoLibrarian
             return false; //no change. couldn't find poster url.
         }
 
+        private string CreateFullMovieName()
+        {
+            if (this.MovieName.IsNullOrEmpty()) return "";
+            var name = this.MovieName;
+
+            var chars = Path.GetInvalidFileNameChars();
+            var sb = new StringBuilder();
+            char prevC = '\0';
+            foreach (var c in name)
+            {
+                if (c == ':')
+                {
+                    if (prevC == ' ') sb.Length -= 1;
+                    sb.Append(" - ");
+                    prevC = ' ';
+                    continue;
+                }
+                if (prevC == ' ' && c == ' ') continue;
+                if (chars.Contains(c)) continue;
+                sb.Append(c);
+                prevC = c;
+            }
+            name = sb.ToString();
+
+            if (this.Season > 0)
+            {
+                var i = name.IndexOf(" \xAD ");
+                string n1 = name, n2 = "";
+                if (i > 1)
+                {
+                    n1 = name.Substring(0, i);
+                    n2 = name.Substring(i + 3);
+                }
+                name = string.Format("{0} S{1:00}E{2:00} {3} ({4})", n1, Season, Episode, n2, Year);
+            }
+            else name = string.Format("{0} ({1})", name, Year);
+
+            return name;
+        }
+
+        private string CreateSortKey()
+        {
+            if (this.MovieName.IsNullOrEmpty()) return "";
+            var name = this.MovieName;
+
+            if (this.Season > 0)
+            {
+                var i = name.IndexOf(" \xAD "); //unicode dash
+                string n1 = name;
+                if (i > 1)
+                {
+                    n1 = name.Substring(0, i);
+                    // n2 = name.Substring(i + 3); //ignore episode title
+                }
+                name = string.Format("{0} ({1}) S{2:00}E{3:00}", n1, Year, Season, Episode);
+            }
+            else name = string.Format("{0} ({1})", name, Year);
+
+            return name;
+        }
+
+        private static string ComputeNormalizedDisplayRatio(int width, int height)
+        {
+            // The following computes accurate display ratio from width and height but because of 
+            // slight variations width and/or height, the result comes out as non-standard ratios. 
+            // Therefore, we just find the closest fit to the known video display ratios.
+
+            // var isProgressive = stream.PixelFormat[stream.PixelFormat.Length - 1] == 'p';
+            // private static int gcd(int a, int b) { return (b == 0) ? a : gcd(b, a % b); } //greatest common divisor
+            // var r = gcd(width, height); //greatest common divisor
+            // DisplayRatio = string.Format("{0}:{1}", stream.Width / r, stream.Height / r);
+            // DisplayResolution = string.Format("{0}x{1}{2}", stream.Width, stream.Height, isProgressive ? "p" : "i");
+
+            var asp = new KeyValuePair<string, double>[]
+            {
+                new KeyValuePair<string,double>("5:4",     5/4.0),  //1.25
+                new KeyValuePair<string,double>("4:3",     4/3.0),  //1.3333333
+                new KeyValuePair<string,double>("3:2",     3/2.0),  //1.5
+                new KeyValuePair<string,double>("16:10", 16/10.0),  //1.6
+                new KeyValuePair<string,double>("16:9",   16/9.0),  //1.777777
+                new KeyValuePair<string,double>("1.85:1",  1.850),  //1.85
+                new KeyValuePair<string,double>("2.39:1",  2.390),  //2.39
+            };
+
+            double actual = width / (double)height;
+            double residual = 999;
+            var index = -1;
+            for (int i = 0; i < asp.Length; i++)
+            {
+                var r = Math.Abs(actual - asp[i].Value);
+                if (r < residual) { residual = r; index = i; }
+            }
+
+            return asp[index].Key;
+        }
+
+        private static Image CreateBlankPoster(string movieName)
+        {
+            var bmp = new Bitmap(364, 500, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+            var g = Graphics.FromImage(bmp);
+
+            var gp = new GraphicsPath();
+            gp.AddRectangle(new Rectangle(0, 0, bmp.Width, bmp.Height));
+            var br = new PathGradientBrush(gp);
+            br.CenterColor = Color.LightBlue;
+            br.SurroundColors = new Color[] { Color.LightSteelBlue };
+            g.FillRectangle(br, 0, 0, bmp.Width, bmp.Height);
+            br.Dispose();
+            gp.Dispose();
+
+            var sf = new StringFormat(StringFormatFlags.LineLimit | StringFormatFlags.FitBlackBox);
+            sf.LineAlignment = StringAlignment.Center;
+            sf.Alignment = StringAlignment.Center;
+
+            var font = new Font(FontFamily.GenericSansSerif, 28, FontStyle.Bold);
+            g.DrawString(movieName ?? "Missing Poster", font, Brushes.Black, new RectangleF(10, 10, bmp.Width - 20, bmp.Height - 20), sf);
+            font.Dispose();
+
+            sf.Dispose();
+            g.Dispose();
+
+            return bmp;
+        }
+
+        #region Serialization/Deserialization
+        private MovieProperties OriginalMovieProperties = null;
+
+        public void Serialize()
+        {
+            if (_getMoviePropertyTask != null) { _getMoviePropertyTask.Wait(); _getMoviePropertyTask.Dispose(); _getMoviePropertyTask = null; }
+            if (this.Equals(OriginalMovieProperties)) return;
+
+            XmlIO.Serialize(this, PropertiesPath);
+            OriginalMovieProperties = new MovieProperties();
+            SetAllProperties(this, OriginalMovieProperties);
+        }
+
+        private bool Deserialize(string path)
+        {
+            if (path.IsNullOrEmpty() || !File.Exists(path)) return false;
+            try
+            {
+                var sd = XmlIO.Deserialize<MovieProperties>(path);
+                OriginalMovieProperties = sd;
+                SetAllProperties(sd, this);
+            }
+            catch(Exception ex)
+            {
+                Log.Write(Severity.Warning, "Deserialization Error. Rebuilding movie properties file.\n" + ex.ToString());
+                return false;
+            }
+            return true;
+        }
+
+        private class PropertyList
+        {
+            public string Name { get; private set; }
+            public Type PropType { get; private set; }
+            public Func<object, object> Get { get; private set; }
+            public Action<object, object> Set { get; private set; }
+            public PropertyList(string name, Type t, Func<object, object> get, Action<object, object> set)
+            {
+
+                Name = name;
+                PropType = t;
+                Get = get;
+                Set = set;
+            }
+            public override string ToString() => this.Name;
+        }
+
+        private static readonly PropertyList[] PropertySetters = GetPropertyGetterSetters();
+
+        private static PropertyList[] GetPropertyGetterSetters()
+        {
+            var pis = typeof(MovieProperties).GetProperties();
+            var list = new List<PropertyList>(pis.Length);
+            foreach (var pi in pis)
+            {
+                if (!pi.CanWrite) continue;
+                if (pi.GetCustomAttribute<XmlIgnoreAttribute>() != null) continue;
+                list.Add(new PropertyList(pi.Name, pi.PropertyType, pi.GetValue, pi.SetValue));
+            }
+            return list.OrderBy(m => m.Name).ToArray();
+        }
+
+        private static void SetAllProperties(MovieProperties src, MovieProperties dst, ICollection<string> except = null)
+        {
+            if (except == null || except.Count == 0)
+            {
+                foreach (var setter in PropertySetters)
+                {
+                    setter.Set(dst, setter.Get(src));
+                }
+            }
+            else
+            {
+                foreach (var setter in PropertySetters)
+                {
+                    if (except.Any(m => m.Equals(setter.Name, StringComparison.OrdinalIgnoreCase))) continue;
+                    setter.Set(dst, setter.Get(src));
+                }
+            }
+        }
+
+        private static void SetOnlyTheseProperties(MovieProperties src, MovieProperties dst, ICollection<string> these)
+        {
+            if (these == null || these.Count == 0) return;
+            foreach(var name in these)
+            {
+                var setter = PropertySetters.FirstOrDefault(pl => pl.Name.EqualsI(name));
+                if (setter == null) continue;
+                setter.Set(dst, setter.Get(src));
+            }
+        }
+        #endregion
+
+        #region Object Overrides
+        public override string ToString() => this.FullMovieName;
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hash = 13;
+                foreach (var p in PropertySetters)
+                {
+                    if (p.Name == "Genre")
+                        this.Genre.ForEach(g => { hash = (hash * 7) + g.GetHashCode(); });
+                    else
+                        hash = (hash * 7) + p.Get(this).GetHashCode();
+                }
+
+                return hash;
+            }
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (!(obj is MovieProperties)) return false;
+            MovieProperties mp = (MovieProperties)obj;
+
+            ////DEBUGGING -- These are all the NOT XmlIgnore'd properties.
+            // var _UrlLink = p1.UrlLink == p2.UrlLink;
+            // var _MoviePosterUrl = p1.MoviePosterUrl == p2.MoviePosterUrl;
+            // var _MovieName = p1.MovieName == p2.MovieName;
+            // var _Genre = p1.Genre.OrderBy(m => m).SequenceEqual(p2.Genre.OrderBy(m => m));   //<==not sip2le cop2arison
+            // var _MovieClass = p1.MovieClass == p2.MovieClass;
+            // var _Year = p1.Year == p2.Year;
+            // var _ReleaseDate = p1.ReleaseDate.Date == p2.ReleaseDate.Date;
+            // var _MovieRating = (int)(p1.MovieRating * 10) == (int)(p2.MovieRating * 10);
+            // var _Plot = p1.Plot == p2.Plot;
+            // var _Summary = p1.Summary == p2.Summary;
+            // var _Creators = p1.Creators == p2.Creators;
+            // var _Directors = p1.Directors == p2.Directors;
+            // var _Writers = p1.Writers == p2.Writers;
+            // var _Cast = p1.Cast == p2.Cast;
+            // var _YearEnd = p1.YearEnd == p2.YearEnd;
+            // var _Season = p1.Season == p2.Season;
+            // var _Episode = p1.Episode == p2.Episode;
+            // var _EpisodeCount = p1.EpisodeCount == p2.EpisodeCount;
+            // var _DownloadDate = p1.DownloadDate.Date == p2.DownloadDate.Date;
+            // var _Runtime = p1.Runtime == p2.Runtime;
+            // var _DisplayRatio = p1.DisplayRatio == p2.DisplayRatio;
+            // var _DisplayWidth = p1.DisplayWidth == p2.DisplayWidth;
+            // var _DisplayHeight = p1.DisplayHeight == p2.DisplayHeight;
+            // var _MovieHash = p1.MovieHash == p2.MovieHash;
+            // var _MovieFileLength = p1.MovieFileLength == p2.MovieFileLength;
+            // var _Watched = p1.Watched.Date == p2.Watched.Date;
+            // 
+            // var total = _UrlLink &
+            //             _MoviePosterUrl &
+            //             _MovieName &
+            //             _Genre &
+            //             _MovieClass &
+            //             _Year &
+            //             _ReleaseDate &
+            //             _MovieRating &
+            //             _Plot &
+            //             _Summary &
+            //             _Creators &
+            //             _Directors &
+            //             _Writers &
+            //             _Cast &
+            //             _YearEnd &
+            //             _Season &
+            //             _Episode &
+            //             _EpisodeCount &
+            //             _DownloadDate &
+            //             _Runtime &
+            //             _DisplayRatio &
+            //             _DisplayWidth &
+            //             _DisplayHeight &
+            //             _MovieHash &
+            //             _MovieFileLength &
+            //             _Watched;
+            // return total;
+
+            return PropertySetters.All((p) => p.Name == "Genre" ? this.Genre.OrderBy(m=>m).SequenceEqual(mp.Genre.OrderBy(m => m)) : p.Get(this).Equals(p.Get(mp)));
+        }
+        #endregion
+
+        #region Used Externally
         /// <summary>
         /// Populate the video properties of the movie.
         /// </summary>
@@ -918,7 +1240,7 @@ namespace VideoLibrarian
                     hashtask.Wait();
                     hashtask.Dispose();
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     Log.Write(Severity.Error, "GetMovieFileProperties(\"{0}\"): {1}", MoviePath.IsNullOrEmpty() ? "null" : MoviePath, ex.Message);
                 }
@@ -929,7 +1251,7 @@ namespace VideoLibrarian
                 string path = !ShortcutPath.IsNullOrEmpty() ? ShortcutPath : MoviePath;
                 if (path.IsNullOrEmpty()) return;
                 var dir = Directory.Exists(path) ? path : Path.GetDirectoryName(path);
-                foreach (var f in Directory.EnumerateFiles(dir, "*.*", SearchOption.AllDirectories).OrderBy(s=>s,StringComparer.OrdinalIgnoreCase))
+                foreach (var f in Directory.EnumerateFiles(dir, "*.*", SearchOption.AllDirectories).OrderBy(s => s, StringComparer.OrdinalIgnoreCase))
                 {
                     if (!IsVideoFile(f)) continue;
                     path = f;
@@ -1015,67 +1337,11 @@ namespace VideoLibrarian
             return true;
         }
 
-        private string CreateFullMovieName()
-        {
-            if (this.MovieName.IsNullOrEmpty()) return "";
-            var name = this.MovieName;
-
-            var chars = Path.GetInvalidFileNameChars();
-            var sb = new StringBuilder();
-            char prevC = '\0';
-            foreach (var c in name)
-            {
-                if (c == ':')
-                {
-                    if (prevC == ' ') sb.Length -= 1;
-                    sb.Append(" - ");
-                    prevC = ' ';
-                    continue;
-                }
-                if (prevC == ' ' && c == ' ') continue;
-                if (chars.Contains(c)) continue;
-                sb.Append(c);
-                prevC = c;
-            }
-            name = sb.ToString();
-
-            if (this.Season > 0)
-            {
-                var i = name.IndexOf(" \xAD ");
-                string n1 = name, n2 = "";
-                if (i > 1)
-                {
-                    n1 = name.Substring(0, i);
-                    n2 = name.Substring(i + 3);
-                }
-                name = string.Format("{0} S{1:00}E{2:00} {3} ({4})", n1, Season, Episode, n2, Year);
-            }
-            else name = string.Format("{0} ({1})", name, Year);
-
-            return name;
-        }
-
-        private string CreateSortKey()
-        {
-            if (this.MovieName.IsNullOrEmpty()) return "";
-            var name = this.MovieName;
-
-            if (this.Season > 0)
-            {
-                var i = name.IndexOf(" \xAD "); //unicode dash
-                string n1 = name;
-                if (i > 1)
-                {
-                    n1 = name.Substring(0, i);
-                    // n2 = name.Substring(i + 3); //ignore episode title
-                }
-                name = string.Format("{0} ({1}) S{2:00}E{3:00}", n1, Year, Season, Episode);
-            }
-            else name = string.Format("{0} ({1})", name, Year);
-
-            return name;
-        }
-
+        /// <summary>
+        /// Create IMDB shortcut with logo icon
+        /// </summary>
+        /// <param name="filepath">Name of shortcut (*.url)</param>
+        /// <param name="tt">IMDB title id (tt123456) or EmptyTitleID (tt0000000 e.g. non-IMDB movie) or full url (ɦttps://www.imdb.com/title/tt123456/)</param>
         public static void CreateTTShortcut(string filepath, string tt)
         {
             if (File.Exists(filepath)) return;
@@ -1114,51 +1380,22 @@ namespace VideoLibrarian
             Log.Write(Severity.Info, $"Created shortcut {Path.GetFileNameWithoutExtension(filepath)} ==> https://www.imdb.com/title/{tt}/");
         }
 
-        private static string ComputeNormalizedDisplayRatio(int width, int height)
-        {
-            // The following computes accurate display ratio from width and height but because of 
-            // slight variations width and/or height, the result comes out as non-standard ratios. 
-            // Therefore, we just find the closest fit to the known video display ratios.
-
-            // var isProgressive = stream.PixelFormat[stream.PixelFormat.Length - 1] == 'p';
-            // private static int gcd(int a, int b) { return (b == 0) ? a : gcd(b, a % b); } //greatest common divisor
-            // var r = gcd(width, height); //greatest common divisor
-            // DisplayRatio = string.Format("{0}:{1}", stream.Width / r, stream.Height / r);
-            // DisplayResolution = string.Format("{0}x{1}{2}", stream.Width, stream.Height, isProgressive ? "p" : "i");
-
-            var asp = new KeyValuePair<string, double>[]
-            {
-                new KeyValuePair<string,double>("5:4",     5/4.0),  //1.25
-                new KeyValuePair<string,double>("4:3",     4/3.0),  //1.3333333
-                new KeyValuePair<string,double>("3:2",     3/2.0),  //1.5
-                new KeyValuePair<string,double>("16:10", 16/10.0),  //1.6
-                new KeyValuePair<string,double>("16:9",   16/9.0),  //1.777777
-                new KeyValuePair<string,double>("1.85:1",  1.850),  //1.85
-                new KeyValuePair<string,double>("2.39:1",  2.390),  //2.39
-            };
-
-            double actual = width / (double)height;
-            double residual = 999;
-            var index = -1;
-            for (int i = 0; i < asp.Length; i++)
-            {
-                var r = Math.Abs(actual - asp[i].Value);
-                if (r < residual) { residual = r; index = i; }
-            }
-
-            return asp[index].Key;
-        }
-
+        /// <summary>
+        /// Extract URL from IMDB shortcut
+        /// </summary>
+        /// <param name="path">Name of shortcut (*.url) to read</param>
+        /// <returns>URL within shortcut</returns>
         public static string GetUrlFromShortcut(string path)
         {
-            using(var sr = new StreamReader(path))
+            using (var sr = new StreamReader(path))
             {
                 string line = null;
-                while((line=sr.ReadLine())!=null)
+                while ((line = sr.ReadLine()) != null)
                 {
                     if (line.StartsWith("URL="))
                     {
                         var url = line.Substring(4).Trim();
+                        //Remove urlencoded properties (e.g. ?abc=def&ccc=ddd)
                         var i = url.IndexOf('?');
                         if (i != -1) url = url.Substring(0, i);
                         return url;
@@ -1168,124 +1405,11 @@ namespace VideoLibrarian
             return "";
         }
 
-        private static Image CreateBlankPoster(string movieName)
-        {
-            var bmp = new Bitmap(364, 500, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-            var g = Graphics.FromImage(bmp);
-
-            var gp = new GraphicsPath();
-            gp.AddRectangle(new Rectangle(0, 0, bmp.Width, bmp.Height));
-            var br = new PathGradientBrush(gp);
-            br.CenterColor = Color.LightBlue;
-            br.SurroundColors = new Color[] { Color.LightSteelBlue };
-            g.FillRectangle(br, 0, 0, bmp.Width, bmp.Height);
-            br.Dispose();
-            gp.Dispose();
-
-            var sf = new StringFormat(StringFormatFlags.LineLimit | StringFormatFlags.FitBlackBox);
-            sf.LineAlignment = StringAlignment.Center;
-            sf.Alignment = StringAlignment.Center;
-
-            var font = new Font(FontFamily.GenericSansSerif, 28, FontStyle.Bold);
-            g.DrawString(movieName ?? "Missing Poster", font, Brushes.Black, new RectangleF(10, 10, bmp.Width - 20, bmp.Height - 20), sf);
-            font.Dispose();
-
-            sf.Dispose();
-            g.Dispose();
-
-            return bmp;
-        }
-
-        #region Serialization/Deserialization
-        private MovieProperties OriginalMovieProperties = null;
-
-        public void Serialize()
-        {
-            if (_getMoviePropertyTask != null) { _getMoviePropertyTask.Wait(); _getMoviePropertyTask.Dispose(); _getMoviePropertyTask = null; }
-            if (this.Equals(OriginalMovieProperties)) return;
-
-            XmlIO.Serialize(this, PropertiesPath);
-            OriginalMovieProperties = new MovieProperties();
-            SetAllProperties(this, OriginalMovieProperties);
-        }
-
-        private bool Deserialize(string path)
-        {
-            if (path.IsNullOrEmpty() || !File.Exists(path)) return false;
-            try
-            {
-                var sd = XmlIO.Deserialize<MovieProperties>(path);
-                OriginalMovieProperties = sd;
-                SetAllProperties(sd, this);
-            }
-            catch(Exception ex)
-            {
-                Log.Write(Severity.Warning, "Deserialization Error. Rebuilding movie properties file.\n" + ex.ToString());
-                return false;
-            }
-            return true;
-        }
-
-        private class PropertyList
-        {
-            public string Name { get; private set; }
-            public Func<object, object> Get { get; private set; }
-            public Action<object, object> Set { get; private set; }
-            public PropertyList(string name, Func<object, object> get, Action<object, object> set)
-            {
-                Name = name;
-                Get = get;
-                Set = set;
-            }
-            public override string ToString() => this.Name;
-        }
-
-        private static readonly PropertyList[] PropertySetters = GetPropertyGetterSetters();
-
-        private static PropertyList[] GetPropertyGetterSetters()
-        {
-            var pis = typeof(MovieProperties).GetProperties();
-            var list = new List<PropertyList>(pis.Length);
-            foreach (var pi in pis)
-            {
-                if (!pi.CanWrite) continue;
-                if (pi.GetCustomAttribute<XmlIgnoreAttribute>() != null) continue;
-                list.Add(new PropertyList(pi.Name, pi.GetValue, pi.SetValue));
-            }
-            return list.OrderBy(m => m.Name).ToArray();
-        }
-
-        private static void SetAllProperties(MovieProperties src, MovieProperties dst, ICollection<string> except = null)
-        {
-            if (except == null || except.Count == 0)
-            {
-                foreach (var setter in PropertySetters)
-                {
-                    setter.Set(dst, setter.Get(src));
-                }
-            }
-            else
-            {
-                foreach (var setter in PropertySetters)
-                {
-                    if (except.Any(m => m.Equals(setter.Name, StringComparison.OrdinalIgnoreCase))) continue;
-                    setter.Set(dst, setter.Get(src));
-                }
-            }
-        }
-
-        private static void SetOnlyTheseProperties(MovieProperties src, MovieProperties dst, ICollection<string> these)
-        {
-            if (these == null || these.Count == 0) return;
-            foreach(var name in these)
-            {
-                var setter = PropertySetters.FirstOrDefault(pl => pl.Name.EqualsI(name));
-                if (setter == null) continue;
-                setter.Set(dst, setter.Get(src));
-            }
-        }
-        #endregion
-
+        /// <summary>
+        /// Determine if file is a video file.
+        /// </summary>
+        /// <param name="file">UNC filename or URL to check.</param>
+        /// <returns></returns>
         public static bool IsVideoFile(string file)
         {
             try
@@ -1306,6 +1430,11 @@ namespace VideoLibrarian
             return true;
         }
 
+        /// <summary>
+        /// Determine if file is an image file.
+        /// </summary>
+        /// <param name="file">UNC filename or URL to check.</param>
+        /// <returns></returns>
         public static bool IsImageFile(string file)
         {
             try
@@ -1329,11 +1458,13 @@ namespace VideoLibrarian
         /// <summary>
         /// Extract IMDB title id from url or empty title id if this is a local folder url.
         /// "ḣttps://www.imdb.com/title/tt0062622/" ==> "tt0062622"
-        /// "fіle:///C:/Users/User/Videos" ==> "tt0000000"
-        /// <summary>The IMDB poster url https:// or fіle:/// style url where to retrieve image from.</summary>
+        /// "fіle:///C:/Users/User/Videos" ==> "tt0000000" (aka MovieProperties.EmptyTitleID)
+        /// NOTE: EmptyTitleID refers to video not found on IMDB and refers to a manually
+        /// generated MovieProperties file (e.g. tt0000000.xml) The actual content
+        /// (filė://c:/abc/def/) of the shortcut url has no meaning. It is only a placeholder.
         /// </summary>
         /// <param name="url"></param>
-        /// <returns></returns>
+        /// <returns>IMDB title id (e.g. tt0062622) or EmptyTitleID (e.g. tt0000000) or zero-length string if not found</returns>
         public static string GetTitleId(string url)
         {
             // Possible url permutations... an IMDB title shortcut or any local folder shortcut. 
@@ -1344,68 +1475,79 @@ namespace VideoLibrarian
             //   file:///C:/Users/User/Videos
 
             if (url.IsNullOrEmpty()) return null; //null or empty string.
+
             var m = ReTitleId.Match(url);
             if (!m.Success) return string.Empty;  //url not a match
             return m.Groups["TT"].Value == string.Empty ? MovieProperties.EmptyTitleID : m.Groups["TT"].Value;
         }
         private static readonly Regex ReTitleId = new Regex(@"^(?:(?:https?:\/\/(?:www\.)?imdb\.com\/title\/(?<TT>tt[0-9]+))|(?<FILE>file:\/\/\/))", RE_options);
 
-        public override string ToString() => this.FullMovieName;
+        /// <summary>
+        /// Check if folder or file should be ignored.
+        /// An ignored folder contains a directory that is bracketed with matching bracket chars.
+        /// Directories containing mismatching bracket chars are NOT ignored.
+        /// </summary>
+        /// <param name="folder">full folder name to check.</param>
+        /// <returns>true if folder should be ignored</returns>
+        public static bool IgnoreFolder(string folder) => reIgnoredFolder.IsMatch(folder + "\\");
+        private const string bracketPattern = @"\\(
+            (~[^\\]+~)|
+            (`[^\\]+`)|
+            ('[^\\]+')|
+            (![^\\]+!)|
+            (@[^\\]+@)|
+            (\#[^\\]+\#)|
+            (\$[^\\]+\$)|
+            (%[^\\]+%)|
+            (\^[^\\]+\^)|
+            (&[^\\]+&)|
+            (\*[^\\]+\*)|
+            (\.[^\\]+\.)|
+            (,[^\\]+,)|
+            (;[^\\]+;)|
+            (\+[^\\]+\+)|
+            (_[^\\]+_)|
+            (=[^\\]+=)|
+            (-[^\\]+-)|
+            (\([^\\]+\))|
+            (\{[^\\]+\})|
+            (\[[^\\]+\])
+            )\\";
+        private static readonly Regex reIgnoredFolder = new Regex(bracketPattern, RegexOptions.Compiled | RegexOptions.IgnorePatternWhitespace);
 
-        public override int GetHashCode()
+        /// <summary>
+        /// Enumerate a directory tree and get a list of folders that contain a shortcut.
+        /// </summary>
+        /// <param name="rootFolder">The root folder to search.</param>
+        /// <returns>Enumerable list of folders contining a shortcut or null if not found.</returns>
+        public static ICollection<string> GetMovieFolders(string rootFolder)
         {
-            unchecked
-            {
-                int hash = 13;
-                foreach(var p in PropertySetters)
-                {
-                    if (p.Name=="Genre")
-                        this.Genre.ForEach(g => { hash = (hash * 7) + g.GetHashCode(); });
-                    else
-                        hash = (hash * 7) + p.Get(this).GetHashCode();
-                }
+            if (!Directory.Exists(rootFolder)) return null;
 
-                return hash;
+            string fx = "beginning of search";
+            try
+            {
+                //Ignore shortcuts in the root folder AND if shortcut is in a bracketed folder (or any of its child folders) the folder is ignored.
+                var hs = DirectoryEx.EnumerateAllFiles(rootFolder, SearchOption.AllDirectories)
+                        .Where(m => m.EndsWith(".url", StringComparison.OrdinalIgnoreCase))
+                        .Select(m => Path.GetDirectoryName(m))
+                        .Select(m => { fx = m; return m; })   //In case of exception, we know where it broke.
+                        .Where(m => m != rootFolder & !MovieProperties.IgnoreFolder(m))
+                        .ToHashSet(StringComparer.OrdinalIgnoreCase);  //There may be multiple shortcuts in a folder, but we may only list the folder once. 
+
+                return hs.Count > 0 ? hs : null;
+            }
+            catch (Exception ex) //System.IO.IOException: The file or directory is corrupted and unreadable.
+            {
+                Log.Write(Severity.Error, $"{ex.GetType().FullName}: {ex.Message}\nFatal Error enumerating movie folder immediately following {fx}.");
+                throw new System.IO.IOException($"{ex.Message} Fatal Error enumerating movie folder immediately following {fx}.", ex);
             }
         }
-
-        public override bool Equals(object obj)
-        {
-            if (!(obj is MovieProperties)) return false;
-            MovieProperties mp = (MovieProperties)obj;
-
-            ////DEBUGGING -- These are all the NOT XmlIgnore'd
-            // var _Cast = this.Cast == mp.Cast;
-            // var _Creators = this.Creators == mp.Creators;
-            // var _Directors = this.Directors == mp.Directors;
-            // var _DisplayHeight = this.DisplayHeight == mp.DisplayHeight;
-            // var _DisplayRatio = this.DisplayRatio == mp.DisplayRatio;
-            // var _DisplayWidth = this.DisplayWidth == mp.DisplayWidth;
-            // var _DownloadDate = this.DownloadDate == mp.DownloadDate;
-            // var _Episode = this.Episode == mp.Episode;
-            // var _EpisodeCount = this.EpisodeCount == mp.EpisodeCount;
-            // var _Genre = this.Genre.SequenceEqual(mp.Genre);   //<==not simple comparison
-            // var _MovieClass = this.MovieClass == mp.MovieClass;
-            // var _MovieName = this.MovieName == mp.MovieName;
-            // var _MoviePosterUrl = this.MoviePosterUrl == mp.MoviePosterUrl;
-            // var _MovieRating = this.MovieRating == mp.MovieRating;
-            // var _Plot = this.Plot == mp.Plot;
-            // var _ReleaseDate = this.ReleaseDate == mp.ReleaseDate;
-            // var _Runtime = this.Runtime == mp.Runtime;
-            // var _Season = this.Season == mp.Season;
-            // var _Summary = this.Summary == mp.Summary;
-            // var _UrlLink = this.UrlLink == mp.UrlLink;
-            // var _Watched = this.Watched == mp.Watched;
-            // var _Writers = this.Writers == mp.Writers;
-            // var _Year = this.Year == mp.Year;
-            // var _YearEnd = this.YearEnd == mp.YearEnd;
-            // var total = _Cast && _Creators && _Directors && _DisplayHeight && _DisplayRatio && _DisplayWidth && _DownloadDate && _Episode && _EpisodeCount && _Genre && _MovieClass && _MovieName && _MoviePosterUrl && _MovieRating && _Plot && _ReleaseDate && _Runtime && _Season && _Summary && _UrlLink && _Watched && _Writers && _Year && _YearEnd;
-
-            return  PropertySetters.All((p) => p.Name=="Genre"? true : p.Get(this).Equals(p.Get(mp))) && this.Genre.SequenceEqual(mp.Genre);
-        }
+        #endregion
 
         /// <summary>
         /// For verbose debugging. Save names of properties that have been assigned a value.
+        /// See DebugLog for alternate debug logging.
         /// </summary>
         // [Conditional("DEBUG")]
         private static class Parser

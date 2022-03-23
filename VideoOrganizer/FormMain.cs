@@ -251,33 +251,6 @@ namespace VideoOrganizer
             SetStatus(Severity.Success, "Completed.");
         }
 
-        //Bug in Regex.Escape(@"~`'!@#$%^&*(){}[].,;+_=-"). It doesn't escape ']'
-        //const string BracketPattern = @"\\[~`'!@\#\$%\^&\*\(\{\[\.,;\+_=-][^\\]+[~`'!@\#\$%\^&\*\)\}\]\.,;\+_=-]\\";   //fast and loose bracket pattern.
-        //Create strict bracket pattern; whatever bracket char folder name starts with, it must also end with.
-        const string BracketPattern = @"\\(
-            (~[^\\]+~)|
-            (`[^\\]+`)|
-            ('[^\\]+')|
-            (![^\\]+!)|
-            (@[^\\]+@)|
-            (\#[^\\]+\#)|
-            (\$[^\\]+\$)|
-            (%[^\\]+%)|
-            (\^[^\\]+\^)|
-            (&[^\\]+&)|
-            (\*[^\\]+\*)|
-            (\.[^\\]+\.)|
-            (,[^\\]+,)|
-            (;[^\\]+;)|
-            (\+[^\\]+\+)|
-            (_[^\\]+_)|
-            (=[^\\]+=)|
-            (-[^\\]+-)|
-            (\([^\\]+\))|
-            (\{[^\\]+\})|
-            (\[[^\\]+\])
-            )\\";
-        private static readonly Regex reIgnoredFolder = new Regex(BracketPattern, RegexOptions.Compiled | RegexOptions.IgnorePatternWhitespace);
         private static IEnumerable<string> UnprocessedMovieList(string rootFolder)
         {
             //We must have a realized list because we may be moving folders and files around causing unrealized enumerations to break.
@@ -285,13 +258,13 @@ namespace VideoOrganizer
 
             //Enumerate all videos. Ignoring all videos with matching shortcuts.
 
-            foreach (var f in Directory.EnumerateFiles(rootFolder, "*.*", SearchOption.AllDirectories))
+            foreach (var f in DirectoryEx.EnumerateAllFiles(rootFolder, SearchOption.AllDirectories))
             {
                 if (!MovieProperties.IsVideoFile(f)) continue;
                 var folder = Path.GetDirectoryName(f);
 
                 //Special: if video is in a bracketed folder (or any of its child folders) the video is ignored. 
-                if (reIgnoredFolder.IsMatch(folder + "\\")) continue;
+                if (MovieProperties.IgnoreFolder(folder)) continue;
 
                 //A video in the root folder is always unprocessed even if there are other shortcuts in
                 //the root folder, because we will be moving the video into its own folder anyway. 

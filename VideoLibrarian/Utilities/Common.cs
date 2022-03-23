@@ -552,6 +552,16 @@ namespace VideoLibrarian
             return (T)MemberwiseCloneMethod.Invoke(obj, new object[0]);
         }
         private static readonly MethodInfo MemberwiseCloneMethod = typeof(Object).GetMethod("MemberwiseClone", BindingFlags.Instance | BindingFlags.NonPublic, null, new Type[0], null);
+
+        /// <summary>Creates a <see cref="T:System.Collections.Generic.HashSet`1" /> from an <see cref="T:System.Collections.Generic.IEnumerable`1" /> using the <paramref name="comparer" /> to compare keys</summary>
+        /// <param name="source">An <see cref="T:System.Collections.Generic.IEnumerable`1" /> to create a <see cref="T:System.Collections.Generic.HashSet`1" /> from.</param>
+        /// <param name="comparer">An <see cref="T:System.Collections.Generic.IEqualityComparer`1" /> to compare keys.</param>
+        /// <typeparam name="TSource">The type of the elements of <paramref name="source" /></typeparam>
+        /// <returns>A <see cref="T:System.Collections.Generic.HashSet`1" /> that contains values of type <paramref name="TSource" /> selected from the input sequence.</returns>
+        public static HashSet<TSource> ToHashSet<TSource>(this IEnumerable<TSource> source, IEqualityComparer<TSource> comparer = null)
+        {
+            return source != null ? new HashSet<TSource>(source, comparer) : throw new ArgumentNullException(nameof(source));
+        }
     }
 
     public static class FormsExtensions

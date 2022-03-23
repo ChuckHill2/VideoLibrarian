@@ -36,19 +36,19 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 using VideoLibrarian;
 
 namespace VideoValidator
 {
     class Program
     {
-        private static readonly string BracketChars = Regex.Escape(@"~`'!@#$%^&*.,;+_=-"); // []{}() are not ignored. Note: This doesn't escape ']' or '}' anyway.
-        private static readonly Regex reIgnoredFolder = new Regex($@"\\[{BracketChars}][^{BracketChars}]+[{BracketChars}]\\", RegexOptions.Compiled);
         private static string[] MediaFolders; //folders to enumerate for *.url and associated video files.
 
         static void Main(string[] args)
         {
-            AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve; //Load embedded assemblies
+            EmbeddedAssemblyResolver.SetResolver(); //Required for embedded assemblies in VideoLibrarian.exe assembly.
             Log.MessageCapture += (Severity sev, string msg) => Console.WriteLine($"{sev}: {msg}");
             ParseCommandLine(args);  //populate MediaFolders from the command-line
 
@@ -100,53 +100,33 @@ namespace VideoValidator
                     continue;
                 }
 
-                Console.WriteLine($"[Enumerating Movie Folders in {mf}]");
-                var hs = new HashSet<string>(StringComparer.OrdinalIgnoreCase); //There may be multiple shortcuts in a folder, but we may only list the folder once. 
-                string fx = "beginning of search";
-                try
-                {
-                    foreach (string f in Directory.EnumerateFiles(mf, "*.url", SearchOption.AllDirectories))
-                    {
-                        fx = f;
-                        var folder = Path.GetDirectoryName(f);
-                        if (folder == mf) continue; //ignore shortcuts in the root folder
-
-                        //Special: if shortcut is in a bracketed folder (or any of its child folders) the video is ignored. 
-                        if (reIgnoredFolder.IsMatch(folder + "\\")) continue;
-
-                        hs.Add(folder);
-                    }
-                }
-                catch (Exception ex) //System.IO.IOException: The file or directory is corrupted and unreadable.
-                {
-                    var emsg = $"{ex.GetType().FullName}: {ex.Message}\nFatal Error enumerating movie folder immediately following {fx}.";
-                    Log.Write(Severity.Error, emsg);
-                    Log.Dispose();
-                    Environment.Exit(1);
-                }
-                Console.WriteLine($"[Enumeration Complete: {hs.Count} movie folders found.]");
-
-                Console.WriteLine("[Begin Verification]");
+                Console.WriteLine($"[Begin {mf} Verification]");
                 int added = 0;
-                foreach (string d in hs.OrderBy(x => x))
-                {
-                    try
-                    {
-                        Console.Write($"{added + 1}\b\b\b\b\b\b"); //Counter to show that we are actually busy working.
+                Parallel.ForEach(DirectoryEx.EnumerateAllFiles(mf, SearchOption.AllDirectories)
+                        .Where(m => m.EndsWith(".url", StringComparison.OrdinalIgnoreCase))
+                        .Select(m => Path.GetDirectoryName(m))
+                        .Where(m => m != mf & !MovieProperties.IgnoreFolder(m))
+                        .ToHashSet(StringComparer.OrdinalIgnoreCase)
+                        .OrderBy(x => x),
+                        folder =>
+                        {
+                            try
+                            {
+                                Console.Write($"{added + 1}\b\b\b\b\b\b"); //Counter to show that we are actually busy working.
 
-                        var p = new MovieProperties(d, false);
-                        if (p.ToString() == "UNKNOWN") //Incomplete/corrupted movie property. See log file.
-                            throw new InvalidDataException($"Incomplete/corrupted movie property for folder: {d}");
+                                var p = new MovieProperties(folder, false);
+                                if (p.ToString() == "UNKNOWN") //Incomplete/corrupted movie property. See log file.
+                                    throw new InvalidDataException($"Incomplete/corrupted movie property for folder: {folder}");
 
-                        p.VerifyVideoFile(); //don't need to do anything with the return value as VerifyVideoFile() already writes the messages to Log.
+                                p.VerifyVideoFile(); //don't need to do anything with the return value as VerifyVideoFile() already writes the messages to Log.
 
-                        added++;
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Write(Severity.Error, $"Movie property failed to load from {d}: {ex.Message}");
-                    }
-                }
+                                Interlocked.Increment(ref added);
+                            }
+                            catch (Exception ex)
+                            {
+                                Log.Write(Severity.Error, $"Movie property failed to load from {folder}: {ex.Message}");
+                            }
+                        });
 
                 Log.Write(Severity.Info, $"{added} movie properties scanned from {mf}");
             }
@@ -201,59 +181,6 @@ files there are (6hrs or more for >2000 videos). This is due to the necessity
 of having to read the entire content of all the large video files.
 ");
             Environment.Exit(1);
-        }
-
-        /// <summary>
-        /// VideoLibrarian.MovieProperties.VerifyVideoFile() may call embedded assembly for retrieving
-        /// properties from within the video file, so we need a mechanism for extracting it upon demand.
-        /// </summary>
-        private static Assembly CurrentDomain_AssemblyResolve(object sender, ResolveEventArgs args)
-        {
-            //This function can ONLY use THIS assembly or assemblies from the GAC because if this routine or attendant
-            //subroutines needs to use an assembly that needs to be "found" then recursion will occur!
-            AssemblyName asmName = new AssemblyName(args.Name);
-            Exception ex = null;
-            Assembly asm = null;
-
-            if (asmName.Name.EndsWith(".resources", StringComparison.OrdinalIgnoreCase)) return null;
-            if (asmName.Name.EndsWith(".XmlSerializers", StringComparison.OrdinalIgnoreCase)) return null;
-
-            try
-            {
-                var loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
-                asm = loadedAssemblies.FirstOrDefault(a => (a.IsDynamic ? false : string.Compare(Path.GetFileNameWithoutExtension(a.Location), asmName.Name, true) == 0));
-                if (asm != null) return asm;
-
-                //Dig deeper. Look for embedded assembly resource only within OUR assemblies.
-                var dllname = $"{asmName.Name}.dll";
-                foreach (Assembly a in loadedAssemblies)
-                {
-                    if (a.IsDynamic) continue;
-                    if (a.Location.ContainsI("Microsoft.NET")) continue; //Exclude microsoft .net assemblies
-
-                    var resname = a.GetManifestResourceNames().FirstOrDefault(m => m.EndsWith("."+dllname, StringComparison.InvariantCultureIgnoreCase));
-                    if (resname == null) continue;
-
-                    var fullpath = Path.Combine(Path.GetDirectoryName(a.Location), dllname);
-                    using (var fs = File.OpenWrite(fullpath)) a.GetManifestResourceStream(resname).CopyTo(fs);
-                    asm = Assembly.LoadFrom(fullpath);
-                    break;
-                }
-            }
-            catch (Exception e) { ex = e; }
-            finally
-            {
-                if (asm == null)
-                {
-                    Log.Write(Severity.Error, "Unresolved assembly: \"{0}\"", args.Name);
-                    if (ex != null) Log.Write(Severity.Error, "Assembly Resolver Error: \"{0}\"", ex);
-                }
-                else
-                {
-                    Log.Write(Severity.Success, "Resolved assembly: \"{0}\"", asm.IsDynamic ? asm.ToString() : asm.Location);
-                }
-            }
-            return asm;
         }
     }
 }
