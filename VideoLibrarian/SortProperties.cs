@@ -131,12 +131,12 @@ namespace VideoLibrarian
             }
             if (etiles == null) return false;
 
-            ITile[] dupeTiles = new ITile[tiles.Length];
-            Array.Copy(tiles, dupeTiles, tiles.Length);
-            Array.Copy(etiles.ToArray(), tiles, tiles.Length);
+            var eTilesArray = etiles.ToArray();
+            var changed = !tiles.SequenceEqual(eTilesArray);
+            Array.Copy(eTilesArray, tiles, tiles.Length);
 
             //Has Sort change the order of tiles?
-            return !tiles.SequenceEqual(dupeTiles);
+            return changed;
         }
 
         public class SortKey

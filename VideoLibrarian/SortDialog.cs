@@ -277,7 +277,7 @@ namespace VideoLibrarian
         {
             if (m_grid.SelectedRows.Count == 0)
             {
-                MiniMessageBox.Show(m_grid, "Select a row\nbefore moving it.", this.Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MiniMessageBox.ShowDialog(m_grid, "Select a row before moving it.", this.Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
             var rw = m_grid.SelectedRows[0];
@@ -295,7 +295,7 @@ namespace VideoLibrarian
         {
             if (m_grid.SelectedRows.Count == 0)
             {
-                MiniMessageBox.Show(m_grid, "Select a row\nbefore moving it.", this.Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MiniMessageBox.ShowDialog(m_grid, "Select a row before moving it.", this.Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
             var rw = m_grid.SelectedRows[0];

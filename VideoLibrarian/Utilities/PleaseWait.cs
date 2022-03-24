@@ -36,6 +36,46 @@ namespace VideoLibrarian
     public partial class PleaseWait : Form
     {
         private int endTicks = 0;
+        private static PleaseWait Worker { get; set; }
+
+        /// <summary>
+        /// Executes the specified delegate, on the thread that owns the PleaseWait dialog's underlying window handle, with the specified list of arguments.
+        /// Force anonymous method to execute on the same thread as the PleaseWait dialog.
+        /// </summary>
+        /// <param name="method">A delegate to a method that takes parameters of the same number and type that are contained in the args parameter.</param>
+        /// <param name="args">An array of objects to pass as arguments to the specified method. This parameter can be null if the method takes no arguments.</param>
+        /// <returns>An System.Object that contains the return value from the delegate being invoked, or null if the delegate has no return value.</returns>
+        /// </summary>
+        /// <param name="retVal">An System.Object that contains the return value from the delegate being invoked, or null if the delegate has no return value.</param>
+        /// <param name="method">A delegate to a method that takes parameters of the same number and type that are contained in the args parameter.</param>
+        /// <param name="args">An array of objects to pass as arguments to the specified method. This parameter can be null if the method takes no arguments.</param>
+        /// <returns>True if succcessful and retVal contains the returned value, if any., Upon false, the delegate was NOT invoked and retVal == null.</returns>
+        public static bool TryInvoke(out object retVal, Delegate method, params object[] args)
+        {
+            if (Worker != null && Worker.InvokeRequired)
+            {
+                retVal = Worker.Invoke(method, args);
+                return true;
+            }
+
+            retVal = null;
+            return false;
+        }
+
+        /// <summary>
+        /// Executes the specified delegate, on the thread that owns the PleaseWait dialog's underlying window handle, with the specified list of arguments.
+        /// Force anonymous method to always execute on the same thread as the PleaseWait dialog.
+        /// Do not use to call a function within the same function! This will lead to recursion! Use TryInvoke() instead.
+        /// </summary>
+        /// <param name="method">A delegate to a method that takes parameters of the same number and type that are contained in the args parameter.</param>
+        /// <param name="args">An array of objects to pass as arguments to the specified method. This parameter can be null if the method takes no arguments.</param>
+        /// <returns>An System.Object that contains the return value from the delegate being invoked, or null if the delegate has no return value.</returns>
+        public static object InvokeW(Delegate method, params object[] args)
+        {
+            if (Worker != null && Worker.InvokeRequired)
+                return Worker.Invoke(method, args);
+            else return method.DynamicInvoke(args);
+        }
 
         /// <summary>
         /// Display a simple message while executing a time intensive operation.
@@ -48,7 +88,9 @@ namespace VideoLibrarian
         public static void Show(IWin32Window owner, string message, Action<object> command, object value = null, int timeout=-1)
         {
             PleaseWait dlg = new PleaseWait(message, command, value, timeout);
+            Worker = dlg;
             dlg.ShowDialog(owner);
+            Worker = null;
         }
 
         private PleaseWait(string message, Action<object> command, object value, int timeout)

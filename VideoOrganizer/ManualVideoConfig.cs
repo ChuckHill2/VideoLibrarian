@@ -545,8 +545,8 @@ namespace VideoOrganizer
                 if (Directory.EnumerateFiles(m_txtMoviePath.Text, "*.*")
                     .Any(f => MovieProperties.IsVideoFile(f)))
                 {
-                    MiniMessageBox.Show(this, "Selecting a folder assumes that this is a TV Series\n" +
-                        "root folder and must not contain a video file\n" +
+                    MiniMessageBox.ShowDialog(this, "Selecting a folder assumes that this is a TV Series " +
+                        "root folder and must not contain a video file " +
                         "You must remove the video file from this folder.",
                         "Selected Series Folder", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
@@ -555,9 +555,9 @@ namespace VideoOrganizer
             //Load any existing properties.
             try { _mp = new MovieProperties(RootFolder, false, justLoadAvailable); }
             catch (Exception ex) 
-            { 
+            {
                 //No properties to load, so we're done loading.
-                MiniMessageBox.Show(this, ex.Message, "Existing Movie Properties");
+                MiniMessageBox.ShowDialog(this, ex.Message, "Existing Movie Properties", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 _mp = new MovieProperties();
                 return; 
             }

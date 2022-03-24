@@ -37,6 +37,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace VideoLibrarian
@@ -113,7 +114,10 @@ namespace VideoLibrarian
         {
             if (this.Settings.MediaFolders.Length == 0)
             {
-                MiniMessageBox.Show(this, "Welcome! This is the first time running VideoLibrarian. Please read\nthe information in the About dialog. This will help you setup your\nmovie layout. When complete, go to File->Settings to enter the\nroot folder of all your movies.", "Initial VideoLibrarian Startup");
+                MiniMessageBox.ShowDialog(this, "Welcome! This is the first time running VideoLibrarian. " +
+                    "Please read the information in the About dialog. This will help you setup your movie layout. " +
+                    "When complete, go to File->Settings to enter the root folder of all your movies.",
+                    "Initial VideoLibrarian Startup",MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
@@ -126,7 +130,9 @@ namespace VideoLibrarian
 
             if (MoviePropertiesList.Count == 0)
             {
-                MiniMessageBox.Show(this, "The media folders specified in File->Settings\nare invalid or no longer contain any movies.\nPlease review File->Status Log for any errors.", "Movie Properties", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MiniMessageBox.ShowDialog(this, "The media folders specified in File->Settings are invalid " +
+                    "or no longer contain any movies. Please review File->Status Log for any errors.",
+                    "Movie Properties", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
@@ -308,7 +314,7 @@ namespace VideoLibrarian
                 case ViewType.LargeTiles:
                     maxTiles = 3167;   //3 window handles/tile
                     PurgeCache(3 * min(mp.Count, maxTiles), key);
-                    view.Tiles = mp.Take(maxTiles).Select(m => TileLargeLite.Create(m)).ToArray();
+                    view.Tiles = mp.Take(maxTiles).Select(m => TileLargeLite.Create(m)).ToArray(); //Can't use .AsParallel().AsOrdered() because WinForms is strictly single-threaded!
                     break;
              #else //Using template tiles for verifying layout.
                 case ViewType.SmallTiles:
@@ -410,7 +416,7 @@ namespace VideoLibrarian
 
             if (CurrentViewTiles.Tiles.Length > 0 && !CurrentViewTiles.Tiles.Any(m => m.IsVisible))
             {
-                MiniMessageBox.Show(this, "Oops! The filter is too restrictive.\nPlease try again.", "Movie Filtering", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MiniMessageBox.ShowDialog(this, "Oops! The filter is too restrictive. Please try again.", "Movie Filtering", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
 
@@ -423,32 +429,57 @@ namespace VideoLibrarian
                 {
                     if (!Directory.Exists(mf))
                     {
-                        Log.Write(Severity.Error, $"Media folder {mf} does not exist.");
+                        Log.Write(Severity.Warning, $"Media folder {mf} does not exist.");
                         continue;
                     }
 
-                    var hs = MovieProperties.GetMovieFolders(mf);
-                    if (hs == null) continue;
+                    string fx = "beginning of search";
+                    HashSet<string> hs;
+                    try
+                    {
+                        // This is evaluated independent of Parallel.ForEach() in order to quickly identify integrity of folder tree and drive itself (Maybe corrupted?)
+                        hs = DirectoryEx.EnumerateAllFiles(mf, SearchOption.AllDirectories)
+                                .Where(m => m.EndsWith(".url", StringComparison.OrdinalIgnoreCase))
+                                .Select(m => Path.GetDirectoryName(m))
+                                .Select(m => { fx = m; return m; })   //In case of exception, we know where it broke.
+                                .Where(m => m != mf & !MovieProperties.IgnoreFolder(m))  //Ignore shortcuts in the root folder AND if shortcut is in a bracketed folder (or any of its child folders) the folder is ignored.
+                                .ToHashSet(StringComparer.OrdinalIgnoreCase);  //There may be multiple shortcuts in a folder, but we may only list the folder once. 
+                    }
+                    catch (Exception ex) //System.IO.IOException: The file or directory is corrupted and unreadable.
+                    {
+                        Log.Write(Severity.Error, $"{ex.GetType().FullName}: {ex.Message}\nFatal Error enumerating movie folder immediately following {fx}.");
+                        throw new System.IO.IOException($"{ex.Message} Fatal Error enumerating movie folder immediately following {fx}.", ex);
+                    }
 
+                    if (hs == null || hs.Count == 0)
+                    {
+                        Log.Write(Severity.Warning, $"Media folder {mf} has no movies.");
+                        continue;
+                    }
+
+                    var lockObj = new Object();
                     int added = 0;
-                    foreach (string d in hs.OrderBy(x => x))
+                    Parallel.ForEach(hs.OrderBy(x => x), folder =>
                     {
                         try
                         {
-                            var p = new MovieProperties(d, forcePropertiesUpdate);
+                            var p = new MovieProperties(folder, forcePropertiesUpdate);
                             if (p.ToString() == "UNKNOWN") //Incomplete/corrupted movie property. See log file. Ignore for now.
-                                throw new InvalidDataException($"Incomplete/corrupted movie property for folder: {d}");
+                                throw new InvalidDataException($"Incomplete/corrupted movie property for folder: {folder}");
 
-                            MoviePropertiesList.Add(p);
-                            added++;
+                            lock (lockObj)
+                            {
+                                MoviePropertiesList.Add(p);
+                                added++;
+                            }
 
-                            if (needsCacheRebuild) TileBase.PurgeTileImages(d); //DPI changed
+                            if (needsCacheRebuild) TileBase.PurgeTileImages(folder); //DPI changed
                         }
                         catch (Exception ex)
                         {
-                            Log.Write(Severity.Error, $"Movie property failed to load from {d}: {ex.Message}");
+                            Log.Write(Severity.Error, $"Movie property failed to load from {folder}: {ex.Message}");
                         }
-                    }
+                    });
 
                     Log.Write(Severity.Info, $"{added} movie properties loaded from {mf}");
                 }

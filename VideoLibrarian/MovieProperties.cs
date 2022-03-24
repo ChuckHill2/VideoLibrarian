@@ -1514,35 +1514,6 @@ namespace VideoLibrarian
             (\[[^\\]+\])
             )\\";
         private static readonly Regex reIgnoredFolder = new Regex(bracketPattern, RegexOptions.Compiled | RegexOptions.IgnorePatternWhitespace);
-
-        /// <summary>
-        /// Enumerate a directory tree and get a list of folders that contain a shortcut.
-        /// </summary>
-        /// <param name="rootFolder">The root folder to search.</param>
-        /// <returns>Enumerable list of folders contining a shortcut or null if not found.</returns>
-        public static ICollection<string> GetMovieFolders(string rootFolder)
-        {
-            if (!Directory.Exists(rootFolder)) return null;
-
-            string fx = "beginning of search";
-            try
-            {
-                //Ignore shortcuts in the root folder AND if shortcut is in a bracketed folder (or any of its child folders) the folder is ignored.
-                var hs = DirectoryEx.EnumerateAllFiles(rootFolder, SearchOption.AllDirectories)
-                        .Where(m => m.EndsWith(".url", StringComparison.OrdinalIgnoreCase))
-                        .Select(m => Path.GetDirectoryName(m))
-                        .Select(m => { fx = m; return m; })   //In case of exception, we know where it broke.
-                        .Where(m => m != rootFolder & !MovieProperties.IgnoreFolder(m))
-                        .ToHashSet(StringComparer.OrdinalIgnoreCase);  //There may be multiple shortcuts in a folder, but we may only list the folder once. 
-
-                return hs.Count > 0 ? hs : null;
-            }
-            catch (Exception ex) //System.IO.IOException: The file or directory is corrupted and unreadable.
-            {
-                Log.Write(Severity.Error, $"{ex.GetType().FullName}: {ex.Message}\nFatal Error enumerating movie folder immediately following {fx}.");
-                throw new System.IO.IOException($"{ex.Message} Fatal Error enumerating movie folder immediately following {fx}.", ex);
-            }
-        }
         #endregion
 
         /// <summary>

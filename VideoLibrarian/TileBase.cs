@@ -445,7 +445,7 @@ namespace VideoLibrarian
                 return;
             }
             //This should never occur since title clicking is disabled in the tile. Well, just in case!
-            if (mp.MoviePath.IsNullOrEmpty() || !File.Exists(mp.MoviePath)) { MiniMessageBox.Show(this, "Movie not found.", "Missing Movie", MessageBoxButtons.OK, MessageBoxIcon.Error); return; }
+            if (mp.MoviePath.IsNullOrEmpty() || !File.Exists(mp.MoviePath)) { MiniMessageBox.ShowDialog(this, "Movie not found.", "Missing Movie", MessageBoxButtons.OK, MessageBoxIcon.Error); return; }
 
             ProcessEx.OpenExec(FormMain.This.Settings.VideoPlayer, mp.MoviePath);
         }

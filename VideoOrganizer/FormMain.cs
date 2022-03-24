@@ -98,13 +98,13 @@ namespace VideoOrganizer
         {
             if (m_txtRoot.Text == string.Empty)
             {
-                MiniMessageBox.Show(this, "Root folder has\nnot yet been set.", m_txtRoot.TextLabel, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MiniMessageBox.ShowDialog(this, "Root folder has not yet been set.", m_txtRoot.TextLabel, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
             if (!Directory.Exists(m_txtRoot.Text))
             {
-                MiniMessageBox.Show(this, "Root folder\ndoes not exist", m_txtRoot.TextLabel, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MiniMessageBox.ShowDialog(this, "Root folder does not exist", m_txtRoot.TextLabel, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
