@@ -32,6 +32,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Windows.Forms;
+using System.Drawing;
 
 namespace VideoLibrarian
 {
@@ -47,6 +48,16 @@ namespace VideoLibrarian
             AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
 
             Application.EnableVisualStyles();
+
+            MiniMessageBox.Colors.CaptionGradientLeft = Color.FromArgb(0,183,195);
+            MiniMessageBox.Colors.CaptionGradientRight = Color.FromArgb(0,194,204);
+            MiniMessageBox.Colors.CaptionText = Color.Black;
+            MiniMessageBox.Colors.InactiveCaptionGradientLeft = Color.Silver;
+            MiniMessageBox.Colors.InactiveCaptionGradientRight = Color.Gainsboro;
+            MiniMessageBox.Colors.InactiveCaptionText = Color.Gray;
+            MiniMessageBox.Colors.MessageText = Color.Black;
+            MiniMessageBox.Colors.Background = Color.White;
+
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new FormMain());
 

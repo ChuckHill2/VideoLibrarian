@@ -164,6 +164,23 @@ namespace VideoLibrarian
         private Rectangle rcMessage;
 
         /// <summary>
+        /// Customize colors of various parts of the message box.
+        /// Any changes are permanant for the life of the application.
+        /// </summary>
+        public static readonly MsgBoxColors Colors = new MsgBoxColors();
+        public class MsgBoxColors
+        {
+            public Color CaptionGradientLeft { get; set; } = Color.FromArgb(15, 42, 111); //Win7 Color  //SystemColors.ActiveCaption;
+            public Color CaptionGradientRight { get; set; } = Color.FromArgb(165, 201, 239); //Win7 Color //SystemColors.GradientActiveCaption
+            public Color CaptionText { get; set; } = SystemColors.HighlightText; //SystemColors.ActiveCaptionText;
+            public Color InactiveCaptionGradientLeft { get; set; } = SystemColors.InactiveCaption;
+            public Color InactiveCaptionGradientRight { get; set; } = SystemColors.GradientInactiveCaption;
+            public Color InactiveCaptionText { get; set; } = SystemColors.GrayText; // SystemColors.InactiveCaptionText;
+            public Color MessageText { get; set; } = SystemColors.WindowText;
+            public Color Background { get; set; } = SystemColors.Window;
+        }
+
+        /// <summary>
         /// Displays a tiny modal (i.e. waits) message box in front of the specified object and with the specified text and caption.
         /// </summary>
         /// <param name="owner">An implementation of System.Windows.Forms.IWin32Window that will own the modal dialog box. A null owner will attempt to find it's owner, which may be the desktop.</param>
@@ -243,7 +260,7 @@ namespace VideoLibrarian
             if (MMDialog != null)
             {
                 var emsg = $"Can show only ONE modalless MiniMessageBox popup at a time.\r\n\r\n[{caption ?? "(null)"}]\r\n{text ?? "(null)"}";
-                MiniMessageBox.ShowDialog(owner, emsg, "Multiple Modalless Popups", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MiniMessageBox.ShowDialog(owner, emsg, "Multiple Modalless Popups", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
@@ -347,6 +364,7 @@ namespace VideoLibrarian
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.FormBorderStyle = FormBorderStyle.None;
+            this.BackColor = Colors.Background;
             this.Name = "MiniMessageBox";
             this.ShowInTaskbar = false;
             this.StartPosition = FormStartPosition.CenterParent;
@@ -361,7 +379,7 @@ namespace VideoLibrarian
             }
 
             IsModal = isModal;
-            CaptionFont = new Font(this.Font, FontStyle.Bold);
+            CaptionFont = new Font(this.Font, FontStyle.Regular);
             MessageIcon = GetMessageIcon(icon, out MessageIconString);
             Message = string.IsNullOrWhiteSpace(msg) ? null : msg.Trim();
             Caption = string.IsNullOrWhiteSpace(caption) ? null : caption.Trim();
@@ -374,7 +392,7 @@ namespace VideoLibrarian
             base.OnHandleCreated(e);
         }
 
-        protected override void OnShown(EventArgs e)
+        protected override void OnLoad(EventArgs e)
         {
             //Compute size and position of all the elements on the popup
 
@@ -464,6 +482,20 @@ namespace VideoLibrarian
             base.Dispose(disposing);
         }
 
+        private bool IsActivated = true; 
+        protected override void OnActivated(EventArgs e)
+        {
+            base.OnActivated(e);
+            IsActivated = true;
+            this.Refresh();
+        }
+        protected override void OnDeactivate(EventArgs e)
+        {
+            base.OnDeactivate(e);
+            IsActivated = false;
+            this.Refresh();
+        }
+
         protected override void OnPaint(PaintEventArgs e)
         {
             const TextFormatFlags flags = TextFormatFlags.HidePrefix | TextFormatFlags.TextBoxControl | TextFormatFlags.VerticalCenter | TextFormatFlags.WordBreak;
@@ -473,7 +505,10 @@ namespace VideoLibrarian
             if (Caption != null)
             {
                 var rc = new RectangleF(0, 0, this.Size.Width, rcDivider.Bottom);
-                using (var br = new LinearGradientBrush(rc, Color.FromArgb(15, 42, 111), Color.FromArgb(165, 201, 239), LinearGradientMode.Horizontal))
+                using (var br = new LinearGradientBrush(rc,
+                    IsActivated ? Colors.CaptionGradientLeft : Colors.InactiveCaptionGradientLeft,
+                    IsActivated ? Colors.CaptionGradientRight : Colors.InactiveCaptionGradientRight,
+                    LinearGradientMode.Horizontal))
                     e.Graphics.FillRectangle(br, rc);
                 if (CaptionIcon != null)
                 {
@@ -481,7 +516,7 @@ namespace VideoLibrarian
                     //e.Graphics.DrawRectangle(Pens.Red, rcCaptionIcon.X, rcCaptionIcon.Y, rcCaptionIcon.Width - 1, rcCaptionIcon.Height - 1);
                 }
 
-                TextRenderer.DrawText(e.Graphics, Caption, CaptionFont, rcCaption, SystemColors.HighlightText, Color.Transparent, flags);
+                TextRenderer.DrawText(e.Graphics, Caption, CaptionFont, rcCaption, IsActivated ? Colors.CaptionText : Colors.InactiveCaptionText, Color.Transparent, flags);
                 //e.Graphics.DrawRectangle(Pens.Red, rcCaption.X, rcCaption.Y, rcCaption.Width - 1, rcCaption.Height - 1);
 
                 e.Graphics.DrawLine(SystemPens.ActiveBorder, rcDivider.Left, rcDivider.Top, rcDivider.Right, rcDivider.Top);
@@ -495,7 +530,7 @@ namespace VideoLibrarian
             }
             if (Message != null)
             {
-                TextRenderer.DrawText(e.Graphics, Message, this.Font, rcMessage, SystemColors.ActiveCaptionText, Color.Transparent, flags);
+                TextRenderer.DrawText(e.Graphics, Message, this.Font, rcMessage, Colors.MessageText, Color.Transparent, flags);
                 //e.Graphics.DrawRectangle(Pens.Red, rcMessage.X, rcMessage.Y, rcMessage.Width - 1, rcMessage.Height - 1);
             }
 
