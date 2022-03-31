@@ -57,6 +57,8 @@ namespace VideoLibrarian
             MiniMessageBox.Colors.InactiveCaptionText = Color.Gray;
             MiniMessageBox.Colors.MessageText = Color.Black;
             MiniMessageBox.Colors.Background = Color.White;
+            MiniMessageBox.Colors.CaptionFont = global::VideoLibrarian.ResourceCache.FontRegular;
+            MiniMessageBox.Colors.MessageFont = global::VideoLibrarian.ResourceCache.FontRegular;
 
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new FormMain());

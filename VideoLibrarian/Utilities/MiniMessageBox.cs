@@ -33,10 +33,12 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
-// Lifted from ChuckHill2.Utilities
+// Lifted from ChuckHill2,Utilities.Forms
+// Depends on GDI.ExtractAssociatedIcon() and GDI.ApplyShadows() only.
 
 namespace VideoLibrarian
 {
@@ -151,6 +153,7 @@ namespace VideoLibrarian
         private Resources resx = new Resources();
         private System.Drawing.Icon CaptionIcon = GetAppIcon();
         private Font CaptionFont;
+        private Font MessageFont;
         private Image MessageIcon;
         private string MessageIconString; //for clipboard
         private string Message;
@@ -164,20 +167,77 @@ namespace VideoLibrarian
         private Rectangle rcMessage;
 
         /// <summary>
-        /// Customize colors of various parts of the message box.
-        /// Any changes are permanant for the life of the application.
+        /// Customize colors and fonts of various parts of the message box.
         /// </summary>
+        /// <remarks>
+        /// Any changes are permanant until explicitly changed again.<br/>
+        /// If the properties need to be restored back after a special messagebox, then the caller must save them first.<br/>
+        /// If the custom fonts are set, then the caller is responsible of disposing of them later.
+        /// </remarks>
         public static readonly MsgBoxColors Colors = new MsgBoxColors();
         public class MsgBoxColors
         {
+            /// <summary>
+            /// Starting gradient color of caption. Default is the classic Win7 caption color.
+            /// </summary>
             public Color CaptionGradientLeft { get; set; } = Color.FromArgb(15, 42, 111); //Win7 Color  //SystemColors.ActiveCaption;
+            /// <summary>
+            /// Ending gradient color of caption. Default is the classic Win7 caption color.
+            /// </summary>
             public Color CaptionGradientRight { get; set; } = Color.FromArgb(165, 201, 239); //Win7 Color //SystemColors.GradientActiveCaption
+            /// <summary>
+            /// Color of the caption text. Default is SystemColors.HighlightText (aka White)
+            /// </summary>
             public Color CaptionText { get; set; } = SystemColors.HighlightText; //SystemColors.ActiveCaptionText;
+            /// <summary>
+            /// Font used for the caption text. Default is null, aka whatever is the window's default font.
+            /// </summary>
+            public Font  CaptionFont { get; set; } = null;  //null == default font
+            /// <summary>
+            /// Starting gradient color of the inactive caption.  Default is SystemColors.InactiveCaption (aka faded blue)
+            /// </summary>
             public Color InactiveCaptionGradientLeft { get; set; } = SystemColors.InactiveCaption;
+            /// <summary>
+            /// Ending gradient color of the inactive caption.  Default is SystemColors.GradientInactiveCaption (aka faded blue)
+            /// </summary>
             public Color InactiveCaptionGradientRight { get; set; } = SystemColors.GradientInactiveCaption;
+            /// <summary>
+            /// Color of the inactive caption text. Default is SystemColors.GrayText (aka Gray)
+            /// </summary>
             public Color InactiveCaptionText { get; set; } = SystemColors.GrayText; // SystemColors.InactiveCaptionText;
+            /// <summary>
+            /// Color of the message text. Default is SystemColors.WindowText (aka Black)
+            /// </summary>
             public Color MessageText { get; set; } = SystemColors.WindowText;
+            /// <summary>
+            /// Font used for the message text. Default is null, aka whatever is the window's default font.
+            /// </summary>
+            public Font  MessageFont { get; set; } = null;  //null == default font
+            /// <summary>
+            /// Color of the message text background. Default is SystemColors.Window (aka White)
+            /// </summary>
             public Color Background { get; set; } = SystemColors.Window;
+
+            /// <summary>
+            /// Create shallow copy of these properties. Meaning the fonts refer to the same font (class, by-ref) object. The colors are structs and copied by value.
+            /// This is useful when the messagebox is changed for only one instance.
+            /// </summary>
+            /// <returns>MsgBoxColors copy.</returns>
+            public MsgBoxColors Backup() => (MsgBoxColors)typeof(Object).GetMethod("MemberwiseClone", BindingFlags.Instance | BindingFlags.NonPublic, null, new Type[0], null).Invoke(this, new object[0]);
+
+            /// <summary>
+            /// Copy all the values back into this object. Note: the original font instances to be overriden are NOT disposed. 
+            /// </summary>
+            /// <param name="backupProperties">Object to copy all the values from.</param>
+            public void Restore(MsgBoxColors backupProperties)
+            {
+                if (backupProperties == null) throw new ArgumentNullException(nameof(backupProperties));
+                foreach(var p in typeof(MsgBoxColors).GetProperties())
+                {
+                    //if (p.PropertyType.IsClass && typeof(IDisposable).IsAssignableFrom(p.PropertyType)) ((IDisposable)p.GetValue(clr)).Dispose();
+                    p.SetValue(this, p.GetValue(backupProperties));
+                }
+            }
         }
 
         /// <summary>
@@ -357,7 +417,7 @@ namespace VideoLibrarian
             this.Close();
         }
 
-        //private constructor
+        //*********** private constructor *******************************************************************************
         private MiniMessageBox(bool isModal, string msg, string caption, Buttons buttons, Symbol icon)
         {
             this.SuspendLayout();
@@ -379,7 +439,9 @@ namespace VideoLibrarian
             }
 
             IsModal = isModal;
-            CaptionFont = new Font(this.Font, FontStyle.Regular);
+
+            MessageFont = Colors.MessageFont ?? this.Font;
+            CaptionFont = Colors.CaptionFont ?? this.Font;
             MessageIcon = GetMessageIcon(icon, out MessageIconString);
             Message = string.IsNullOrWhiteSpace(msg) ? null : msg.Trim();
             Caption = string.IsNullOrWhiteSpace(caption) ? null : caption.Trim();
@@ -398,12 +460,12 @@ namespace VideoLibrarian
 
             this.SuspendLayout();
             const int Border = 2;
-            int Spacing = this.Font.Height / 2; //spacing beteween the elements in the client area.
+            int Spacing = MessageFont.Height / 2; //spacing beteween the elements in the client area.
             Size szButton = Size.Empty;
             Size szButtonGroup = Size.Empty;
             if (ButtonNames.Length > 0)
             {
-                szButton = new Size(ButtonNames.Max(s => ComputeTextDimensions(null, s, this.Font, int.MaxValue).Width) + 10, ComputeTextDimensions(null, "H", this.Font, int.MaxValue).Height + 10);
+                szButton = new Size(ButtonNames.Max(s => ComputeTextDimensions(null, s, MessageFont, int.MaxValue).Width) + 10, ComputeTextDimensions(null, "H", MessageFont, int.MaxValue).Height + 10);
                 szButtonGroup = new Size(ButtonNames.Length * (szButton.Width + Spacing) - Spacing, szButton.Height);
             }
 
@@ -421,9 +483,9 @@ namespace VideoLibrarian
             Size szMessage = new Size(0, szMessageIcon.Height);
             if (Message != null)
             {
-                szMessage = ComputeTextDimensions(null, Message, this.Font);
+                szMessage = ComputeTextDimensions(null, Message, MessageFont);
                 int max = Math.Max(Math.Max(szButtonGroup.Width, szCaptionIcon.Width + 1 + szCaption.Width), szMessageIcon.Width + Spacing + szMessage.Width);
-                szMessage = ComputeTextDimensions(null, Message, this.Font, max - szMessageIcon.Width - 1);
+                szMessage = ComputeTextDimensions(null, Message, MessageFont, max - szMessageIcon.Width - 1);
                 if (szMessageIcon.Height > szMessage.Height) szMessage.Height = szMessageIcon.Height;
             }
 
@@ -475,7 +537,6 @@ namespace VideoLibrarian
 
         protected override void Dispose(bool disposing)
         {
-            if (CaptionFont != null) { CaptionFont.Dispose(); CaptionFont = null; }
             if (CaptionIcon != null) { CaptionIcon.Dispose(); CaptionIcon = null; }
             if (resx != null) { resx.Dispose(); resx = null; }
 
@@ -530,7 +591,7 @@ namespace VideoLibrarian
             }
             if (Message != null)
             {
-                TextRenderer.DrawText(e.Graphics, Message, this.Font, rcMessage, Colors.MessageText, Color.Transparent, flags);
+                TextRenderer.DrawText(e.Graphics, Message, MessageFont, rcMessage, Colors.MessageText, Color.Transparent, flags);
                 //e.Graphics.DrawRectangle(Pens.Red, rcMessage.X, rcMessage.Y, rcMessage.Width - 1, rcMessage.Height - 1);
             }
 
