@@ -176,34 +176,12 @@ namespace VideoLibrarian
                 {
                     if (MoviePosterPath.IsNullOrEmpty() || !File.Exists(MoviePosterPath))
                     {
-                        if (MoviePosterUrl.IsNullOrEmpty()) SetMoviePosterUrl(null); //Get the poster URL (not the jpg image) from the IMDB web site.
-
-                        if (!MoviePosterUrl.IsNullOrEmpty())
-                        {
-                            if (MoviePosterUrl.StartsWith("http"))
-                            {
-                                var job = new FileEx.Job(MoviePosterUrl, this.PathPrefix + FileEx.GetUrlExtension(MoviePosterUrl), "https://www.imdb.com/");
-                                if (FileEx.Download(job))
-                                {
-                                    MoviePosterPath = job.Filename;
-                                    TileBase.PurgeTileImages(Path.GetDirectoryName(this.PathPrefix));
-                                }
-                                else this.DeleteFileCacheUponExit = FileCacheScope.ImagesOnly;
-                            }
-                            else
-                            {
-                                var file = MoviePosterUrl.StartsWith("file:///") ? new Uri(MoviePosterUrl).LocalPath : MoviePosterUrl;
-                                if (File.Exists(file))
-                                {
-                                    MoviePosterPath = Path.ChangeExtension(MoviePosterPath, Path.GetExtension(file));
-                                    File.Copy(file, MoviePosterPath, true);
-                                    TileBase.PurgeTileImages(Path.GetDirectoryName(ShortcutPath));
-                                }
-                            }
-                        }
+                        SetMoviePosterUrl(null); //Get the poster URL (not the jpg image) from the IMDB web site.
+                        DownloadMoviePosterFile();
                     }
 
-                    if (MoviePosterPath.IsNullOrEmpty() || !File.Exists(MoviePosterPath)) _moviePosterImg = CreateBlankPoster(this.MovieName);
+                    if (MoviePosterPath.IsNullOrEmpty() || !File.Exists(MoviePosterPath))
+                        _moviePosterImg = CreateBlankPoster(this.MovieName);
                     else
                     {
                         try
@@ -546,6 +524,7 @@ namespace VideoLibrarian
 
             // Set this.MoviePosterUrl. Must be after ReleaseDate initialization.
             if (SetMoviePosterUrl(html)) Parser.Found("MoviePosterUrlW");
+            DownloadMoviePosterFile();
 
             if (EpisodeCount == 0 && MovieClass.EndsWith("Series"))
             {
@@ -683,6 +662,7 @@ namespace VideoLibrarian
             {
                 MoviePosterUrl = props1["primaryImage"]["url"]?.Value ?? string.Empty;
                 Parser.Found(MoviePosterUrl, "MoviePosterUrlJ");
+                DownloadMoviePosterFile();
             }
 
             if (Genre.IsNullOrEmpty())
@@ -808,8 +788,9 @@ namespace VideoLibrarian
         /// <summary>
         /// Set URL to movie poster if it doesn't already exist.
         /// Used by ParseImdbPage() and MoviePosterImg getter property.
+        /// If this.MoviePosterUrl exists, this function does nothing.
         /// </summary>
-        /// <param name="html"></param>
+        /// <param name="html">IMDB web page html code or null to load local file copy or download from web ourselves</param>
         /// <returns>True if this.MoviePosterUrl modified.</returns>
         private bool SetMoviePosterUrl(string html)
         {
@@ -910,6 +891,58 @@ namespace VideoLibrarian
             if (ReleaseDate.AddMonths(1) > DateTime.Now && !File.Exists(this.MoviePosterPath))
                 this.DeleteFileCacheUponExit = FileCacheScope.All;
             return false; //no change. couldn't find poster url.
+        }
+
+        /// <summary>
+        /// Download the movie poster jpg if it does not yet exist.
+        /// If the movie poster jpg already exists, this function does nothing.
+        /// In order to download, this.MoviePosterUrl not be empty and refer to a valid http or local file image (local as not within this movie folder).
+        /// </summary>
+        /// <returns>True if local image file exists.</returns>
+        private bool DownloadMoviePosterFile()
+        {
+            if (File.Exists(MoviePosterPath)) return true;
+            if (MoviePosterUrl.IsNullOrEmpty()) return false;
+
+            try
+            {
+                if (MoviePosterUrl.StartsWith("http"))
+                {
+                    var job = new FileEx.Job(MoviePosterUrl, this.PathPrefix + FileEx.GetUrlExtension(MoviePosterUrl), "https://www.imdb.com/");
+                    if (FileEx.Download(job))
+                    {
+                        MoviePosterPath = job.Filename;
+                        TileBase.PurgeTileImages(Path.GetDirectoryName(this.PathPrefix));
+                        return true;
+                    }
+                    else
+                    {
+                        this.DeleteFileCacheUponExit = FileCacheScope.ImagesOnly;
+                        return false;
+                    }
+                }
+                else
+                {
+                    var file = MoviePosterUrl.StartsWith("file:///") ? new Uri(MoviePosterUrl).LocalPath : MoviePosterUrl;
+                    if (File.Exists(file))
+                    {
+                        MoviePosterPath = Path.ChangeExtension(MoviePosterPath, Path.GetExtension(file));
+                        File.Copy(file, MoviePosterPath, true);
+                        TileBase.PurgeTileImages(Path.GetDirectoryName(ShortcutPath));
+                        return true;
+                    }
+                    else
+                    {
+                        this.DeleteFileCacheUponExit = FileCacheScope.ImagesOnly;
+                        return false;
+                    }
+                }
+            }
+            catch(Exception ex)
+            {
+                Log.Write(Severity.Error, $"Download of {this.SortKey} poster image failed. {ex.Message}");
+                return false;
+            }
         }
 
         private string CreateFullMovieName()

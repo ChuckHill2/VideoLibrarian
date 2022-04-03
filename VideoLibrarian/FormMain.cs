@@ -459,7 +459,16 @@ namespace VideoLibrarian
 
                     var lockObj = new Object();
                     int added = 0;
-                    Parallel.ForEach(hs.OrderBy(x => x), folder =>
+
+                    //Need to restrict max threads if there are too many downloads needed (aka new
+                    //MovieProperty xml files) because flooding the IMDB webserver will drop downloads.
+                    //Testing showed that the web server started failing after 500 concurrent downloads.
+                    var options = new ParallelOptions();
+                    //if (hs.Sum(m => Directory.EnumerateFiles(m, "tt*.xml").Count() == 0 ? 1 : 0) > 400)
+                    //    options.MaxDegreeOfParallelism = 400; //default == -1 infinite.
+                    // The question is do I really need to support this for normal usage?
+
+                    Parallel.ForEach(hs.OrderBy(x => x), options, folder =>
                     {
                         try
                         {

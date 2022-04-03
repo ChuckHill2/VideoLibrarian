@@ -74,12 +74,19 @@ namespace UpdateXml
                 Console.WriteLine($"[Enumerating Movie Folders in {mf}]");
                 int added = 0;
 
+                //Need to restrict max threads if there are too many downloads needed (aka new
+                //MovieProperty xml files) because flooding the IMDB webserver will drop downloads.
+                //Testing showed that the web server started failing after 500 concurrent downloads.
+                var options = new ParallelOptions();
+                options.MaxDegreeOfParallelism = 400; //default == -1 infinite.
+
                 Parallel.ForEach(DirectoryEx.EnumerateAllFiles(mf, SearchOption.AllDirectories)
                         .Where(m => m.EndsWith(".url", StringComparison.OrdinalIgnoreCase))
                         .Select(m => Path.GetDirectoryName(m))
                         .Where(m => m != mf & !MovieProperties.IgnoreFolder(m))
                         .ToHashSet(StringComparer.OrdinalIgnoreCase)
                         .OrderBy(x => x),
+                        options,
                         folder =>
                 {
                     string xmlFile;

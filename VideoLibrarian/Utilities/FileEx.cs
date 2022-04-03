@@ -90,7 +90,7 @@ namespace VideoLibrarian
         /// DO NOT USE for security encryption.
         /// </summary>
         /// <param name="filename">File content to generate hash from.</param>
-        /// <returns>Guid</returns>
+        /// <returns>Guid hash. Upon error (null, file not found, file locked, invalid permissions, etc) returns empty guid.</returns>
         public static Guid GetHash(string filename)
         {
             if (filename.IsNullOrEmpty()) return Guid.Empty;
@@ -107,35 +107,6 @@ namespace VideoLibrarian
             catch
             {
                 return Guid.Empty;
-            }
-        }
-
-        /// <summary>
-        /// Get or set FIPS compliance flag.
-        /// A hacky way to allow non-FIPS compliant algorthms to run.
-        /// Non-FIPS compliant algorthims are:
-        ///     MD5CryptoServiceProvider,
-        ///     RC2CryptoServiceProvider,
-        ///     RijndaelManaged,
-        ///     RIPEMD160Managed,
-        ///     SHA1Managed,
-        ///     SHA256Managed,
-        ///     SHA384Managed,
-        ///     SHA512Managed,
-        ///     AesManaged,
-        ///     MD5Cng. 
-        /// In particular, enables use of fast MD5 hash to create unique identifiers for internal use.
-        /// </summary>
-        private static bool FIPSCompliance
-        {
-            get { return CryptoConfig.AllowOnlyFipsAlgorithms; }
-            set
-            {
-                FieldInfo fi;
-                fi = typeof(CryptoConfig).GetField("s_fipsAlgorithmPolicy", BindingFlags.Static | BindingFlags.NonPublic);
-                if (fi != null) fi.SetValue(null, value);
-                fi = typeof(CryptoConfig).GetField("s_haveFipsAlgorithmPolicy", BindingFlags.Static | BindingFlags.NonPublic);
-                if (fi != null) fi.SetValue(null, true);
             }
         }
 
@@ -222,7 +193,7 @@ namespace VideoLibrarian
         /// <summary>
         /// Get html file content as string without unecessary whitespace,
         /// no newlines and replace all double-quotes with single-quotes.
-        /// Sometimes html quoting is done with single-quotes and sometimes with double-quotes.
+        /// Sometimes html quoting is done with single-quotes and sometimes with double-quotes. Note this breaks javascript and json.
         /// These fixups are all legal html and also make it easier to parse with Regex.
         /// </summary>
         /// <param name="filename">Name of HTML file to reformat.</param>
@@ -270,10 +241,20 @@ namespace VideoLibrarian
 
         /// <summary>
         /// Download a URL output into a local file.
-        /// Will not throw an exception. Errors are written to Log.Write().
         /// </summary>
         /// <param name="data">Job to download (url and suggested destination filename, plus more)</param>
         /// <returns>True if successfully downloaded</returns>
+        /// <remarks>
+        /// Thread-safe<br/>
+        /// Will not throw an exception. Errors are written to Log.Write().<br/>
+        /// Upon successful download:<br/>
+        /// • File date is set to the object date on the server.<br/>
+        /// • File extension is updated to reflect the server mime type.<br/>
+        /// • If file already exists, file version is incremented. (e.g. fileame(ver).ext)<br/>
+        /// • Job.Cookie is assigned if empty.<br/>
+        /// • Job.Filename is always updated to the new filename.<br/>
+        /// • Job.Url is always updated to the actual url used by the server (redirect?)
+        /// </remarks>
         public static bool Download(Job data)
         {
             //This string is apparently not stored anywhere. It must be retrieved as a response from a web service via the browser of choice. It cannot be retrieved offline! Arrgh! Google: what is my useragent
@@ -292,12 +273,8 @@ namespace VideoLibrarian
 
                 //Fix for exception: The request was aborted: Could not create SSL/TLS secure channel
                 //https://stackoverflow.com/questions/10822509/the-request-was-aborted-could-not-create-ssl-tls-secure-channel
-                if (ServicePointManager.ServerCertificateValidationCallback==null)
-                    ServicePointManager.ServerCertificateValidationCallback = delegate { return true; }; //Skip validation of SSL/TLS certificate
-                if (uri.Host.EndsWith("amazon.com", StringComparison.OrdinalIgnoreCase)) //HACK: Empirically required for httpś://m.media-amazon.com/images/ poster images.
-                    ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls;
-                else
-                    ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls | SecurityProtocolType.Ssl3;
+                //if (ServicePointManager.ServerCertificateValidationCallback==null)
+                //    ServicePointManager.ServerCertificateValidationCallback = delegate { return true; }; //Skip validation of SSL/TLS certificate
 
                 using (var web = new MyWebClient())
                 {
@@ -307,7 +284,7 @@ namespace VideoLibrarian
                     web.Headers[HttpRequestHeader.AcceptLanguage] = "en-US,en;q=0.5"; //always set language to english so our web scraper only has to deal with only a single language.
                     data.Filename = FileEx.GetUniqueFilename(data.Filename); //creates empty file as placeholder
 
-                    web.DownloadFile(data.Url, data.Filename);
+                    web.DownloadFile(data.Url, data.Filename); //This will throw an exception if the url cannot be downloaded.
 
                     data.Url = web.ResponseUrl; //update url to what the Web server thinks it is.
                     string cookie = web.ResponseHeaders[HttpResponseHeader.SetCookie];
@@ -350,17 +327,44 @@ namespace VideoLibrarian
                     responseStatus = (response == null ? (HttpStatusCode)0 : response.StatusCode);
                     status = we.Status;
                 }
-                if (responseStatus == (HttpStatusCode)308) //The remote server returned an error: (308) Permanent Redirect.
+
+                //Occurs when the web server is flooded with our requests due to multi-threading.
+                if (status== WebExceptionStatus.RequestCanceled || status == WebExceptionStatus.Timeout || status == WebExceptionStatus.UnknownError)
                 {
-                    Log.Write(Severity.Error, $"duration={((Environment.TickCount - t1) / 1000f):F2} sec, {data.Url} ==> {Path.GetFileName(data.Filename)}: {ex.GetType().Name}:{ex.Message}\n       Shortcut may be corrupted!");
-                }
-                else
-                {
-                    Log.Write(Severity.Error, $"duration={((Environment.TickCount - t1) / 1000f):F2} sec, {data.Url} ==> {Path.GetFileName(data.Filename)}: {ex.GetType().Name}:{ex.Message}");
+                    if (data.RetryCount < 6)
+                    {
+                        data.RetryCount++;
+                        Log.Write(Severity.Warning, $"{status}: Download Retry {data.RetryCount} {data.Url} ==> {Path.GetDirectoryName(data.Filename)}");
+                        Thread.Sleep(2000);
+                        if (Download(data)) return true;
+                    }
                 }
 
+                var eStatusMsg = DownloadStatus(status, responseStatus); //logically combines both web and http status's into a single string.
+
+                //Occurs when the IMDB url has changed or is no longer valid. Requires user to manually update the IMDB shortcut.
+                if (responseStatus == (HttpStatusCode)308) //The remote server returned an error: (308) Permanent Redirect.
+                {
+                    Log.Write(Severity.Error, $"{eStatusMsg} {data.Url} ==> {Path.GetDirectoryName(data.Filename)}: {ex.GetType().Name}:{ex.Message}\nShortcut may be corrupted!");
+                    return false;
+                }
+
+                Log.Write(Severity.Error, $"{eStatusMsg} {data.Url} ==> {Path.GetDirectoryName(data.Filename)}: {ex.GetType().Name}:{ex.Message}");
                 return false;
             }
+        }
+
+        private static string DownloadStatus(WebExceptionStatus status, HttpStatusCode responseStatus)
+        {
+            var sb = new StringBuilder();
+            if (status != 0) sb.Append(status);
+            if (responseStatus != 0)
+            {
+                if (sb.Length > 0) sb.Append("/");
+                sb.Append($"{responseStatus}({(int)responseStatus})");
+            }
+
+            return sb.ToString();
         }
 
         private static string GetDefaultExtension(string mimeType, string defalt) //used exclusively by Download()
@@ -410,6 +414,11 @@ namespace VideoLibrarian
         /// </summary>
         public class Job
         {
+            /// <summary>
+            /// For Internal use by FileEx.Download()
+            /// </summary>
+            public int RetryCount = 0;
+
             /// <summary>
             /// Previous job url. Now the referrer to this new job. 
             /// </summary>

@@ -9,15 +9,15 @@ TV via an HDMI connection (or other means) to your laptop (e.g. larger fonts).
 
 ## Prerequisites
 
-VideoLibrarian uses .NET 4.5. If you are using Windows 7 or earlier, then you must first install .NET 4.5. If you attempt to run this utility and .NET 4.5 is NOT installed, this application will fail to run.
+VideoLibrarian uses .NET Framework 4.8. If you are using a version of Windows prior to Windows 10, then you must first install .NET 4.8. If you attempt to run this utility and .NET Framework 4.8 is NOT installed, this application will fail to run.
 
-You may download and install .NET 4.5 from:  
-<http://www.microsoft.com/en-us/download/details.aspx?id=30653>
+You may download and install .NET 4.8 from:  
+<https://dotnet.microsoft.com/en-us/download/dotnet-framework>
 
 ## Installation
 
 Copy VideoLibrarian.exe to any new or existing writable directory.
-Copy the optional companion utilities VideoOrganizer.exe and VideoValidator.exe to the same folder.
+Copy the optional companion utilities VideoOrganizer.exe, VideoValidator.exe, and UpdateXml.exe to the same folder.
 That's it!
 
 Upon execution, VideoLibrarian.exe will create additional files in the same
@@ -70,6 +70,9 @@ Click on *About* for additional documentation on how to use it.
 
 ### Video Anti-Corruption Verification
 Because hard drives are not infallible, video files may get corrupted over time. *VideoValidator.exe* will go through all your VideoLibrarian videos and validate that they are not corrupted. It does not fix them but it does help you identify them. *VideoValidator.exe* is a console application. Run the application with the '/?' argument to get a more comprehensive description regarding usage.
+
+### Movie Properties Refresh
+Movie descriptions, ratings, and other properties may change over time, so in order to get the latest information from IMDB, *UpdateXML.exe* will update all the xml movie property files in an entire movie folder tree. It will not modify the movie poster images or the Watch flag. All other properties are updated including video validation information. If you are unsure that all the videos are not corrupted, run *VideoValidator.exe* first. *UpdateXML.exe* is a console application. Run the application with the '/?' argument to get a more comprehensive description regarding usage. As always, everything that is displayed, is also written to UpdateXML.log.
 
 ### Generated Cache Files
 These cache files reside in the same folders as the shortcut files. They are 
