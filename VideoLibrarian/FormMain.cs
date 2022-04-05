@@ -443,7 +443,24 @@ namespace VideoLibrarian
                                 .Select(m => Path.GetDirectoryName(m))
                                 .Select(m => { fx = m; return m; })   //In case of exception, we know where it broke.
                                 .Where(m => m != mf & !MovieProperties.IgnoreFolder(m))  //Ignore shortcuts in the root folder AND if shortcut is in a bracketed folder (or any of its child folders) the folder is ignored.
-                                .ToHashSet(StringComparer.OrdinalIgnoreCase);  //There may be multiple shortcuts in a folder, but we may only list the folder once. 
+                                .ToHashSet(StringComparer.OrdinalIgnoreCase);  //There may be multiple shortcuts in a folder, but we may only list the folder once.
+
+                        // May need to restrict max threads if there are too many downloads needed (aka new
+                        // MovieProperty xml files) because flooding the IMDB webserver will drop downloads.
+                        // But we want to load full speed (max threads) when loading local properties only.
+                        // This example will do this.
+                        //
+                        // var re = new Regex(@"\\tt[0-9]+\.xml$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+                        // Dictionary<bool,HashSet<string>> dict = DirectoryEx.EnumerateAllFiles(mf, SearchOption.AllDirectories)
+                        //        .Where(m => m.EndsWith(".url", StringComparison.OrdinalIgnoreCase))
+                        //        .Select(m => Path.GetDirectoryName(m))
+                        //        .Select(m => { fx = m; return m; })   //In case of exception, we know where it broke.
+                        //        .Where(m => m != mf & !MovieProperties.IgnoreFolder(m))  //Ignore shortcuts in the root folder AND if shortcut is in a bracketed folder (or any of its child folders) the folder is ignored.
+                        //        .GroupBy(m => DirectoryEx.EnumerateAllFiles(m).Where(n => re.IsMatch(n)).FirstOrDefault() == null)
+                        //        .ToDictionary(m => m.Key, n => n.ToHashSet(StringComparer.OrdinalIgnoreCase));
+                        // key==true==missing tt*.xml
+                        // key==false==has tt*.xml
+                        // elapsed 375 ms, 60% slower
                     }
                     catch (Exception ex) //System.IO.IOException: The file or directory is corrupted and unreadable.
                     {
@@ -460,12 +477,12 @@ namespace VideoLibrarian
                     var lockObj = new Object();
                     int added = 0;
 
-                    //Need to restrict max threads if there are too many downloads needed (aka new
-                    //MovieProperty xml files) because flooding the IMDB webserver will drop downloads.
-                    //Testing showed that the web server started failing after 500 concurrent downloads.
+                    // Need to restrict max threads if there are too many downloads needed (aka new
+                    // MovieProperty xml files) because flooding the IMDB webserver will drop downloads.
+                    // Testing showed that the web server started failing after 500 concurrent downloads.
                     var options = new ParallelOptions();
-                    //if (hs.AsParallel().Sum(m => Directory.EnumerateFiles(m, "tt*.xml").Count() == 0 ? 1 : 0) > 400)
-                    //    options.MaxDegreeOfParallelism = 100; //default == -1 infinite.
+                    // if (hs.AsParallel().Sum(m => Directory.EnumerateFiles(m, "tt*.xml").Count() == 0 ? 1 : 0) > 400)
+                    //     options.MaxDegreeOfParallelism = 100; //default == -1 infinite.
                     // The question is do I really need to support this for normal usage?
 
                     Parallel.ForEach(hs.OrderBy(x => x), options, folder =>
