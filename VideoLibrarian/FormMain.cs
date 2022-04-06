@@ -177,30 +177,30 @@ namespace VideoLibrarian
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
             mouseHook.Dispose();
-            try { SaveState(); }
-            catch (Exception ex) { Log.Write(Severity.Error, $"SaveState: {ex}"); }
-            PleaseWait.Show(this, "Saving Movie Info...", (state) =>
-            {
-                try
-                {
-                    foreach (var p in MoviePropertiesList)
-                    {
-                        if (p.Episodes != null)
-                        {
-                            foreach (var p2 in p.Episodes)
-                            {
-                                p2.Serialize();
-                                DeleteFileCache(p2);
-                            }
-                        }
-                        p.Serialize();
-                        DeleteFileCache(p);
-                    }
-                }
-                catch (Exception ex) { Log.Write(Severity.Error, $"Serializing MovieProperties: {ex}"); }
-            });
-
+            SaveState();
+            SaveAllMovieProperties();
             base.OnFormClosing(e);
+        }
+
+        private void SaveAllMovieProperties()
+        {
+            try
+            {
+                foreach (var p in MoviePropertiesList)
+                {
+                    if (p.Episodes != null)
+                    {
+                        foreach (var p2 in p.Episodes)
+                        {
+                            p2.Serialize();
+                            DeleteFileCache(p2);
+                        }
+                    }
+                    p.Serialize();
+                    DeleteFileCache(p);
+                }
+            }
+            catch (Exception ex) { Log.Write(Severity.Error, $"Serializing MovieProperties: {ex}"); }
         }
 
         private static void DeleteFileCache(MovieProperties p)
@@ -226,45 +226,52 @@ namespace VideoLibrarian
 
         private void SaveState()
         {
-            //Nothing to save if there are no movie property objects for whatever reason. 
-            //e.g. Media folder no longer exists or is empty or USB drive is unplugged. 
-            //See LoadMovieInfo().
-            if (MoviePropertiesList.Count == 0) return;
-
-            if (this.InvokeRequired)
+            try
             {
-                this.BeginInvoke(new Action(SaveState));
-                return;
-            }
+                //Nothing to save if there are no movie property objects for whatever reason. 
+                //e.g. Media folder no longer exists or is empty or USB drive is unplugged. 
+                //See LoadMovieInfo().
+                if (MoviePropertiesList.Count == 0) return;
 
-            var data = new FormMainProperties();
-            if (this.WindowState != FormWindowState.Minimized)
-            {
-                data.DesktopBounds = this.DesktopBounds;
-            }
+                if (this.InvokeRequired)
+                {
+                    this.BeginInvoke(new Action(SaveState));
+                    return;
+                }
 
-            data.View = this.View;
-            data.Settings = this.Settings;
-            data.SortKey = this.SortKeys.ToString();
-            if (this.Filters != null && !this.Filters.FilteringDisabled) data.Filters = this.Filters;
+                var data = new FormMainProperties();
+                if (this.WindowState != FormWindowState.Minimized)
+                {
+                    data.DesktopBounds = this.DesktopBounds;
+                }
 
-            if (m_miBack.Enabled) //if TVSeries, get scroll position of parent view.
-            {
-                var key = ViewTiles.CreateKey(this.View);
-                ViewTiles view;
-                if (Views.TryGetValue(key, out view))
-                    data.ScrollPosition = view.ScrollPosition;
+                data.View = this.View;
+                data.Settings = this.Settings;
+                data.SortKey = this.SortKeys.ToString();
+                if (this.Filters != null && !this.Filters.FilteringDisabled) data.Filters = this.Filters;
+
+                if (m_miBack.Enabled) //if TVSeries, get scroll position of parent view.
+                {
+                    var key = ViewTiles.CreateKey(this.View);
+                    ViewTiles view;
+                    if (Views.TryGetValue(key, out view))
+                        data.ScrollPosition = view.ScrollPosition;
+                    else
+                        data.ScrollPosition = 0;
+                }
                 else
-                    data.ScrollPosition = 0;
-            }
-            else
-            {
-                data.ScrollPosition = m_flowPanel.VerticalScroll.Value;
-            }
+                {
+                    data.ScrollPosition = m_flowPanel.VerticalScroll.Value;
+                }
 
-            data.MaxLoadedProperties = this.MaxLoadedProperties;
-            data.LogSeverity = Log.SeverityFilter;
-            data.Serialize();
+                data.MaxLoadedProperties = this.MaxLoadedProperties;
+                data.LogSeverity = Log.SeverityFilter;
+                data.Serialize();
+            }
+            catch (Exception ex)
+            {
+                Log.Write(Severity.Error, $"SaveState: {ex}");
+            }
         }
 
         private readonly Dictionary<VKEY, ViewTiles> Views = new Dictionary<VKEY, ViewTiles>(); //Cache
@@ -354,7 +361,7 @@ namespace VideoLibrarian
             return view;
         }
 
-        public void LoadTiles(string title = null, List<MovieProperties> mp = null)
+        public void LoadTiles(string title = "", List<MovieProperties> mp = null)
         {
             CurrentViewTiles.CurrentTile = (ITile)m_flowPanel.CurrentVisibleControl;
             CurrentViewTiles.ScrollPosition = m_flowPanel.VerticalScroll.Value;
@@ -390,7 +397,7 @@ namespace VideoLibrarian
                 {
                     //Error at System.Windows.Forms.NativeWindow.CreateHandle(CreateParams cp)
                     if (i == 1) throw;
-                    PurgeAll(title);
+                    PurgeAllCache(title);
                     continue;
                 }
                 break;
@@ -563,11 +570,21 @@ namespace VideoLibrarian
         {
             var result = SettingsDialog.Show(this, Settings);
             if (result == null) return;
-            bool foldersChanged = (result.MediaFolders.Length != Settings.MediaFolders.Length || !result.MediaFolders.SequenceEqual(Settings.MediaFolders));
+            bool foldersChanged = (result.MediaFolders.Length != Settings.MediaFolders.Length ||
+                                  !result.MediaFolders.OrderBy(m => m).SequenceEqual(Settings.MediaFolders.OrderBy(m => m)));
             Settings = result;
 
-            EnableMenuBar(MoviePropertiesList.Count > 0);
-            if (foldersChanged) { LoadMovieInfo(); LoadTiles(); EnableMenuBar(MoviePropertiesList.Count > 0); }
+            if (foldersChanged)
+            {
+                SaveAllMovieProperties();
+                MoviePropertiesList.Clear();
+                LoadMovieInfo();
+                m_flowPanel.SuspendLayout();
+                m_flowPanel.Controls.Clear();
+                PurgeAllCache(null); 
+                LoadTiles();
+                EnableMenuBar(MoviePropertiesList.Count > 0);
+            }
         }
 
         private void m_miStatusLog_Click(object sender, EventArgs e)
@@ -712,9 +729,17 @@ namespace VideoLibrarian
         /// <summary>
         /// Delete all cached tiles except self.
         /// </summary>
-        /// <param name="seriesTitle">Series title or "" if all movies</param>
-        private void PurgeAll(string seriesTitle)
+        /// <param name="seriesTitle">Main (e.g. "") or series title to exclude. Null to just remove all views and all tiles.</param>
+        private void PurgeAllCache(string seriesTitle)
         {
+            if (seriesTitle==null)
+            {
+                foreach (var kv in Views) DisposeTiles(kv.Value.Tiles);
+                GC.Collect(0, GCCollectionMode.Default, false);  //be sure tiles list is closed and memory deallocated.
+                Views.Clear();
+                return;
+            }
+
             var key = ViewTiles.CreateKey(this.View, seriesTitle); 
             var deletedList = new List<VKEY>(Views.Count);
             foreach(var kv in Views)

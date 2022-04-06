@@ -82,9 +82,8 @@ namespace VideoLibrarian
         {
             this.DialogResult = DialogResult.None; //default to NOT close the dialog.
             NewSettings = new SettingProperties();
-            NewSettings.MediaFolders = new string[m_lstFolders.Items.Count];
-            int i = 0;
-            foreach (string d in m_lstFolders.Items) NewSettings.MediaFolders[i++] = d;
+
+            NewSettings.MediaFolders = m_lstFolders.Items.Cast<string>().ToArray();
 
             var exe = m_txtBrowser.Text.Trim();
             if (!ValidateExe(exe)) { m_txtBrowser.Focus(); return; }
