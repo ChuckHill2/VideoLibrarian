@@ -61,6 +61,9 @@ namespace VideoLibrarian
     public class MovieProperties
     {
         #region Variables
+        public const char Series_EpisodeDelimiter = '\xAD'; //May be entered in editor via keypad keystroke: Alt+0173
+        public const string Series_EpisodeDelimiterString = " \xAD ";
+
         public const string MovieExtensions = "|.3g2|.3gp|.3gp2|.3gpp|.amv|.asf|.avi|.bik|.bin|.crf|.divx|.drc|.dv|.dvr-ms|.evo|.f4v|.flv|.gvi|.gxf|.iso|.m1v|.m2v|.m2t|.m2ts|.m4v|.mkv|.mov|.mp2|.mp2v|.mp4|.mp4v|.mpe|.mpeg|.mpeg1|.mpeg2|.mpeg4|.mpg|.mpv2|.mts|.mtv|.mxf|.mxg|.nsv|.nuv|.ogg|.ogm|.ogv|.ogx|.ps|.rec|.rm|.rmvb|.rpl|.thp|.tod|.tp|.ts|.tts|.txd|.vob|.vro|.webm|.wm|.wmv|.wtv|.xesc|";
         public const string ImageExtensions = "|.bmp|.dib|.rle|.emf|.gif|.jpg|.jpeg|.jpe|.jif|.jfif|.png|.tif|.tiff|.xif|.wmf|";
         public const string EmptyTitleID = "tt0000000"; //IMDB empty title id, used here specifically to represent non-IMDB movies. 
@@ -1043,6 +1046,11 @@ namespace VideoLibrarian
 
         private static Image CreateBlankPoster(string movieName)
         {
+            //The tvSeries-episodeName delimiter is invisible.
+            //The soft hyphen is displayed when drawn with GDI TextRenderer.DrawText() but not when using GDI+ Graphics.DrawString()! Go figure...
+            //Also, all of Winforms controls use GDI TextRenderer.DrawText() internally.
+            movieName = string.IsNullOrEmpty(movieName) ? "Movie Poster" : movieName?.Replace('\xAD', '-');
+
             var bmp = new Bitmap(364, 500, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
             var g = Graphics.FromImage(bmp);
 
@@ -1060,7 +1068,7 @@ namespace VideoLibrarian
             sf.Alignment = StringAlignment.Center;
 
             var font = new Font(FontFamily.GenericSansSerif, 28, FontStyle.Bold);
-            g.DrawString(movieName ?? "Missing Poster", font, Brushes.Black, new RectangleF(10, 10, bmp.Width - 20, bmp.Height - 20), sf);
+            g.DrawString(movieName, font, Brushes.Black, new RectangleF(10, 10, bmp.Width - 20, bmp.Height - 20), sf);
             font.Dispose();
 
             sf.Dispose();
