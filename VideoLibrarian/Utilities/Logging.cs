@@ -32,6 +32,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 
 namespace VideoLibrarian
 {
@@ -49,14 +50,22 @@ namespace VideoLibrarian
     }
 
     /// <summary>
-    /// Official event logging.
+    /// Official event logging.<br/>
+    /// (1) Writes to fullAppFilename.log<br/>
+    /// (2) May write to multiple additional destinations.<br/>
+    /// (3) May limit logging by severity level.<br/>
+    /// (4) Auto-indents succeeding lines of message.
     /// </summary>
     public static class Log
     {
         private static readonly string _logName = Path.ChangeExtension(Process.GetCurrentProcess().MainModule.FileName, ".log");
-        public static string LogName { get { return _logName; } }
         private static StreamWriter LogStream = null;
         private static readonly object lockObj = new object();
+
+        /// <summary>
+        /// Gets the log file name.
+        /// </summary>
+        public static string LogName { get { return _logName; } }
 
         /// <summary>
         /// Event handler for cloning messages to an alternate destination.
@@ -118,8 +127,17 @@ namespace VideoLibrarian
                     }
                 }
 
+                //Trim string, remove empty lines, and indent suceeding lines.
                 if (fmt.Contains('\n'))
-                    fmt = fmt.Beautify(false, "    ").TrimStart(); //indent succeeding lines of message.
+                {
+                    int row = 0;
+                    fmt = Regex.Replace(fmt, @"^\s*(.+?)\s*$", m =>
+                    {
+                        row++;
+                        if (row == 1) return m.Groups[1].Value;
+                        return "    " + m.Groups[1].Value;
+                    }, RegexOptions.Multiline);
+                }
 
                 lock (lockObj)
                 {
@@ -132,21 +150,40 @@ namespace VideoLibrarian
         }
 
         /// <summary>
-        /// Close the log file. Equivalant to Log.Write(0,null). Log will automatically be reopened if writing a message again.
+        /// Close the log file. Equivalant to Write(0,null). Log will automatically be reopened if writing a message again.
         /// </summary>
         public static void Dispose() => Write(0, null);
     }
 
     /// <summary>
     /// Alternate debugging log. For developer use only.
+    /// Same as Log.Write, except:<br/>
+    /// (1) Output is written to separate appFolder\Debug.Log<br/>
+    /// (2) No severity levels<br/>
+    /// (3) No writing to additional destinations<br/>
+    /// (4) No auto-indenting multi-line messages<br/>
+    /// (5) Logging available only in debug mode.
     /// </summary>
     public static class DebugLog
     {
         private static readonly string _logName = Path.Combine(Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName), "Debug.log");
-        public static string LogName { get { return _logName; } }
         private static StreamWriter LogStream = null;
         private static readonly object lockObj = new object();
 
+        /// <summary>
+        /// Gets the log file name.
+        /// </summary>
+        public static string LogName { get { return _logName; } }
+
+        /// <summary>
+        /// Write a debug log message.
+        /// </summary>
+        /// <param name="fmt">A composite format string.</param>
+        /// <param name="args">An object array that contains zero or more objects to format.</param>
+        /// <remarks>
+        /// An interpolated format string may be used, however evaluation may be postponed when using 
+        /// a composite format string. More efficient when not in debug mode
+        /// </remarks>
         [Conditional("DEBUG")]
         public static void Write(string fmt, params object[] args)
         {
@@ -168,37 +205,52 @@ namespace VideoLibrarian
                 }
             }
 
+            if (args != null && args.Length > 0)
+                fmt = string.Format(fmt, args);
+
             if (LogStream != null)
             {
                 lock (lockObj)
                 {
-                    if (args != null && args.Length > 0)
-                        fmt = string.Format(fmt, args);
-
                     LogStream.WriteLine(fmt);
                     LogStream.BaseStream.Flush();
                 }
             }
         }
 
+        /// <summary>
+        /// Close the log file. Equivalant to Write(null). Log will automatically be reopened if writing a message again.
+        /// </summary>
         [Conditional("DEBUG")]
         public static void Dispose() => Write(null);
     }
 
+    /// <summary>
+    /// Write message to debugger output window.<br/>
+    /// Logging available only in debug mode.
+    /// </summary>
     public static class Diagnostics
     {
         /// <summary>
-        /// Write string to debug output.
+        /// Write string to debug output.<br/>
         /// Uses Win32 OutputDebugString() or System.Diagnostics.Trace.Write() if running under a debugger.
         /// The reason for all this trickery is due to the fact that OutputDebugString() output DOES NOT get
         /// written to VisualStudio output window. Trace.Write() does write to the VisualStudio output window
         /// (by virtue of OutputDebugString somewhere deep inside), BUT it also is can be redirected
         /// to other destination(s) in the app config. This API Delegate is a compromise.
         /// </summary>
-        private static readonly WriteDelegate _rawWrite = (System.Diagnostics.Debugger.IsAttached ? (WriteDelegate)new System.Diagnostics.DefaultTraceListener().Write : (WriteDelegate)OutputDebugString);
-        private delegate void WriteDelegate(string msg);
+        private static readonly Action<string> _rawWrite = (System.Diagnostics.Debugger.IsAttached ? (Action<string>)new System.Diagnostics.DefaultTraceListener().Write : OutputDebugString);
         [DllImport("Kernel32.dll")] private static extern void OutputDebugString(string errmsg);
 
+        /// <summary>
+        /// Write a debug log message.
+        /// </summary>
+        /// <param name="fmt">A composite format string.</param>
+        /// <param name="args">An object array that contains zero or more objects to format.</param>
+        /// <remarks>
+        /// An interpolated format string may be used, however evaluation may be postponed when using 
+        /// a composite format string. More efficient when not in debug mode
+        /// </remarks>
         [Conditional("DEBUG")]
         public static void WriteLine(string msg, params object[] args)
         {
