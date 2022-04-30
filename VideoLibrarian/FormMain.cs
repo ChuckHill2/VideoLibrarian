@@ -208,7 +208,7 @@ namespace VideoLibrarian
             if (p.DeleteFileCacheUponExit == VideoLibrarian.MovieProperties.FileCacheScope.All)
             {
                 Log.Write(Severity.Verbose, $"Deleting all properties for {p.MoviePath}");
-                FileEx.FileDelete(p.MoviePosterPath);
+                //FileEx.FileDelete(p.MoviePosterPath);
                 FileEx.FileDelete(p.PropertiesPath);
                 FileEx.FileDelete(p.HtmlPath);
                 FileEx.FileDelete(p.PathPrefix + "S.png");

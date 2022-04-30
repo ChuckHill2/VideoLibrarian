@@ -161,10 +161,11 @@ series episode.
 Element *Episode* may be any integer but must be unique within the series.
 
 The episode *MovieName* element consists of 2 parts, the series name and episode name <small>(ex. \<*MovieName*\>Eureka - Pilot\</*MovieName*\>)</small>. 
-The two names are delimited by a soft hyphen (" \\xAD ", with spaces), _not_ a regular
+The two names are delimited by a soft-hyphen '\\xAD', _not_ a regular
 minus-hyphen ‘-‘ character. They look alike. If necessary, just copy the ‘dash’ from another
-episode. This was done to distinguish between regular dashes as part of the movie or
-episode names.
+episode or the soft-hyphen be entered in the text editor via keypad keystroke: Alt+0173. 
+This was done to distinguish between regular dashes as part of the movie or episode names.
+In some editors the soft-hyphen is not visible. If so, use another text editor like *Notepad*.
 
 ### Features
 

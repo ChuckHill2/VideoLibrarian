@@ -1047,8 +1047,8 @@ namespace VideoLibrarian
         private static Image CreateBlankPoster(string movieName)
         {
             //The tvSeries-episodeName delimiter is invisible.
-            //The soft hyphen is displayed when drawn with GDI TextRenderer.DrawText() but not when using GDI+ Graphics.DrawString()! Go figure...
-            //Also, all of Winforms controls use GDI TextRenderer.DrawText() internally.
+            //The soft hyphen is displayed when drawn with GDI TextRenderer.DrawText() but not when using GDI+ Graphics.DrawString().
+            //Note, all of WinForms controls use GDI TextRenderer.DrawText() internally. Thats why it's visible in our text labels.
             movieName = string.IsNullOrEmpty(movieName) ? "Movie Poster" : movieName?.Replace('\xAD', '-');
 
             var bmp = new Bitmap(364, 500, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
