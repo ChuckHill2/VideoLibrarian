@@ -521,32 +521,45 @@ namespace VideoLibrarian
                 needsCacheRebuild = false;
                 forcePropertiesUpdate = false;
 
-                //Group series under parent.
+                //Sort and group tvEpisodes under parent tvSeries
                 MoviePropertiesList.Sort(Comparer<MovieProperties>.Create((a, b) => string.CompareOrdinal(a.SortKey, b.SortKey)));
 
+                //Now move matching tvEpisodes in each tvSeries episodes list
                 int kount = MoviePropertiesList.Count;
-                MovieProperties series = null;
-                bool seriesFound = false; //handle parent followed by non-series movie followed by the series
+                MovieProperties series = null; //when this has a value, this is the current tvSeries
                 for (int i = 0; i < kount; i++)
                 {
                     var p = MoviePropertiesList[i];
-                    if (p.EpisodeCount > 0)  //MovieClass="TV Series"
+                    if (p.EpisodeCount > 0)  //this is a tvSeries
                     {
                         series = p;
                         series.Episodes = new List<MovieProperties>();
-                        seriesFound = false;
                         continue;
                     }
-                    if (series != null && p.Season != 0) //MovieClass="TV Episode"
+
+                    if (series != null && p.Season != 0) //tvEpisode preceded by tvSeries
                     {
-                        seriesFound = true;
+                        //tvSeries moviename == "Series Name", tvEpisode moviename=="Series Name - Episode name"
+                        if (series.MovieName.Length != p.MovieName.IndexOf('\xAD')-1) //edge case: tvSeries+episodes followed by orphaned tvEpisode
+                        {
+                            if (series.Episodes.Count == 0) series.Episodes = null; //if tvSeries has no episodes
+                            series = null;
+                            continue;
+                        }
+
                         series.Episodes.Add(p);
                         MoviePropertiesList.RemoveAt(i);
                         i--;
                         kount--;
                         continue;
                     }
-                    if (seriesFound) { seriesFound = false; series = null; } //force to null so series without a parent are handled as normal movies
+
+                    //Only gets here if this movieproperty is not a tvSeries or tvEpisode
+                    if (series != null) //previous was a tvSeries, so cleanup so succeeding orphaned tvEpisodes won't be added.
+                    {
+                        if (series.Episodes.Count == 0) series.Episodes = null; //if tvSeries has no episodes
+                        series = null;
+                    }
                 }
 
                 if (this.MaxLoadedProperties > 0 && MoviePropertiesList.Count >= this.MaxLoadedProperties)
