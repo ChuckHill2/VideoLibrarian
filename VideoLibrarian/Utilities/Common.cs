@@ -200,26 +200,31 @@ namespace VideoLibrarian
             fs.Read(bytes, 0, 4);
             return BitConverter.ToUInt32(bytes, 0);
         }
-
     }
 
     public static class CommonExtensions
     {
-        public static string Beautify(this string s, bool stripComments, string indent)
-        {
-            if (stripComments)
-            {
-                s = Regex.Replace(s, @"^[ \t]*(--|//).*?\r\n", "", RegexOptions.Multiline); //remove whole line sql or c++ comments
-                s = Regex.Replace(s, @"[ \t]*(--|//).*?$", "", RegexOptions.Multiline); //remove trailing sql or c++ comments
-                s = Regex.Replace(s, @"\r\n([ \t]*/\*.*?\*/[ \t]*\r\n)+", "\r\n", RegexOptions.Singleline); //remove whole line c-like comments
-                s = Regex.Replace(s, @"[ \t]*/\*.*?\*/[ \t]*", "", RegexOptions.Singleline); //remove trailing c-like comments
-            }
+        private static readonly Regex reMultilineIndent = new Regex(@"^\s*(.+?)\s*$", RegexOptions.Multiline | RegexOptions.Compiled); //precompiled for efficiency
 
-            s = s.Trim().Replace("\t", "  "); //replace tabs with 2 spaces
-            s = Regex.Replace(s, @" +$", "", RegexOptions.Multiline); //remove trailing whitespace
-            s = Regex.Replace(s, "(\r\n){2,}", "\r\n"); //squeeze out multiple newlines
-            if (!string.IsNullOrEmpty(indent)) s = Regex.Replace(s, @"^(.*)$", indent + "$1", RegexOptions.Multiline);  //indent succeeding newlines
-            return s;
+        /// <summary>
+        /// Trim, remove empty lines, and indent suceeding lines of multiline string.
+        /// </summary>
+        /// <param name="s"></param>
+        /// <param name="indentAmount"></param>
+        /// <returns></returns>
+        public static string Indent(this string s, int indentAmount = 4)
+        {
+            if (indentAmount < 0) throw new ArgumentOutOfRangeException(nameof(indentAmount), indentAmount, "The indent amount must be greatr than 0.");
+            if (string.IsNullOrEmpty(s)) return s;
+            if (!s.Contains('\n')) return s.Trim();
+            string indent = new string(' ', indentAmount);
+            int row = 0;
+            return reMultilineIndent.Replace(s, m =>
+            {
+                row++;
+                if (row == 1) return m.Groups[1].Value;
+                return indent + m.Groups[1].Value;
+            });
         }
 
         /// <summary>
@@ -243,6 +248,37 @@ namespace VideoLibrarian
             }
             if (prev == ' ') sb.Length = sb.Length - 1;
             return sb.ToString();
+        }
+
+        /// <summary>
+        /// Truncate string to specified length and add ellipsis if string length exceeds maximum specified length.
+        /// </summary>
+        /// <param name="s">String to truncate</param>
+        /// <param name="textAlign">Which side of string to truncate: left, right, or center</param>
+        /// <param name="maxLen">Maximum length to truncate string to.</param>
+        /// <returns></returns>
+        public static string Truncate(this string s, HorizontalAlignment textAlign = HorizontalAlignment.Left, int maxLen = 40)
+        {
+            if (maxLen < 3) throw new ArgumentOutOfRangeException(nameof(maxLen), maxLen, "Maximum length must be greater than 3.");
+            if (string.IsNullOrEmpty(s)) return s;
+            if (s.Length <= maxLen) return s;
+
+            if (textAlign== HorizontalAlignment.Left)
+            {
+                return s.Substring(0, maxLen-1) + "\x2026";
+            }
+            if (textAlign == HorizontalAlignment.Right)
+            {
+                var len = maxLen - 1;
+                return "\x2026" + s.Substring(s.Length - len, len);
+            }
+            if (textAlign == HorizontalAlignment.Center)
+            {
+                var rlen = maxLen / 2 + ((maxLen % 2) - 1);
+                return string.Concat(s.Substring(0, maxLen / 2), "\x2026", s.Substring(s.Length - rlen, rlen));
+            }
+
+            return s; //will never get here because all enum states are covered.
         }
 
         public static bool IsNullOrEmpty(this string s, bool lookForWhitespace=false) 
@@ -329,10 +365,12 @@ namespace VideoLibrarian
         {
             //Action on sequence items is performed in descending order just in case elements are removed by the action.
             //Equivalant to: foreach (var v in source.Reverse()) action(v); but more efficient.
+            //Unfortunately the entire IEnumerable array has to be evaluated because we have to act on the last item first.
 
-            if (source is IList<T> list)
+            if (source is IList<T> list) 
             {
-                for (int i = list.Count - 1; i >= 0; i--)
+                var length = list.Count;
+                for (int i = length - 1; i >= 0; i--)
                     if (!action(list[i])) break;
             }
             else if (source is ICollection<T> collection)
@@ -347,6 +385,7 @@ namespace VideoLibrarian
             }
             else
             {
+                //We don't know the length, so we simulate List<T>() but auto-expand the array ourselves for efficiency.
                 T[] array = null;
                 int length = 0;
                 foreach (T element in source)
@@ -472,7 +511,7 @@ namespace VideoLibrarian
 
             var fn = si.FileName;
             if (fn.Contains(' ')) fn = String.Concat("\"", fn, "\"");
-            Log.Write(Severity.Info, $"Exec: {fn} {si.Arguments??""}");
+            Log.Write(Severity.Verbose, $"Exec: {fn} {si.Arguments??""}");
 
             Process.Start(si);
         }
@@ -490,6 +529,33 @@ namespace VideoLibrarian
                 path.Substring(0, idx + 4),
                 path.Substring(idx + 4)
             };
+        }
+
+        private const int SW_RESTORE = 9;
+        [DllImport("User32.dll")] private static extern bool SetForegroundWindow(IntPtr handle);
+        [DllImport("User32.dll")] private static extern bool ShowWindow(IntPtr handle, int nCmdShow);
+        [DllImport("User32.dll")] private static extern bool IsIconic(IntPtr handle);
+
+        /// <summary>
+        /// Allow only one instance of this executable to run.
+        /// The other instance window is popped open to the foreground and this instance terminates.
+        /// This should be the first line of Program.cs:Program.Main().
+        /// </summary>
+        public static void AllowOnlyOneInstance()
+        {
+            var currentProcess = Process.GetCurrentProcess();
+            var processes = Process.GetProcessesByName(currentProcess.ProcessName);
+            if (processes.Length <= 1) return;  //should never be zero. 1 or 2 only.
+            var currentPid = currentProcess.Id;
+            var otherProcess = processes.FirstOrDefault(p => p.Id != currentPid);
+            if (otherProcess == null) return; //should never occur.
+
+            IntPtr handle = otherProcess.MainWindowHandle;
+            if (handle == IntPtr.Zero) return; //should never occur.
+            if (IsIconic(handle)) ShowWindow(handle, SW_RESTORE);
+            SetForegroundWindow(handle);
+
+            Environment.Exit(1);
         }
     }
 }
