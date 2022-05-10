@@ -48,9 +48,13 @@ namespace VideoValidator
 
         static void Main(string[] args)
         {
+            ProcessEx.AllowOnlyOneInstance();
             EmbeddedAssemblyResolver.SetResolver(); //Required for embedded assemblies in VideoLibrarian.exe assembly.
             Log.MessageCapture += (Severity sev, string msg) => Console.WriteLine($"{sev}: {msg}");
+            Log.SeverityFilter = Severity.Verbose;
+            Downloader.LogWriter = (severity, msg) => Log.Write(severity, msg);
             ParseCommandLine(args);  //populate MediaFolders from the command-line
+
 
             if (MediaFolders == null) //try getting MediaFolders from matching VideoLibrarian.exe/VideoLibrarian.SavedState.xml
             {

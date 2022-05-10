@@ -40,6 +40,7 @@ namespace VideoLibrarian
     {
         [STAThread] static void Main()
         {
+            ProcessEx.AllowOnlyOneInstance();
             EmbeddedAssemblyResolver.SetResolver(); //Required for embedded assemblies in VideoLibrarian.exe assembly.
 
             // Add the event handler for handling UI thread exceptions to the event.
@@ -60,10 +61,13 @@ namespace VideoLibrarian
             MiniMessageBox.Colors.CaptionFont = global::VideoLibrarian.ResourceCache.FontRegular;
             MiniMessageBox.Colors.MessageFont = global::VideoLibrarian.ResourceCache.FontRegular;
 
+            Downloader.LogWriter = (severity, msg) => Log.Write(severity, msg);
+            // Log.SeverityFilter = Severity.Verbose;  <== determined by VideoLibrarian.SavedState.xml
+
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new FormMain());
 
-            Log.Dispose(); //closes the logger.
+            Log.Dispose(); //Closes the logger.
         }
 
         static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)

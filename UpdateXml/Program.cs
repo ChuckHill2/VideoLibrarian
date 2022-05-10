@@ -17,9 +17,13 @@ namespace UpdateXml
 
         static void Main(string[] args)
         {
+            ProcessEx.AllowOnlyOneInstance();
             EmbeddedAssemblyResolver.SetResolver(); //Required for embedded assemblies in VideoLibrarian.exe assembly.
             Log.SeverityFilter = Severity.Verbose;
             Log.MessageCapture += (Severity sev, string msg) => Console.WriteLine($"{sev}: {msg}");
+            Log.SeverityFilter = Severity.Verbose;
+            Downloader.LogWriter = (severity, msg) => Log.Write(severity, msg);
+
             ParseCommandLine(args);  //populate MediaFolders from the command-line
 
             if (MediaFolders == null) //try getting MediaFolders from matching VideoLibrarian.exe/VideoLibrarian.SavedState.xml
@@ -77,8 +81,7 @@ namespace UpdateXml
                 //Need to restrict max threads if there are too many downloads needed (aka new
                 //MovieProperty xml files) because flooding the IMDB webserver will drop downloads.
                 //Testing showed that the web server started failing after 500 concurrent downloads.
-                var options = new ParallelOptions();
-                options.MaxDegreeOfParallelism = 400; //default == -1 infinite.
+                var options = new ParallelOptions() { MaxDegreeOfParallelism = 50 };
 
                 Parallel.ForEach(DirectoryEx.EnumerateAllFiles(mf, SearchOption.AllDirectories)
                         .Where(m => m.EndsWith(".url", StringComparison.OrdinalIgnoreCase))

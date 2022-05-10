@@ -194,7 +194,7 @@ namespace VideoLibrarian
                         catch (Exception ex)
                         {
                             File.Delete(MoviePosterPath);
-                            Log.Write(Severity.Error, $"Corrupted poster image. Recreating poster image file \"{MoviePosterPath}\".\n{ex}");
+                            Log.Write(Severity.Warning, $"Corrupted poster image. Recreating poster image file \"{MoviePosterPath}\".\n{ex}");
                             return MoviePosterImg;
                         }
                     }
@@ -275,8 +275,8 @@ namespace VideoLibrarian
                 _getMoviePropertyTask = Task.Run(() => GetVideoFileProperties());
 
                 File.Delete(HtmlPath);
-                var job = new FileEx.Job(UrlLink, HtmlPath);
-                if (!FileEx.Download(job)) return; // FileEx.Download() logs its own errors. It will also update data.Url to redirected path and job.Filename
+                var job = new Downloader.Job(UrlLink, HtmlPath);
+                if (!Downloader.Download(job)) return; // Downloader.Download() logs its own errors. It will also update data.Url to redirected path and job.Filename
 
                 //Update filenames if download http redirect (30x) ocurred. 
                 var ttOld = GetTitleId(UrlLink);
@@ -400,7 +400,7 @@ namespace VideoLibrarian
             }
         }
 
-        private void ParseImdb(FileEx.Job data)
+        private void ParseImdb(Downloader.Job data)
         {
             MatchCollection mc;
             var html = File.ReadAllText(data.Filename);
@@ -804,11 +804,11 @@ namespace VideoLibrarian
             {
                 if (!File.Exists(HtmlPath)) //Oops. The cached IMDB movie page does not exist. Retrieve it.
                 {
-                    var job = new FileEx.Job(UrlLink, HtmlPath);
-                    if (!FileEx.Download(job))
+                    var job = new Downloader.Job(UrlLink, HtmlPath);
+                    if (!Downloader.Download(job))
                     {
                         this.DeleteFileCacheUponExit = FileCacheScope.ImagesOnly;
-                        return false; // FileEx.Download() logs its own errors. It will also update data.Url to redirected path and job.Filename
+                        return false; // Downloader.Download() logs its own errors. It will also update data.Url to redirected path and job.Filename
                     }
                     HtmlPath = job.Filename;
                 }
@@ -825,8 +825,8 @@ namespace VideoLibrarian
                 var mediaViewerUrl = FileEx.GetAbsoluteUrl(this.UrlLink, mc[0].Groups["URL"].Value);
 
                 var fn = Path.Combine(Path.GetDirectoryName(this.MoviePosterPath), "MediaViewer.htm"); //temporary uncached web page containing large poster images.
-                var job = new FileEx.Job(mediaViewerUrl, fn);
-                if (FileEx.Download(job))
+                var job = new Downloader.Job(mediaViewerUrl, fn);
+                if (Downloader.Download(job))
                 {
                     var html2 = FileEx.ReadHtml(job.Filename);
                     File.Delete(job.Filename); //no longer needed. extension already used for this cache file.
@@ -873,8 +873,8 @@ namespace VideoLibrarian
                 var mediaViewerUrl = FileEx.GetAbsoluteUrl(this.UrlLink, mc[0].Groups["URL"].Value);
 
                 var fn = Path.Combine(Path.GetDirectoryName(this.MoviePosterPath), "MediaViewer.htm"); //temporary uncached web page containing large poster images.
-                var job = new FileEx.Job(mediaViewerUrl, fn);
-                if (FileEx.Download(job))
+                var job = new Downloader.Job(mediaViewerUrl, fn);
+                if (Downloader.Download(job))
                 {
                     var html2 = FileEx.ReadHtml(job.Filename);
                     File.Delete(job.Filename); //no longer needed. extension already used for this cache file.
@@ -911,8 +911,8 @@ namespace VideoLibrarian
             {
                 if (MoviePosterUrl.StartsWith("http"))
                 {
-                    var job = new FileEx.Job(MoviePosterUrl, this.PathPrefix + FileEx.GetUrlExtension(MoviePosterUrl), "https://www.imdb.com/");
-                    if (FileEx.Download(job))
+                    var job = new Downloader.Job(MoviePosterUrl, this.PathPrefix + FileEx.GetUrlExtension(MoviePosterUrl), "https://www.imdb.com/");
+                    if (Downloader.Download(job))
                     {
                         MoviePosterPath = job.Filename;
                         TileBase.PurgeTileImages(Path.GetDirectoryName(this.PathPrefix));
@@ -1393,8 +1393,8 @@ namespace VideoLibrarian
             var favicon = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonPictures), "favicon_imdb.ico");
             if (!File.Exists(favicon))
             {
-                var job = new FileEx.Job("https://www.imdb.com/favicon.ico", favicon);
-                FileEx.Download(job);
+                var job = new Downloader.Job("https://www.imdb.com/favicon.ico", favicon);
+                Downloader.Download(job);
                 if (!favicon.Equals(job.Filename)) File.Move(job.Filename, favicon);
             }
 

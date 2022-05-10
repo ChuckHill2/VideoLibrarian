@@ -41,7 +41,10 @@ namespace VideoOrganizer
         [STAThread]
         static void Main()
         {
+            ProcessEx.AllowOnlyOneInstance();
             EmbeddedAssemblyResolver.SetResolver(); //Required for embedded assemblies in VideoLibrarian.exe assembly.
+            Log.SeverityFilter = Severity.Verbose;
+            Downloader.LogWriter = (severity, msg) => Log.Write(severity, msg);
 
             // Add the event handler for handling UI thread exceptions to the event.
             Application.ThreadException += Application_ThreadException;

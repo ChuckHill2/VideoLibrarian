@@ -186,6 +186,7 @@
     </Compile>
     <Compile Include="Utilities\Common.cs" />
     <Compile Include="Utilities\DirectoryEx.cs" />
+    <Compile Include="Utilities\Downloader.cs" />
     <Compile Include="Utilities\EmbeddedAssemblyResolver.cs" />
     <Compile Include="Utilities\FileEx.cs" />
     <Compile Include="Utilities\FolderSelectDialog.cs" />

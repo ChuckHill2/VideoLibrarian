@@ -188,7 +188,7 @@ namespace VideoOrganizer
                 m_rtfStatus.SelectionFont = RegularFont;
             }
 
-            msg = msg.Beautify(false, "    ").TrimStart();
+            msg = msg.Indent();
 
             m_rtfStatus.AppendText(msg);
             m_rtfStatus.AppendText("\n");
@@ -410,8 +410,8 @@ namespace VideoOrganizer
                 TVSeries[name + ".FOLDERNAME"] = ToFolderName(items["NAME"], items["YEAR"]);
                 TVSeries[name] = items["TT"];
 
-                var job = new FileEx.Job($"https://www.imdb.com/title/{items["TT"]}/episodes?season={season}", tempFileName);
-                if (FileEx.Download(job))
+                var job = new Downloader.Job($"https://www.imdb.com/title/{items["TT"]}/episodes?season={season}", tempFileName);
+                if (Downloader.Download(job))
                 {
                     var html = FileEx.ReadHtml(job.Filename, true);
                     File.Delete(job.Filename);
@@ -539,8 +539,8 @@ namespace VideoOrganizer
             string html;
             var tempFileName = Path.Combine(Path.GetTempPath(), "FindUrl.htm");
 
-            var job = new FileEx.Job($"https://www.imdb.com/find?q={WebUtility.UrlEncode(name)}&s=tt&exact=true", tempFileName); //strict search
-            if (FileEx.Download(job))
+            var job = new Downloader.Job($"https://www.imdb.com/find?q={WebUtility.UrlEncode(name)}&s=tt&exact=true", tempFileName); //strict search
+            if (Downloader.Download(job))
             {
                 html = FileEx.ReadHtml(job.Filename, true);
                 File.Delete(job.Filename); //no longer needed.
@@ -558,8 +558,8 @@ namespace VideoOrganizer
             var i = name.IndexOf('(');
             var fuzzyName = i == -1 ? name : name.Substring(0, i).TrimEnd();
 
-            job = new FileEx.Job($"https://www.imdb.com/find?q={WebUtility.UrlEncode(fuzzyName)}&s=tt", tempFileName);  //try again, not so strict.
-            if (FileEx.Download(job))
+            job = new Downloader.Job($"https://www.imdb.com/find?q={WebUtility.UrlEncode(fuzzyName)}&s=tt", tempFileName);  //try again, not so strict.
+            if (Downloader.Download(job))
             {
                 html = FileEx.ReadHtml(job.Filename, true);
                 File.Delete(job.Filename); //no longer needed.

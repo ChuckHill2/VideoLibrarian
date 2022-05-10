@@ -88,7 +88,7 @@ namespace VideoLibrarian
                 }
                 else
                 {
-                    Log.Write(Severity.Success, "Resolved assembly: \"{0}\"", asm.IsDynamic ? asm.ToString() : asm.Location);
+                    Log.Write(Severity.Verbose, "Resolved assembly: \"{0}\"", asm.IsDynamic ? asm.ToString() : asm.Location);
                 }
             }
             return asm;

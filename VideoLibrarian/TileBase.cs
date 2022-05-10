@@ -459,7 +459,7 @@ namespace VideoLibrarian
         {
             var fn = Path.GetDirectoryName(this.MovieProps.PropertiesPath);
             if (fn.Contains(' ')) fn = String.Concat("\"", fn, "\"");
-            Log.Write(Severity.Info, $"Exec: {fn}");
+            Log.Write(Severity.Verbose, $"Exec: {fn}");
 
             Process.Start(fn);
         }

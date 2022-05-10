@@ -28,63 +28,16 @@
 // <author>Chuck Hill</author>
 //--------------------------------------------------------------------------
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Net;
-using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
-using System.Windows.Forms;
-using Microsoft.Win32;
 
 namespace VideoLibrarian
 {
     public static class FileEx
     {
-        private static readonly Object GetUniqueFilename_Lock = new Object();  //used exclusively by FileEx.GetUniqueFilename()
-
-        /// <summary>
-        /// Make sure specified file does not exist. If it does, add or increment
-        /// version. Then create an empty file placeholder so it won't get usurped
-        /// by another thread calling this function. Versioned file format:
-        /// d:\dir\name(00).ext where '00' is incremented until one is not found.
-        /// </summary>
-        /// <param name="srcFilename"></param>
-        /// <returns></returns>
-        private static string GetUniqueFilename(string srcFilename) //find an unused filename
-        {
-            string pathFormat = null;
-            string newFilename = srcFilename;
-            int index = 1;
-
-            lock (GetUniqueFilename_Lock)
-            {
-                string dir = Path.GetDirectoryName(srcFilename);
-                if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
-
-                while (File.Exists(newFilename))
-                {
-                    if (pathFormat == null)
-                    {
-                        string path = Path.Combine(dir, Path.GetFileNameWithoutExtension(srcFilename));
-                        if (path[path.Length - 1] == ')')
-                        {
-                            int i = path.LastIndexOf('(');
-                            if (i > 0) path = path.Substring(0, i);
-                        }
-                        pathFormat = path + "({0:00})" + Path.GetExtension(srcFilename);
-                    }
-                    newFilename = string.Format(pathFormat, index++);
-                }
-
-                File.Create(newFilename).Dispose();  //create place-holder file.
-            }
-
-            return newFilename;
-        }
-
         /// <summary>
         /// Compute unique MD5 hash of file contents.
         /// DO NOT USE for security encryption.
@@ -159,13 +112,17 @@ namespace VideoLibrarian
         /// <returns>DateTime</returns>
         public static DateTime GetCreationDate(string filename)
         {
-            var dtMin = File.GetCreationTime(filename);
+            // var dtMin = File.GetCreationTime(filename);
+            // var dt = File.GetLastAccessTime(filename);
+            // if (dt < dtMin) dtMin = dt;
+            // dt = File.GetLastWriteTime(filename);
+            // if (dt < dtMin) dtMin = dt;
 
-            var dt = File.GetLastAccessTime(filename);
-            if (dt < dtMin) dtMin = dt;
-
-            dt = File.GetLastWriteTime(filename);
-            if (dt < dtMin) dtMin = dt;
+            GetFileTime(filename, out long creationTime, out long lastAccessTime, out long lastWriteTime);
+            long timeMin = creationTime;
+            if (lastAccessTime < timeMin) timeMin = lastAccessTime;
+            if (lastWriteTime < timeMin) timeMin = lastWriteTime;
+            var dtMin = DateTime.FromFileTime(timeMin);
 
             //Forget hi-precision and DateTimeKind. It just complicates comparisons. This is more than good enough.
             return new DateTime(dtMin.Year, dtMin.Month, dtMin.Day, dtMin.Hour, dtMin.Minute, 0);
@@ -239,256 +196,146 @@ namespace VideoLibrarian
         }
         private static readonly Regex reNoScript = new Regex(@"(<script.+?</script>)|(<style.+?</style>)|(<svg.+?</svg>)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+        #region Win32
         /// <summary>
-        /// Download a URL output into a local file.
+        /// This is a low-level alternative to:
+        ///    • System.IO.File.GetCreationTime()
+        ///    • System.IO.File.GetLastWriteTime()
+        ///    • System.IO.File.GetLastAccessTime()
+        ///    and
+        ///    • System.IO.File.SetCreationTime()
+        ///    • System.IO.File.SetLastWriteTime()
+        ///    • System.IO.File.SetLastAccessTime()
+        /// The reason is sometimes some fields do not get set properly. File open/close 3 times in rapid succession?
         /// </summary>
-        /// <param name="data">Job to download (url and suggested destination filename, plus more)</param>
-        /// <returns>True if successfully downloaded</returns>
+        [DllImport("kernel32.dll")] private static extern bool SetFileTime(IntPtr hFile, ref long creationTime, ref long lastAccessTime, ref long lastWriteTime);
+        [DllImport("kernel32.dll")] private static extern bool SetFileTime(IntPtr hFile, IntPtr creationTime, ref long lastAccessTime, ref long lastWriteTime);
+        [DllImport("kernel32.dll")] private static extern bool SetFileTime(IntPtr hFile, ref long creationTime, IntPtr lastAccessTime, ref long lastWriteTime);
+        [DllImport("kernel32.dll")] private static extern bool SetFileTime(IntPtr hFile, ref long creationTime, ref long lastAccessTime, IntPtr lastWriteTime);
+        [DllImport("kernel32.dll")] private static extern bool SetFileTime(IntPtr hFile, IntPtr creationTime, IntPtr lastAccessTime, ref long lastWriteTime);
+        [DllImport("kernel32.dll")] private static extern bool SetFileTime(IntPtr hFile, ref long creationTime, IntPtr lastAccessTime, IntPtr lastWriteTime);
+        [DllImport("kernel32.dll")] private static extern bool SetFileTime(IntPtr hFile, IntPtr creationTime, ref long lastAccessTime, IntPtr lastWriteTime);
+
+        [DllImport("kernel32.dll", SetLastError = true, BestFitMapping = false)]
+        private static extern bool GetFileTime(IntPtr hFile, out long creationTime, out long lastAccessTime, out long lastWriteTime);
+
+        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode, BestFitMapping = false)]
+        private static extern IntPtr CreateFileW(string lpFileName, uint dwDesiredAccess, uint dwShareMode, IntPtr lpSecurityAttributes, uint dwCreationDisposition, uint dwFlagsAndAttributes, IntPtr hTemplateFile);
+        private static readonly IntPtr INVALID_HANDLE_VALUE = new IntPtr(-1);
+
+        [DllImport("kernel32.dll", SetLastError = true, BestFitMapping = false)]
+        private static extern bool CloseHandle(IntPtr hFile);
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true, BestFitMapping = false)]
+        private static extern bool DeleteFile(string path);
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true, BestFitMapping = false)]
+        private static extern bool MoveFileEx(string src, string dst, int dwFlags);
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true, BestFitMapping = false)]
+        private static extern bool ReplaceFile(string replacedFileName, string replacementFileName, string backupFileName, int dwReplaceFlags, IntPtr lpExclude, IntPtr lpReserved);
+        [DllImport("kernel32.dll", SetLastError = true, BestFitMapping = false)]
+        private static extern bool GetFileSizeEx(IntPtr hFile, out long lpFileSize);
+        #endregion
+
+        /// <summary>
+        /// Delete the specified file.
+        /// </summary>
+        /// <param name="filename">Full name of file to delete.</param>
+        /// <returns>True if successfully deleted</returns>
         /// <remarks>
-        /// Thread-safe<br/>
-        /// Will not throw an exception. Errors are written to Log.Write().<br/>
-        /// Upon successful download:<br/>
-        /// • File date is set to the object date on the server.<br/>
-        /// • File extension is updated to reflect the server mime type.<br/>
-        /// • If file already exists, file version is incremented. (e.g. fileame(ver).ext)<br/>
-        /// • Job.Cookie is assigned if empty.<br/>
-        /// • Job.Filename is always updated to the new filename.<br/>
-        /// • Job.Url is always updated to the actual url used by the server (redirect?)
+        /// Does not throw an exception.
         /// </remarks>
-        public static bool Download(Job data)
+        public static bool Delete(string filename) => DeleteFile(filename);
+
+        /// <summary>
+        /// Move a file to a new destination name filename.
+        /// </summary>
+        /// <param name="srcfile">File name of source file</param>
+        /// <param name="dstFile">File name of destination file</param>
+        /// <returns>True if successful</returns>
+        /// <remarks>
+        /// Does not throw an exception.
+        /// A pre-existing destination file is overwritten.
+        /// May move files across drives.
+        /// </remarks>
+        public static bool Move(string srcfile, string dstFile) => MoveFileEx(srcfile, dstFile, 3);
+
+        /// <summary>
+        /// Makes an optional copy of the destination file then replaces the contents of the
+        /// destination file with the source file contents leaving all file and security attributes
+        /// intact. The source file is then deleted.
+        /// </summary>
+        /// <param name="srcfile"></param>
+        /// <param name="dstfile"></param>
+        /// <param name="bakfile"></param>
+        /// <remarks>
+        /// Does not throw an exception.
+        /// Does testination file need to exist?
+        /// May move files across drives?.
+        /// </remarks>
+        public static bool Replace(string srcfile, string dstfile, string bakfile=null) => ReplaceFile(srcfile, dstfile, bakfile, 7, IntPtr.Zero, IntPtr.Zero);
+
+        /// <summary>
+        /// Get length of specified file 
+        /// </summary>
+        /// <param name="filename"></param>
+        /// <returns>File length or -1 upon error.</returns>
+        public static long Length(string filename)
         {
-            //This string is apparently not stored anywhere. It must be retrieved as a response from a web service via the browser of choice. It cannot be retrieved offline! Arrgh! Google: what is my useragent
-            const string UserAgent = @"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:96.0) Gecko/20100101 Firefox/96.0";
-
-            Uri uri = null;
-            int t1 = Environment.TickCount;
-
-            try
-            {
-                uri = new Uri(data.Url);
-
-                string ext = Path.GetExtension(data.Filename);
-                string mimetype = null;
-                DateTime lastModified;
-
-                //Fix for exception: The request was aborted: Could not create SSL/TLS secure channel
-                //https://stackoverflow.com/questions/10822509/the-request-was-aborted-could-not-create-ssl-tls-secure-channel
-                //if (ServicePointManager.ServerCertificateValidationCallback==null)
-                //    ServicePointManager.ServerCertificateValidationCallback = delegate { return true; }; //Skip validation of SSL/TLS certificate
-
-                using (var web = new MyWebClient())
-                {
-                    web.Headers[HttpRequestHeader.UserAgent] = UserAgent;
-                    if (!data.Referer.IsNullOrEmpty()) web.Headers[HttpRequestHeader.Referer] = data.Referer;
-                    if (!data.Cookie.IsNullOrEmpty()) web.Headers[HttpRequestHeader.Cookie] = data.Cookie;
-                    web.Headers[HttpRequestHeader.AcceptLanguage] = "en-US,en;q=0.5"; //always set language to english so our web scraper only has to deal with only a single language.
-                    data.Filename = FileEx.GetUniqueFilename(data.Filename); //creates empty file as placeholder
-
-                    web.DownloadFile(data.Url, data.Filename); //This will throw an exception if the url cannot be downloaded.
-
-                    data.Url = web.ResponseUrl; //update url to what the Web server thinks it is.
-                    string cookie = web.ResponseHeaders[HttpResponseHeader.SetCookie];
-                    if (!cookie.IsNullOrEmpty()) data.Cookie = cookie;
-                    if (!DateTime.TryParse(web.ResponseHeaders[HttpResponseHeader.LastModified] ?? string.Empty, out lastModified)) lastModified = DateTime.Now;
-                    mimetype = web.ResponseHeaders[HttpResponseHeader.ContentType];
-                }
-                if (!File.Exists(data.Filename)) throw new FileNotFoundException();
-
-                if (new FileInfo(data.Filename).Length < 8) { File.Delete(data.Filename); throw new FileNotFoundException("File truncated."); }
-
-                File.SetCreationTime(data.Filename, lastModified);
-                File.SetLastAccessTime(data.Filename, lastModified);
-                File.SetLastWriteTime(data.Filename, lastModified);
-
-                //Adjust extension to reflect true filetype, BUT make sure that new filename does not exist.
-                ext = GetDefaultExtension(mimetype, ext);
-                if (!ext.EqualsI(Path.GetExtension(data.Filename)))
-                {
-                    var newfilename = Path.ChangeExtension(data.Filename, ext);
-                    newfilename = FileEx.GetUniqueFilename(newfilename); //creates empty file as placeholder
-                    File.Delete(newfilename); //delete the placeholder. Move will throw exception if it already exists
-                    File.Move(data.Filename, newfilename);
-                    data.Filename = newfilename; //return new filename to caller.
-                }
-
-                Log.Write(Severity.Verbose, $"Download {data.Url} duration={((Environment.TickCount - t1) / 1000f):F2} sec");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                File.Delete(data.Filename);
-
-                HttpStatusCode responseStatus = (HttpStatusCode)0;
-                WebExceptionStatus status = WebExceptionStatus.Success;
-                if (ex is WebException)
-                {
-                    WebException we = (WebException)ex;
-                    HttpWebResponse response = we.Response as System.Net.HttpWebResponse;
-                    responseStatus = (response == null ? (HttpStatusCode)0 : response.StatusCode);
-                    status = we.Status;
-                }
-
-                //Occurs when the web server is flooded with our requests due to multi-threading.
-                if (status== WebExceptionStatus.RequestCanceled || status == WebExceptionStatus.Timeout || status == WebExceptionStatus.UnknownError)
-                {
-                    if (data.RetryCount < 6)
-                    {
-                        data.RetryCount++;
-                        Log.Write(Severity.Warning, $"{status}: Download Retry {data.RetryCount} {data.Url} ==> {Path.GetDirectoryName(data.Filename)}");
-                        Thread.Sleep(2000);
-                        if (Download(data)) return true;
-                    }
-                }
-
-                var eStatusMsg = DownloadStatus(status, responseStatus); //logically combines both web and http status's into a single string.
-
-                //Occurs when the IMDB url has changed or is no longer valid. Requires user to manually update the IMDB shortcut.
-                if (responseStatus == (HttpStatusCode)308) //The remote server returned an error: (308) Permanent Redirect.
-                {
-                    Log.Write(Severity.Error, $"{eStatusMsg} {data.Url} ==> {Path.GetDirectoryName(data.Filename)}: {ex.GetType().Name}:{ex.Message}\nShortcut may be corrupted!");
-                    return false;
-                }
-
-                Log.Write(Severity.Error, $"{eStatusMsg} {data.Url} ==> {Path.GetDirectoryName(data.Filename)}: {ex.GetType().Name}:{ex.Message}");
-                return false;
-            }
-        }
-
-        private static string DownloadStatus(WebExceptionStatus status, HttpStatusCode responseStatus)
-        {
-            var sb = new StringBuilder();
-            if (status != 0) sb.Append(status);
-            if (responseStatus != 0)
-            {
-                if (sb.Length > 0) sb.Append("/");
-                sb.Append($"{responseStatus}({(int)responseStatus})");
-            }
-
-            return sb.ToString();
-        }
-
-        private static string GetDefaultExtension(string mimeType, string defalt) //used exclusively by Download()
-        {
-            if (mimeType.IsNullOrEmpty()) return defalt;
-            mimeType = mimeType.Split(';')[0].Trim();
-            string ext;
-            try { ext = Registry.GetValue(@"HKEY_CLASSES_ROOT\MIME\Database\Content Type\" + mimeType, "Extension", string.Empty).ToString(); }
-            catch { ext = defalt; }
-
-            if (ext == ".html") ext = ".htm";  //Override registry mimetypes. We like the legacy extensions.
-            if (ext == ".jfif") ext = ".jpg";
-
-            return ext;
-        }
-
-        private class MyWebClient : WebClient
-        {
-            public WebRequest Request { get; private set; }
-            public WebResponse Response { get; private set; }
-            public string ResponseUrl => this.Response?.ResponseUri?.AbsoluteUri; //gets the URI of the Internet resource that actually responded to the request.
-
-            protected override WebResponse GetWebResponse(WebRequest request) //used internally
-            {
-                Request = request;
-                Response = base.GetWebResponse(request);
-                return Response;
-            }
-
-            protected override WebRequest GetWebRequest(Uri address) //used internally
-            {
-                Request = base.GetWebRequest(address);
-                HttpWebRequest request = Request as HttpWebRequest; //there are others: e.g. FtpWebRequest (ftp://) and FileWebRequest (file://).
-                
-                if (request != null)
-                {
-                    request.AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip;  //Allow this API to decompress http output.
-                    request.AllowAutoRedirect = true;
-                }
-
-                return Request;
-            }
+            var hFile = CreateFileW(filename, 0x0080, 0x00000003, IntPtr.Zero, 3, 0x80, IntPtr.Zero);
+            if (hFile == INVALID_HANDLE_VALUE) return -1L;
+            bool success = GetFileSizeEx(hFile, out long lpFileSize);
+            CloseHandle(hFile);
+            return success ? lpFileSize : -1L;
         }
 
         /// <summary>
-        /// Info to pass to FileEx.Download(). More properties may be added in the future.
+        /// Get all 3 datetime fields for a given file in FileTime (64-bit) format.
         /// </summary>
-        public class Job
+        /// <param name="filename"></param>
+        /// <param name="creationTime"></param>
+        /// <param name="lastAccessTime"></param>
+        /// <param name="lastWriteTime"></param>
+        /// <returns>True if successful</returns>
+        public static bool GetFileTime(string filename, out long creationTime, out long lastAccessTime, out long lastWriteTime)
         {
-            /// <summary>
-            /// For Internal use by FileEx.Download()
-            /// </summary>
-            public int RetryCount = 0;
+            creationTime = lastAccessTime = lastWriteTime = 0;
+            var hFile = CreateFileW(filename, 0x0080, 0x00000003, IntPtr.Zero, 3, 0x80, IntPtr.Zero);
+            if (hFile == INVALID_HANDLE_VALUE) return false;
+            bool success = GetFileTime(hFile, out creationTime, out lastAccessTime, out lastWriteTime);
+            CloseHandle(hFile);
+            return success;
+        }
 
-            /// <summary>
-            /// Previous job url. Now the referrer to this new job. 
-            /// </summary>
-            public string Referer { get; set; }
+        /// <summary>
+        /// Set datetime fields for a given file in FileTime (64-bit) format. Time field value 0 == not modified.
+        /// </summary>
+        /// <param name="filename"></param>
+        /// <param name="creationTime"></param>
+        /// <param name="lastAccessTime"></param>
+        /// <param name="lastWriteTime"></param>
+        /// <returns>True if successful</returns>
+        public static bool SetFileTime(string filename, long creationTime, long lastAccessTime, long lastWriteTime)
+        {
+            bool success;
+            var hFile = CreateFileW(filename, 0x0100, 0x00000003, IntPtr.Zero, 3, 0x80, IntPtr.Zero);
+            if (hFile == INVALID_HANDLE_VALUE) return false;
 
-            /// <summary>
-            /// Previously generated cookie. Now forwarded to this new job. 
-            /// </summary>
-            public string Cookie { get; set; }
+            var fields = (creationTime == 0 ? 0 : 1) | (lastAccessTime == 0 ? 0 : 2) | (lastWriteTime == 0 ? 0 : 4);
 
-            /// <summary>
-            /// Absolute url path to download. Updated with the URI of the Internet resource that actually responded to the request.
-            /// </summary>
-            public string Url { get; set; }
-
-            /// <summary>
-            ///   Full path name of file to write result to.
-            ///   If file extension does not match the downloaded mimetype, the file extension is updated to match the mimetype.
-            ///   If the file already exists, the file name is incremented (e.g 'name(nn).ext')
-            ///   This property is updated with the new name.
-            /// </summary>
-            public string Filename { get; set; }
-
-            /// <summary>
-            /// Info to pass to FileEx.Download().
-            /// </summary>
-            /// <param name="job">Parent job info to use as the referrer. Null if no parent.</param>
-            /// <param name="url">Url to download</param>
-            /// <param name="filename">
-            ///   Full path name of file to write result to.
-            ///   If file extension does not match the downloaded mimetype, the file extension is updated to match the mimetype.
-            ///   If the file already exists, the file name is incremented (e.g 'name(nn).ext')
-            ///   This property is updated with the new name.
-            /// </param>
-            public Job(Job job, string url, string filename)
+            switch (fields)
             {
-                if (job != null)
-                {
-                    Cookie = job.Cookie;
-                    Referer = job.Url;
-                }
-                else
-                {
-                    //We don't use previously cached cookies by host in VideoLibrarian.
-                    //if (!url.IsNullOrEmpty()) Cookie = VideoLibrarian.Cookie.GetCached(new Uri(url).Host);
-                }
-
-                Url = url;
-                Filename = filename;
+                case 0x01: success = SetFileTime(hFile, ref creationTime, IntPtr.Zero, IntPtr.Zero); break;
+                case 0x02: success = SetFileTime(hFile, IntPtr.Zero, ref lastAccessTime, IntPtr.Zero); break;
+                case 0x03: success = SetFileTime(hFile, ref creationTime, ref lastAccessTime, IntPtr.Zero); break;
+                case 0x04: success = SetFileTime(hFile, IntPtr.Zero, IntPtr.Zero, ref lastWriteTime); break;
+                case 0x05: success = SetFileTime(hFile, ref creationTime, IntPtr.Zero, ref lastWriteTime); break;
+                case 0x06: success = SetFileTime(hFile, IntPtr.Zero, ref lastAccessTime, ref lastWriteTime); break;
+                case 0x07: success = SetFileTime(hFile, ref creationTime, ref lastAccessTime, ref lastWriteTime); break;
+                default: success = false; break;
             }
 
-            /// <summary>
-            /// Info to pass to FileEx.Download().
-            /// </summary>
-            /// <param name="url">Url to download</param>
-            /// <param name="filename">
-            ///   Full path name of file to write result to.
-            ///   If file extension does not match the downloaded mimetype, the file extension is updated to match the mimetype.
-            ///   If the file already exists, the file name is incremented (e.g 'name(nn).ext')
-            ///   This property is updated with the new name.
-            /// </param>
-            /// <param name="referer">Optional download referer. Simulates reference to a previous call.</param>
-            /// <param name="cookie">Optional download cookie. A previously generated cookie.</param>
-            public Job(string url, string filename, string referer = null, string cookie = null)
-            {
-                Referer = referer;
-                Cookie = cookie;
-                Url = url;
-                Filename = filename;
-            }
+            CloseHandle(hFile);
+            return success;
         }
     }
 }
