@@ -58,6 +58,7 @@ namespace VideoLibrarian
     /// </summary>
     public static class Log
     {
+        private static readonly Regex reMultilineIndent = new Regex(@"^\s*(.+?)\s*$", RegexOptions.Multiline | RegexOptions.Compiled); //precompiled for efficiency
         private static readonly string _logName = Path.ChangeExtension(Process.GetCurrentProcess().MainModule.FileName, ".log");
         private static StreamWriter LogStream = null;
         private static readonly object lockObj = new object();
@@ -93,20 +94,37 @@ namespace VideoLibrarian
             if (severity > SeverityFilter) return;
 
             if (fmt == null && LogStream == null) return; //Nothing to do
+
             if (fmt == null && LogStream != null) //Close
             {
-                lock (lockObj) { LogStream.Close(); LogStream.Dispose(); LogStream = null; }
+                lock (lockObj)
+                {
+                    if (fmt == null && LogStream != null)
+                    {
+                        LogStream.Close();
+                        LogStream.Dispose();
+                        LogStream = null;
+                    }
+                }
                 return;
             }
+
             if (fmt != null && LogStream == null) //Open
             {
                 lock (lockObj)
                 {
-                    //Roll over log at 100MB
-                    if (File.Exists(LogName) && new FileInfo(LogName).Length > (1024 * 1024 * 100)) File.Delete(LogName);
-                    var fs = File.Open(LogName, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
-                    LogStream = new StreamWriter(fs) { AutoFlush = true };
-                    LogStream.WriteLine(@"-------- {0:MM/dd/yyyy hh:mm:ss tt} ------------------------------------------", DateTime.Now);
+                    // We do this twice, just in case a thread gets through the first if() statement and blocked while another thread already passed thru the lock.
+                    // The second if() statement is for the the following thread that is waiting on the lock only to pass thru and find out that the stream has already been created.
+                    // This is coded this way so in non-edge cases, we don't excessively lock causing syncronizing between threads. It would defeat the parallel actions of the callers.
+                    // A symtom of not having this second if() is multiple header lines being written to the log.
+                    if (fmt != null && LogStream == null)
+                    {
+                        //Roll over log at 100MB
+                        if (File.Exists(LogName) && new FileInfo(LogName).Length > (1024 * 1024 * 100)) File.Delete(LogName);
+                        var fs = File.Open(LogName, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
+                        LogStream = new StreamWriter(fs) { AutoFlush = true };
+                        LogStream.WriteLine(@"-------- {0:MM/dd/yyyy hh:mm:ss tt} ------------------------------------------", DateTime.Now);
+                    }
                 }
             }
 
@@ -114,7 +132,7 @@ namespace VideoLibrarian
             {
                 if (args != null && args.Length > 0)
                 {
-                    if (severity == Severity.Verbose || SeverityFilter == Severity.Verbose)
+                    if (severity == Severity.Verbose)
                         fmt = string.Format(fmt, args);
                     else
                     {
@@ -131,20 +149,24 @@ namespace VideoLibrarian
                 if (fmt.Contains('\n'))
                 {
                     int row = 0;
-                    fmt = Regex.Replace(fmt, @"^\s*(.+?)\s*$", m =>
+                    fmt = reMultilineIndent.Replace(fmt, m =>
                     {
                         row++;
                         if (row == 1) return m.Groups[1].Value;
                         return "    " + m.Groups[1].Value;
-                    }, RegexOptions.Multiline);
+                    });
                 }
 
                 lock (lockObj)
                 {
-                    if (severity != Severity.None) LogStream.Write(severity.ToString() + ": ");
-                    LogStream.WriteLine(fmt);
-                    LogStream.BaseStream.Flush();
-                    MessageCapture?.Invoke(severity, fmt);
+                    if (LogStream != null)
+                    {
+                        if (severity != Severity.None) LogStream.Write(severity.ToString() + ": ");
+                        LogStream.WriteLine(fmt);
+                        LogStream.Flush();
+                        LogStream.BaseStream.Flush();
+                        MessageCapture?.Invoke(severity, fmt);
+                    }
                 }
             }
         }
@@ -188,20 +210,37 @@ namespace VideoLibrarian
         public static void Write(string fmt, params object[] args)
         {
             if (fmt == null && LogStream == null) return; //Nothing to do
+
             if (fmt == null && LogStream != null) //Close
             {
-                lock (lockObj) { LogStream.Close(); LogStream.Dispose(); LogStream = null; }
+                lock (lockObj)
+                {
+                    if (fmt == null && LogStream != null)
+                    {
+                        LogStream.Close();
+                        LogStream.Dispose();
+                        LogStream = null;
+                    }
+                }
                 return;
             }
+
             if (fmt != null && LogStream == null) //Open
             {
                 lock (lockObj)
                 {
-                    //Roll over log at 100MB
-                    if (File.Exists(LogName) && new FileInfo(LogName).Length > (1024 * 1024 * 100)) File.Delete(LogName);
-                    var fs = File.Open(LogName, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
-                    LogStream = new StreamWriter(fs) { AutoFlush = true };
-                    LogStream.WriteLine(@"-------- {0:MM/dd/yyyy hh:mm:ss tt} ------------------------------------------", DateTime.Now);
+                    // We do this twice, just in case a thread gets through the first if() statement and blocked while another thread already passed thru the lock.
+                    // The second if() statement is for the the following thread that is waiting on the lock only to pass thru and find out that the stream has already been created.
+                    // This is coded this way so in non-edge cases, we don't excessively lock causing syncronizing between threads. It would defeat the parallel actions of the callers.
+                    // A symtom of not having this second if() is multiple header lines being written to the log.
+                    if (fmt != null && LogStream == null)
+                    {
+                        //Roll over log at 100MB
+                        if (File.Exists(LogName) && new FileInfo(LogName).Length > (1024 * 1024 * 100)) File.Delete(LogName);
+                        var fs = File.Open(LogName, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
+                        LogStream = new StreamWriter(fs) { AutoFlush = true };
+                        LogStream.WriteLine(@"-------- {0:MM/dd/yyyy hh:mm:ss tt} ------------------------------------------", DateTime.Now);
+                    }
                 }
             }
 
@@ -212,8 +251,11 @@ namespace VideoLibrarian
             {
                 lock (lockObj)
                 {
-                    LogStream.WriteLine(fmt);
-                    LogStream.BaseStream.Flush();
+                    if (LogStream != null)
+                    {
+                        LogStream.WriteLine(fmt);
+                        LogStream.BaseStream.Flush();
+                    }
                 }
             }
         }
