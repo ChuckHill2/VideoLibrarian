@@ -106,7 +106,7 @@ namespace VideoLibrarian
             if (exe.Length > 0)
             {
                 var s = ProcessEx.SplitProcessCommandline(exe);
-                if (s[0].Length < 5 || !File.Exists(s[0]))
+                if (s[0].Length < 5 || !FileEx.Exists(s[0]))
                 {
                     MessageBox.Show(this, "Executable not found: " + s[0], "Validate Executable", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return false;
@@ -173,7 +173,7 @@ namespace VideoLibrarian
             using (var ofd = new OpenFileDialog())
             {
                 ofd.Filter = $"Executables(*.exe)|*.exe|All Files(*.*)|*.*";
-                ofd.FileName = filename.IsNullOrEmpty() || !File.Exists(filename) ? String.Empty : filename;
+                ofd.FileName = filename.IsNullOrEmpty() || !FileEx.Exists(filename) ? String.Empty : filename;
                 ofd.AddExtension = false;
                 ofd.CheckFileExists = true;
                 ofd.DereferenceLinks = true;
@@ -195,7 +195,7 @@ namespace VideoLibrarian
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
             {
                 var file = ((string[])e.Data.GetData(DataFormats.FileDrop))[0];
-                if (File.Exists(file) && file.EndsWith(".exe",StringComparison.CurrentCultureIgnoreCase))
+                if (FileEx.Exists(file) && file.EndsWith(".exe",StringComparison.CurrentCultureIgnoreCase))
                 {
                     ((Control)sender).Text = file;
                 }
@@ -207,7 +207,7 @@ namespace VideoLibrarian
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
             {
                 var file = ((string[])e.Data.GetData(DataFormats.FileDrop))[0];
-                if (File.Exists(file) && file.EndsWith(".exe", StringComparison.CurrentCultureIgnoreCase))
+                if (FileEx.Exists(file) && file.EndsWith(".exe", StringComparison.CurrentCultureIgnoreCase))
                 {
                     e.Effect = DragDropEffects.Copy;
                 }
@@ -244,7 +244,7 @@ namespace VideoLibrarian
                 foreach (var prefix in pathPrefixes)
                 {
                     string browser = Path.Combine(prefix, b);
-                    if (File.Exists(browser)) { browsers.Add(browser); break; }
+                    if (FileEx.Exists(browser)) { browsers.Add(browser); break; }
                 }
             }
 

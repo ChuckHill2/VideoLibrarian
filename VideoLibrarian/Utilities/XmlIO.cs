@@ -73,7 +73,7 @@ namespace VideoLibrarian
         /// <returns>Deserialized object</returns>
         public static T Deserialize<T>(string path) where T : new()
         {
-            if (!File.Exists(path)) return new T();
+            if (!FileEx.Exists(path)) return new T();
             var xs = new XmlSerializer(typeof(T));
             try
             {

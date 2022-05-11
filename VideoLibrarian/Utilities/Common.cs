@@ -495,7 +495,7 @@ namespace VideoLibrarian
             {
                 var s = SplitProcessCommandline(exe); //split executable and command-line args
 
-                if (!File.Exists(s[0]))
+                if (!FileEx.Exists(s[0]))
                 {
                     Log.Write(Severity.Warning, "Executable not found: " + s[0]);
                     si.FileName = arg;

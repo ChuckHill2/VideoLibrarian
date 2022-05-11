@@ -177,13 +177,13 @@ namespace VideoLibrarian
                 // if image object not yet loaded or image object disposed... 
                 if (_moviePosterImg == null || _moviePosterImg.PixelFormat == System.Drawing.Imaging.PixelFormat.Undefined)
                 {
-                    if (MoviePosterPath.IsNullOrEmpty() || !File.Exists(MoviePosterPath))
+                    if (MoviePosterPath.IsNullOrEmpty() || !FileEx.Exists(MoviePosterPath))
                     {
                         SetMoviePosterUrl(null); //Get the poster URL (not the jpg image) from the IMDB web site.
                         DownloadMoviePosterFile();
                     }
 
-                    if (MoviePosterPath.IsNullOrEmpty() || !File.Exists(MoviePosterPath))
+                    if (MoviePosterPath.IsNullOrEmpty() || !FileEx.Exists(MoviePosterPath))
                         _moviePosterImg = CreateBlankPoster(this.MovieName);
                     else
                     {
@@ -193,7 +193,7 @@ namespace VideoLibrarian
                         }
                         catch (Exception ex)
                         {
-                            File.Delete(MoviePosterPath);
+                            FileEx.Delete(MoviePosterPath);
                             Log.Write(Severity.Warning, $"Corrupted poster image. Recreating poster image file \"{MoviePosterPath}\".\n{ex}");
                             return MoviePosterImg;
                         }
@@ -274,7 +274,7 @@ namespace VideoLibrarian
 
                 _getMoviePropertyTask = Task.Run(() => GetVideoFileProperties());
 
-                File.Delete(HtmlPath);
+                FileEx.Delete(HtmlPath);
                 var job = new Downloader.Job(UrlLink, HtmlPath);
                 if (!Downloader.Download(job)) return; // Downloader.Download() logs its own errors. It will also update data.Url to redirected path and job.Filename
 
@@ -286,8 +286,8 @@ namespace VideoLibrarian
                     foreach (string fOld in Directory.EnumerateFiles(path, $"{ttOld}*.*"))
                     {
                         var fNew = fOld.Replace(ttOld, ttNew);
-                        File.Delete(fNew);
-                        File.Move(fOld, fNew);
+                        FileEx.Delete(fNew);
+                        FileEx.Move(fOld, fNew);
                     }
 
                     CreateTTShortcut(ShortcutPath, ttNew);
@@ -301,11 +301,11 @@ namespace VideoLibrarian
 
                 HtmlPath = job.Filename;
                 ParseImdb(job);
-                File.Delete(HtmlPath); //We no longer keep the web page because the layout changes sooo frequently!
+                FileEx.Delete(HtmlPath); //We no longer keep the web page because the layout changes sooo frequently!
 
                 // Rename url shortcut filename to friendly name.
                 var dst = Path.Combine(Path.GetDirectoryName(this.ShortcutPath), this.FullMovieName + Path.GetExtension(this.ShortcutPath));
-                if (ShortcutPath != dst) File.Move(ShortcutPath, dst);
+                if (ShortcutPath != dst) FileEx.Move(ShortcutPath, dst);
                 ShortcutPath = dst;
 
                 this.Serialize();
@@ -314,8 +314,8 @@ namespace VideoLibrarian
             else if (forceRefresh && !loadAvailable)
             {
                 if (PathPrefix.EndsWith(EmptyTitleID)) throw new DataException("Manually created movie properties file {PropertiesPath} cannot be automatically recreated.");
-                // if (!HtmlPath.IsNullOrEmpty()) File.Delete(HtmlPath) //Deep refresh. Will download web page again.
-                File.Delete(PropertiesPath); //Force re-parse of downloaded web page.
+                // if (!HtmlPath.IsNullOrEmpty()) FileEx.Delete(HtmlPath) //Deep refresh. Will download web page again.
+                FileEx.Delete(PropertiesPath); //Force re-parse of downloaded web page.
                 var p = new MovieProperties(path);
 
                 // Ignore all derived properties including all derived directory/file paths 
@@ -383,7 +383,7 @@ namespace VideoLibrarian
             {
                 // These have strict filenames.
                 PropertiesPath = PathPrefix + ".xml";
-                if (!loadAvailable && PathPrefix.EndsWith(EmptyTitleID) && !File.Exists(PropertiesPath)) throw new FileNotFoundException("Manually created movie properties not found", PropertiesPath);
+                if (!loadAvailable && PathPrefix.EndsWith(EmptyTitleID) && !FileEx.Exists(PropertiesPath)) throw new FileNotFoundException("Manually created movie properties not found", PropertiesPath);
                 HtmlPath = PathPrefix + ".htm";
                 MoviePosterPath = PathPrefix + ".jpg";
 
@@ -647,7 +647,7 @@ namespace VideoLibrarian
                 Parser.Found(YearEnd, "YearEndJ");
             }
 
-            if (Runtime==0 && (MoviePath.IsNullOrEmpty() || !File.Exists(this.MoviePath)))
+            if (Runtime==0 && (MoviePath.IsNullOrEmpty() || !FileEx.Exists(this.MoviePath)))
             {
                 //This is normally set from async extract of video file properties: GetVideoFileProperties()
                 Runtime = int.TryParse(props1["runtime"]["seconds"], out i) ? i / 60 : 0;
@@ -802,7 +802,7 @@ namespace VideoLibrarian
 
             if (html.IsNullOrEmpty())  //Occurs when this method is lazily called by MoviePosterImg getter so we must load our cached copy of the IMDB movie page.
             {
-                if (!File.Exists(HtmlPath)) //Oops. The cached IMDB movie page does not exist. Retrieve it.
+                if (!FileEx.Exists(HtmlPath)) //Oops. The cached IMDB movie page does not exist. Retrieve it.
                 {
                     var job = new Downloader.Job(UrlLink, HtmlPath);
                     if (!Downloader.Download(job))
@@ -829,7 +829,7 @@ namespace VideoLibrarian
                 if (Downloader.Download(job))
                 {
                     var html2 = FileEx.ReadHtml(job.Filename);
-                    File.Delete(job.Filename); //no longer needed. extension already used for this cache file.
+                    FileEx.Delete(job.Filename); //no longer needed. extension already used for this cache file.
                     // {'editTagsLink':'/registration/signin','id':'rm3022336','h':1000,'msrc':'https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_SY500_CR0,0,364,500_AL_.jpg','src':'https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_SY1000_CR0,0,728,1000_AL_.jpg','w':728,'imageCount':164,'altText':'Taylor Kitsch in John Carter (2012)','caption':'<a href=\'/name/nm2018237/\'>Taylor Kitsch</a> in <a href=\'/title/tt0401729/\'>John Carter (2012)</a>','imageType':'poster','relatedNames':[{'constId':'nm2018237','displayName':'Taylor Kitsch','url':'/name/nm2018237?ref_=tt_mv'}],'relatedTitles':[{'constId':'tt0401729','displayName':'John Carter','url':'/title/tt0401729?ref_=tt_mv'}],'reportImageLink':'/registration/signin','tracking':'/title/tt0401729/mediaviewer/rm3022336/tr','voteData':{'totalLikeVotes':0,'userVoteStatus':'favorite-off'},'votingLink':'/registration/signin'}],'baseUrl':'/title/tt0401729/mediaviewer','galleryIndexUrl':'/title/tt0401729/mediaindex','galleryTitle':'John Carter (2012)','id':'tt0401729','interstitialModel':
                     mc = Regex.Matches(html2, string.Concat("'id':'", id, "'.+?'src':'(?<POSTER>[^']+)'"), RE_options);
                     if (mc.Count > 0) posterUrl = mc[0].Groups["POSTER"].Value;
@@ -877,7 +877,7 @@ namespace VideoLibrarian
                 if (Downloader.Download(job))
                 {
                     var html2 = FileEx.ReadHtml(job.Filename);
-                    File.Delete(job.Filename); //no longer needed. extension already used for this cache file.
+                    FileEx.Delete(job.Filename); //no longer needed. extension already used for this cache file.
                     mc = Regex.Matches(html2, @"'(?<URL>https:\/\/m\.media-amazon\.com\/images\/[^' ]+\.jpg)'", RE_options);
                     if (mc.Count > 0)
                     {
@@ -891,7 +891,7 @@ namespace VideoLibrarian
             // It also presumes that the other properties are not up to date either. Maybe the next time VideoLibrarian is run.
             // But give up on movies/episodes that have not added a poster image after a month. Likely an image will never be added...
             // Also if the poster jpg has been manually created by other means don't automatically delete the filecache.
-            if (ReleaseDate.AddMonths(1) > DateTime.Now && !File.Exists(this.MoviePosterPath))
+            if (ReleaseDate.AddMonths(1) > DateTime.Now && !FileEx.Exists(this.MoviePosterPath))
                 this.DeleteFileCacheUponExit = FileCacheScope.All;
             return false; //no change. couldn't find poster url.
         }
@@ -904,7 +904,7 @@ namespace VideoLibrarian
         /// <returns>True if local image file exists.</returns>
         private bool DownloadMoviePosterFile()
         {
-            if (File.Exists(MoviePosterPath)) return true;
+            if (FileEx.Exists(MoviePosterPath)) return true;
             if (MoviePosterUrl.IsNullOrEmpty()) return false;
 
             try
@@ -927,10 +927,10 @@ namespace VideoLibrarian
                 else
                 {
                     var file = MoviePosterUrl.StartsWith("file:///") ? new Uri(MoviePosterUrl).LocalPath : MoviePosterUrl;
-                    if (File.Exists(file))
+                    if (FileEx.Exists(file))
                     {
                         MoviePosterPath = Path.ChangeExtension(MoviePosterPath, Path.GetExtension(file));
-                        File.Copy(file, MoviePosterPath, true);
+                        FileEx.Copy(file, MoviePosterPath, true);
                         TileBase.PurgeTileImages(Path.GetDirectoryName(ShortcutPath));
                         return true;
                     }
@@ -1092,7 +1092,7 @@ namespace VideoLibrarian
 
         private bool Deserialize(string path)
         {
-            if (path.IsNullOrEmpty() || !File.Exists(path)) return false;
+            if (path.IsNullOrEmpty() || !FileEx.Exists(path)) return false;
             try
             {
                 var sd = XmlIO.Deserialize<MovieProperties>(path);
@@ -1261,7 +1261,7 @@ namespace VideoLibrarian
         /// </summary>
         public void GetVideoFileProperties()
         {
-            if (!MoviePath.IsNullOrEmpty() && File.Exists(this.MoviePath))
+            if (!MoviePath.IsNullOrEmpty() && FileEx.Exists(this.MoviePath))
             {
                 try
                 {
@@ -1276,7 +1276,7 @@ namespace VideoLibrarian
                     this.DisplayWidth = stream.Width;
                     this.DisplayHeight = stream.Height;
                     this.DisplayRatio = ComputeNormalizedDisplayRatio(stream.Width, stream.Height);
-                    this.MovieFileLength = new FileInfo(this.MoviePath).Length;
+                    this.MovieFileLength = FileEx.Length(this.MoviePath);
 
                     hashtask.Wait();
                     hashtask.Dispose();
@@ -1339,7 +1339,7 @@ namespace VideoLibrarian
                 return true;
             }
 
-            if (!File.Exists(this.MoviePath)) //Should never get here (see FindFiles()).
+            if (!FileEx.Exists(this.MoviePath)) //Should never get here (see FindFiles()).
             {
                 Log.Write(Severity.Error, $"Verification of {this.MoviePath} Failed: File not found.");
                 return false;
@@ -1363,7 +1363,7 @@ namespace VideoLibrarian
                 return false;
             }
 
-            if (this.MovieFileLength != new FileInfo(this.MoviePath).Length)
+            if (this.MovieFileLength != FileEx.Length(this.MoviePath))
             {
                 Log.Write(Severity.Error, $"Verification of {this.MoviePath} Failed: File length mismatch. Video Corrupted.");
                 return false;
@@ -1385,17 +1385,17 @@ namespace VideoLibrarian
         /// <param name="tt">IMDB title id (tt123456) or EmptyTitleID (tt0000000 e.g. non-IMDB movie) or full url (ɦttps://www.imdb.com/title/tt123456/)</param>
         public static void CreateTTShortcut(string filepath, string tt)
         {
-            if (File.Exists(filepath)) return;
+            if (FileEx.Exists(filepath)) return;
             //http://www.lyberty.com/encyc/articles/tech/dot_url_format_-_an_unofficial_guide.html
 
             //One cannot use the website favicon for the shortcut icon directly from the website url. It must be downloaded to a local file before it can be used!
             //https://docs.microsoft.com/en-us/answers/questions/120626/internet-shortcut-url-file-no-longer-supports-remo.html
             var favicon = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonPictures), "favicon_imdb.ico");
-            if (!File.Exists(favicon))
+            if (!FileEx.Exists(favicon))
             {
                 var job = new Downloader.Job("https://www.imdb.com/favicon.ico", favicon);
                 Downloader.Download(job);
-                if (!favicon.Equals(job.Filename)) File.Move(job.Filename, favicon);
+                if (!favicon.Equals(job.Filename)) FileEx.Move(job.Filename, favicon);
             }
 
             //Delete all other IMDB shortcuts
@@ -1404,7 +1404,7 @@ namespace VideoLibrarian
                 var link = MovieProperties.GetUrlFromShortcut(f);
                 if (link == null) continue;
                 if (!link.ContainsI("imdb.com/title/tt") && !link.StartsWith("file:///")) continue;
-                File.Delete(f);
+                FileEx.Delete(f);
             }
 
             if (tt == MovieProperties.EmptyTitleID)
@@ -1463,7 +1463,7 @@ namespace VideoLibrarian
                 {
                     if (file.StartsWith("file:///")) file = new Uri(file).LocalPath;
                     if (MovieProperties.MovieExtensions.IndexOf(Path.GetExtension(file), StringComparison.CurrentCultureIgnoreCase) == -1) return false;
-                    if (!File.Exists(file)) return false;
+                    if (!FileEx.Exists(file)) return false;
                 }
             }
             catch { return false; }
@@ -1488,7 +1488,7 @@ namespace VideoLibrarian
                 {
                     if (file.StartsWith("file:///")) file = new Uri(file).LocalPath;
                     if (MovieProperties.ImageExtensions.IndexOf(Path.GetExtension(file), StringComparison.CurrentCultureIgnoreCase) == -1) return false;
-                    if (!File.Exists(file)) return false;
+                    if (!FileEx.Exists(file)) return false;
                 }
             }
             catch { return false;  }

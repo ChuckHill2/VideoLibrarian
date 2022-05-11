@@ -46,7 +46,7 @@ namespace VideoLibrarian
         {
             var p = mp.PathPrefix + "L.png";  //keep name short to minimize full path from exceeding the maximum path length.
 
-            if (File.Exists(p))
+            if (FileEx.Exists(p))
             {
                 try
                 {
@@ -62,7 +62,7 @@ namespace VideoLibrarian
                 }
                 catch(Exception ex)
                 {
-                    File.Delete(p);
+                    FileEx.Delete(p);
                     Log.Write(Severity.Error, $"Image Corrupted. Recreating image {p}\n{ex}");
                 }
             }

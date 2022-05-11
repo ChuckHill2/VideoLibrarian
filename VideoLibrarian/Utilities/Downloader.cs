@@ -130,7 +130,7 @@ namespace VideoLibrarian
                     }
                     #endregion Handle Disk-full error
 
-                    if (job.Filename != null) File.Delete(job.Filename);
+                    if (job.Filename != null) FileEx.Delete(job.Filename);
 
                     HttpStatusCode httpStatus = 0;
                     WebExceptionStatus webStatus = WebExceptionStatus.Success;
@@ -207,8 +207,8 @@ namespace VideoLibrarian
                 //int contentLength = int.TryParse(client.ResponseHeaders[HttpResponseHeader.ContentLength], out var __contentLength) ? __contentLength : 0;
             }
 
-            if (!File.Exists(job.Filename)) throw new FileNotFoundException();  //should never occur due to GetUniqueFilename()
-            if (new FileInfo(job.Filename).Length < 8) { File.Delete(job.Filename); throw new FileNotFoundException("No Data."); }
+            if (!FileEx.Exists(job.Filename)) throw new FileNotFoundException();  //should never occur due to GetUniqueFilename()
+            if (FileEx.Length(job.Filename) < 8) { FileEx.Delete(job.Filename); throw new FileNotFoundException("No Data."); }
 
             //Adjust extension to reflect true filetype, BUT make sure that new filename does not exist.
             var oldExt = Path.GetExtension(job.Filename);
@@ -217,8 +217,8 @@ namespace VideoLibrarian
             {
                 var newfilename = Path.ChangeExtension(job.Filename, newExt);
                 newfilename = GetUniqueFilename(newfilename); //creates empty file as placeholder
-                File.Delete(newfilename); //delete the placeholder. Move will throw exception if it already exists
-                File.Move(job.Filename, newfilename);
+                FileEx.Delete(newfilename); //delete the placeholder. Move will throw exception if it already exists
+                FileEx.Move(job.Filename, newfilename);
                 job.Filename = newfilename; //return new filename to caller.
             }
 
@@ -323,7 +323,7 @@ namespace VideoLibrarian
                 string dir = Path.GetDirectoryName(srcFilename);
                 if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
 
-                while (File.Exists(newFilename))
+                while (FileEx.Exists(newFilename))
                 {
                     if (pathFormat == null)
                     {

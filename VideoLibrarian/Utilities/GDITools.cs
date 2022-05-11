@@ -108,7 +108,7 @@ namespace VideoLibrarian
                     default: return targetBmp;
                 }
 
-                if (File.Exists(filename)) File.Delete(filename);
+                if (FileEx.Exists(filename)) FileEx.Delete(filename);
                 targetBmp.Save(filename, iFormat);
             }
 

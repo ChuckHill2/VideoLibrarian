@@ -120,7 +120,7 @@ namespace VideoLibrarian
                     if (fmt != null && LogStream == null)
                     {
                         //Roll over log at 100MB
-                        if (File.Exists(LogName) && new FileInfo(LogName).Length > (1024 * 1024 * 100)) File.Delete(LogName);
+                        if (FileEx.Exists(LogName) && FileEx.Length(LogName) > (1024 * 1024 * 100)) FileEx.Delete(LogName);
                         var fs = File.Open(LogName, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
                         LogStream = new StreamWriter(fs) { AutoFlush = true };
                         LogStream.WriteLine(@"-------- {0:MM/dd/yyyy hh:mm:ss tt} ------------------------------------------", DateTime.Now);
@@ -236,7 +236,7 @@ namespace VideoLibrarian
                     if (fmt != null && LogStream == null)
                     {
                         //Roll over log at 100MB
-                        if (File.Exists(LogName) && new FileInfo(LogName).Length > (1024 * 1024 * 100)) File.Delete(LogName);
+                        if (FileEx.Exists(LogName) && FileEx.Length(LogName) > (1024 * 1024 * 100)) FileEx.Delete(LogName);
                         var fs = File.Open(LogName, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
                         LogStream = new StreamWriter(fs) { AutoFlush = true };
                         LogStream.WriteLine(@"-------- {0:MM/dd/yyyy hh:mm:ss tt} ------------------------------------------", DateTime.Now);

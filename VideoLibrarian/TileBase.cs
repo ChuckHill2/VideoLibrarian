@@ -409,7 +409,7 @@ namespace VideoLibrarian
             var tile = c.FindParent<ITile>();
             var mp = tile.MovieProps;
             //Not TVSeries root and movie not found, disable title click.
-            if ((mp.Episodes == null || mp.Episodes.Count == 0) && (mp.MoviePath.IsNullOrEmpty() || !File.Exists(mp.MoviePath)))
+            if ((mp.Episodes == null || mp.Episodes.Count == 0) && (mp.MoviePath.IsNullOrEmpty() || !FileEx.Exists(mp.MoviePath)))
             {
                 c.Click -= m_lblTitle_Click;
                 c.MouseEnter -= Highlight_MouseEnter;
@@ -427,7 +427,7 @@ namespace VideoLibrarian
         {
             var mp = this.MovieProps;
             //Not TVSeries root and movie not found, disable title click.
-            if ((mp.Episodes == null || mp.Episodes.Count == 0) && (mp.MoviePath.IsNullOrEmpty() || !File.Exists(mp.MoviePath)))
+            if ((mp.Episodes == null || mp.Episodes.Count == 0) && (mp.MoviePath.IsNullOrEmpty() || !FileEx.Exists(mp.MoviePath)))
             {
                 return true;
             }
@@ -445,7 +445,7 @@ namespace VideoLibrarian
                 return;
             }
             //This should never occur since title clicking is disabled in the tile. Well, just in case!
-            if (mp.MoviePath.IsNullOrEmpty() || !File.Exists(mp.MoviePath)) { MiniMessageBox.ShowDialog(this, "Movie not found.", "Missing Movie", MessageBoxButtons.OK, MessageBoxIcon.Error); return; }
+            if (mp.MoviePath.IsNullOrEmpty() || !FileEx.Exists(mp.MoviePath)) { MiniMessageBox.ShowDialog(this, "Movie not found.", "Missing Movie", MessageBoxButtons.OK, MessageBoxIcon.Error); return; }
 
             ProcessEx.OpenExec(FormMain.This.Settings.VideoPlayer, mp.MoviePath);
         }
@@ -607,7 +607,7 @@ namespace VideoLibrarian
             bmpTile.Dispose();
 
             #region Replace blown up (fuzzy) poster in tile image with original hi-rez poster image.
-            if (!moviePosterPath.IsNullOrEmpty() && File.Exists(moviePosterPath))
+            if (!moviePosterPath.IsNullOrEmpty() && FileEx.Exists(moviePosterPath))
             {
                 using (var graphics = Graphics.FromImage(bmpTileResized))
                 {
@@ -691,7 +691,7 @@ namespace VideoLibrarian
                 try
                 {
                     if ("SML".IndexOf(sml) == -1) continue; //faster than regex!
-                    File.Delete(f);
+                    FileEx.Delete(f);
                 }
                 catch (Exception ex)
                 {

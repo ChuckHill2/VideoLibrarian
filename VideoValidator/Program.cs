@@ -61,17 +61,17 @@ namespace VideoValidator
                 try
                 {
                     string filename = Path.Combine(Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName), "VideoLibrarian.SavedState.xml");
-                    if (!File.Exists(filename))
+                    if (!FileEx.Exists(filename))
                     {
                         //Hack: Visual Studio places this exe in a different folder from the official VideoLibrarian folder, so we use a shortcut to the official state file.
-                        if (File.Exists(filename + ".lnk")) //dereference the .lnk file
+                        if (FileEx.Exists(filename + ".lnk")) //dereference the .lnk file
                         {
                             IWshRuntimeLibrary.WshShell wshShell = new IWshRuntimeLibrary.WshShell();
                             IWshRuntimeLibrary.IWshShortcut shortcut = (IWshRuntimeLibrary.IWshShortcut)wshShell.CreateShortcut(filename + ".lnk");
                             filename = shortcut.TargetPath;
                         }
 
-                        if (!File.Exists(filename)) throw new FileNotFoundException($"File {filename} not found.", filename);
+                        if (!FileEx.Exists(filename)) throw new FileNotFoundException($"File {filename} not found.", filename);
                     }
 
                     FormMainProperties data = XmlIO.Deserialize<FormMainProperties>(filename);

@@ -31,17 +31,17 @@ namespace UpdateXml
                 try
                 {
                     string filename = Path.Combine(Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName), "VideoLibrarian.SavedState.xml");
-                    if (!File.Exists(filename))
+                    if (!FileEx.Exists(filename))
                     {
                         //Hack: Visual Studio places this exe in a different folder from the official VideoLibrarian folder, so we use a shortcut to the official state file.
-                        if (File.Exists(filename + ".lnk")) //dereference the .lnk file
+                        if (FileEx.Exists(filename + ".lnk")) //dereference the .lnk file
                         {
                             IWshRuntimeLibrary.WshShell wshShell = new IWshRuntimeLibrary.WshShell();
                             IWshRuntimeLibrary.IWshShortcut shortcut = (IWshRuntimeLibrary.IWshShortcut)wshShell.CreateShortcut(filename + ".lnk");
                             filename = shortcut.TargetPath;
                         }
 
-                        if (!File.Exists(filename)) throw new FileNotFoundException($"File {filename} not found.", filename);
+                        if (!FileEx.Exists(filename)) throw new FileNotFoundException($"File {filename} not found.", filename);
                     }
 
                     FormMainProperties data = XmlIO.Deserialize<FormMainProperties>(filename);
@@ -105,8 +105,8 @@ namespace UpdateXml
                         var p1 = new MovieProperties(folder);
                         if (p1.ToString() == "UNKNOWN") throw new InvalidDataException($"Original incomplete/corrupted movie property for folder: {folder}");
 
-                        FileEx.FileDelete(xmlFile + ".backup");
-                        File.Move(xmlFile, xmlFile + ".backup"); //save just in case
+                        FileEx.Delete(xmlFile + ".backup");
+                        FileEx.Move(xmlFile, xmlFile + ".backup"); //save just in case
 
                         //create upon demand new movie properties file.
                         var p2 = new MovieProperties(folder);
@@ -130,10 +130,10 @@ namespace UpdateXml
                         if (!p1.Equals(p2))
                         {
                             p2.Serialize();
-                            if (!backup.IsNullOrEmpty()) FileEx.FileDelete(backup);
+                            if (!backup.IsNullOrEmpty()) FileEx.Delete(backup);
 
                             var re = new Regex(@"\tt[0-9]+(?:S|M|L).png$", RegexOptions.IgnoreCase); //ex. tt0000000S.png, tt0000000M.png, tt0000000L.png
-                            foreach (var f in DirectoryEx.EnumerateAllFiles(folder).Where(m => re.IsMatch(m))) FileEx.FileDelete(f);
+                            foreach (var f in DirectoryEx.EnumerateAllFiles(folder).Where(m => re.IsMatch(m))) FileEx.Delete(f);
                             //We do not delete the poster image because it may have been manually modified.
                         }
                         else
@@ -141,8 +141,8 @@ namespace UpdateXml
                             if (!backup.IsNullOrEmpty())
                             {
                                 var xml = backup.Substring(0, backup.Length - 7);
-                                FileEx.FileDelete(xml);
-                                File.Move(backup, xml);
+                                FileEx.Delete(xml);
+                                FileEx.Move(backup, xml);
                             }
                         }
 
@@ -154,8 +154,8 @@ namespace UpdateXml
                         if (!backup.IsNullOrEmpty())
                         {
                             var xml = backup.Substring(0, backup.Length - 7);
-                            FileEx.FileDelete(xml);
-                            File.Move(backup, xml);
+                            FileEx.Delete(xml);
+                            FileEx.Move(backup, xml);
                         }
 
                         Log.Write(Severity.Error, $"Movie property failed to load from {folder}: {ex.Message}");

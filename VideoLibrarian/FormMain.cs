@@ -209,18 +209,18 @@ namespace VideoLibrarian
             {
                 Log.Write(Severity.Verbose, $"Deleting all properties for {p.MoviePath}");
                 //FileEx.FileDelete(p.MoviePosterPath);
-                FileEx.FileDelete(p.PropertiesPath);
-                FileEx.FileDelete(p.HtmlPath);
-                FileEx.FileDelete(p.PathPrefix + "S.png");
-                FileEx.FileDelete(p.PathPrefix + "M.png");
-                FileEx.FileDelete(p.PathPrefix + "L.png");
+                FileEx.Delete(p.PropertiesPath);
+                FileEx.Delete(p.HtmlPath);
+                FileEx.Delete(p.PathPrefix + "S.png");
+                FileEx.Delete(p.PathPrefix + "M.png");
+                FileEx.Delete(p.PathPrefix + "L.png");
             }
             else if (p.DeleteFileCacheUponExit == VideoLibrarian.MovieProperties.FileCacheScope.ImagesOnly)
             {
                 Log.Write(Severity.Verbose, $"Deleting only tile images for {p.MoviePath}");
-                FileEx.FileDelete(p.PathPrefix + "S.png");
-                FileEx.FileDelete(p.PathPrefix + "M.png");
-                FileEx.FileDelete(p.PathPrefix + "L.png");
+                FileEx.Delete(p.PathPrefix + "S.png");
+                FileEx.Delete(p.PathPrefix + "M.png");
+                FileEx.Delete(p.PathPrefix + "L.png");
             }
         }
 

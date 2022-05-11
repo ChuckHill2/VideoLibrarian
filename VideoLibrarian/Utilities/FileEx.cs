@@ -112,12 +112,6 @@ namespace VideoLibrarian
         /// <returns>DateTime</returns>
         public static DateTime GetCreationDate(string filename)
         {
-            // var dtMin = File.GetCreationTime(filename);
-            // var dt = File.GetLastAccessTime(filename);
-            // if (dt < dtMin) dtMin = dt;
-            // dt = File.GetLastWriteTime(filename);
-            // if (dt < dtMin) dtMin = dt;
-
             GetFileTime(filename, out long creationTime, out long lastAccessTime, out long lastWriteTime);
             long timeMin = creationTime;
             if (lastAccessTime < timeMin) timeMin = lastAccessTime;
@@ -126,25 +120,6 @@ namespace VideoLibrarian
 
             //Forget hi-precision and DateTimeKind. It just complicates comparisons. This is more than good enough.
             return new DateTime(dtMin.Year, dtMin.Month, dtMin.Day, dtMin.Hour, dtMin.Minute, 0);
-        }
-
-        /// <summary>
-        /// Safe file delete. Will not throw exception. Instead will log it as a warning.
-        /// </summary>
-        /// <param name="fn">Name of file to delete.</param>
-        /// <returns>True if successfully deleted</returns>
-        public static bool FileDelete(string fn)
-        {
-            try
-            {
-                File.Delete(fn);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Log.Write(Severity.Warning, $"Could not delete {fn}: {ex.Message}");
-                return false;
-            }
         }
 
         /// <summary>
@@ -219,8 +194,8 @@ namespace VideoLibrarian
         [DllImport("kernel32.dll", SetLastError = true, BestFitMapping = false)]
         private static extern bool GetFileTime(IntPtr hFile, out long creationTime, out long lastAccessTime, out long lastWriteTime);
 
-        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode, BestFitMapping = false)]
-        private static extern IntPtr CreateFileW(string lpFileName, uint dwDesiredAccess, uint dwShareMode, IntPtr lpSecurityAttributes, uint dwCreationDisposition, uint dwFlagsAndAttributes, IntPtr hTemplateFile);
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true, BestFitMapping = false)]
+        private static extern IntPtr CreateFile(string lpFileName, uint dwDesiredAccess, uint dwShareMode, IntPtr lpSecurityAttributes, uint dwCreationDisposition, uint dwFlagsAndAttributes, IntPtr hTemplateFile);
         private static readonly IntPtr INVALID_HANDLE_VALUE = new IntPtr(-1);
 
         [DllImport("kernel32.dll", SetLastError = true, BestFitMapping = false)]
@@ -228,12 +203,31 @@ namespace VideoLibrarian
 
         [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true, BestFitMapping = false)]
         private static extern bool DeleteFile(string path);
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true, BestFitMapping = false)]
+        private static extern bool CopyFile(string srcfile, string dstfile, bool failIfExists);
+
         [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true, BestFitMapping = false)]
         private static extern bool MoveFileEx(string src, string dst, int dwFlags);
-        [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true, BestFitMapping = false)]
-        private static extern bool ReplaceFile(string replacedFileName, string replacementFileName, string backupFileName, int dwReplaceFlags, IntPtr lpExclude, IntPtr lpReserved);
+
         [DllImport("kernel32.dll", SetLastError = true, BestFitMapping = false)]
         private static extern bool GetFileSizeEx(IntPtr hFile, out long lpFileSize);
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true, BestFitMapping = false)]
+        private static extern int GetFileAttributes(string lpFileName);
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true, BestFitMapping = false)]
+        private static extern bool GetFileAttributesEx(string lpFileName, int flags, out WIN32_FILE_ATTRIBUTE_DATA fileData);
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct WIN32_FILE_ATTRIBUTE_DATA
+        {
+            public FileAttributes dwFileAttributes;
+            public long ftCreationTime;
+            public long ftLastAccessTime;
+            public long ftLastWriteTime;
+            public long nFileSize;
+        }
         #endregion
 
         /// <summary>
@@ -242,51 +236,59 @@ namespace VideoLibrarian
         /// <param name="filename">Full name of file to delete.</param>
         /// <returns>True if successfully deleted</returns>
         /// <remarks>
-        /// Does not throw an exception.
+        /// Does not throw exceptions.
         /// </remarks>
         public static bool Delete(string filename) => DeleteFile(filename);
 
         /// <summary>
-        /// Move a file to a new destination name filename.
+        ///  Copy a file to a new filename.
+        /// </summary>
+        /// <param name="srcfile">File name of source file</param>
+        /// <param name="dstFile">File name of destination file</param>
+        /// <param name="failIfExists"></param>
+        /// <returns>True if successful</returns>
+        /// <remarks>
+        /// Does not throw exceptions.
+        /// </remarks>
+        public static bool Copy(string srcfile, string dstFile, bool failIfExists = false) => CopyFile(srcfile, dstFile, failIfExists);
+
+        /// <summary>
+        /// Move a file to a new destination.
         /// </summary>
         /// <param name="srcfile">File name of source file</param>
         /// <param name="dstFile">File name of destination file</param>
         /// <returns>True if successful</returns>
         /// <remarks>
-        /// Does not throw an exception.
+        /// Does not throw exceptions.
         /// A pre-existing destination file is overwritten.
         /// May move files across drives.
         /// </remarks>
         public static bool Move(string srcfile, string dstFile) => MoveFileEx(srcfile, dstFile, 3);
 
         /// <summary>
-        /// Makes an optional copy of the destination file then replaces the contents of the
-        /// destination file with the source file contents leaving all file and security attributes
-        /// intact. The source file is then deleted.
-        /// </summary>
-        /// <param name="srcfile"></param>
-        /// <param name="dstfile"></param>
-        /// <param name="bakfile"></param>
-        /// <remarks>
-        /// Does not throw an exception.
-        /// Does testination file need to exist?
-        /// May move files across drives?.
-        /// </remarks>
-        public static bool Replace(string srcfile, string dstfile, string bakfile=null) => ReplaceFile(srcfile, dstfile, bakfile, 7, IntPtr.Zero, IntPtr.Zero);
-
-        /// <summary>
         /// Get length of specified file 
         /// </summary>
         /// <param name="filename"></param>
         /// <returns>File length or -1 upon error.</returns>
+        /// <remarks>
+        /// Does not throw exceptions.
+        /// </remarks>
         public static long Length(string filename)
         {
-            var hFile = CreateFileW(filename, 0x0080, 0x00000003, IntPtr.Zero, 3, 0x80, IntPtr.Zero);
-            if (hFile == INVALID_HANDLE_VALUE) return -1L;
-            bool success = GetFileSizeEx(hFile, out long lpFileSize);
-            CloseHandle(hFile);
-            return success ? lpFileSize : -1L;
+            bool success = GetFileAttributesEx(filename, 0, out WIN32_FILE_ATTRIBUTE_DATA fileData);
+            if (!success) return -1L;
+            return fileData.nFileSize;
         }
+
+        /// <summary>
+        /// Check if a file exists.
+        /// </summary>
+        /// <param name="filename"></param>
+        /// <returns>True if file exists.</returns>
+        /// <remarks>
+        /// Does not throw exceptions.
+        /// </remarks>
+        public static bool Exists(string filename) => GetFileAttributes(filename) != -1;
 
         /// <summary>
         /// Get all 3 datetime fields for a given file in FileTime (64-bit) format.
@@ -299,7 +301,14 @@ namespace VideoLibrarian
         public static bool GetFileTime(string filename, out long creationTime, out long lastAccessTime, out long lastWriteTime)
         {
             creationTime = lastAccessTime = lastWriteTime = 0;
-            var hFile = CreateFileW(filename, 0x0080, 0x00000003, IntPtr.Zero, 3, 0x80, IntPtr.Zero);
+
+            //bool success = GetFileAttributesEx(filename, 0, out WIN32_FILE_ATTRIBUTE_DATA fileData);
+            //if (!success) return false;
+            //creationTime = fileData.ftCreationTime;
+            //lastAccessTime = fileData.ftLastAccessTime;
+            //lastWriteTime = fileData.ftLastWriteTime;
+
+            var hFile = CreateFile(filename, 0x0080, 0x00000003, IntPtr.Zero, 3, 0x80, IntPtr.Zero);
             if (hFile == INVALID_HANDLE_VALUE) return false;
             bool success = GetFileTime(hFile, out creationTime, out lastAccessTime, out lastWriteTime);
             CloseHandle(hFile);
@@ -317,7 +326,7 @@ namespace VideoLibrarian
         public static bool SetFileTime(string filename, long creationTime, long lastAccessTime, long lastWriteTime)
         {
             bool success;
-            var hFile = CreateFileW(filename, 0x0100, 0x00000003, IntPtr.Zero, 3, 0x80, IntPtr.Zero);
+            var hFile = CreateFile(filename, 0x0100, 0x00000003, IntPtr.Zero, 3, 0x80, IntPtr.Zero);
             if (hFile == INVALID_HANDLE_VALUE) return false;
 
             var fields = (creationTime == 0 ? 0 : 1) | (lastAccessTime == 0 ? 0 : 2) | (lastWriteTime == 0 ? 0 : 4);

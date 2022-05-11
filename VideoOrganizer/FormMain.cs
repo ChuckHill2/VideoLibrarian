@@ -213,8 +213,8 @@ namespace VideoOrganizer
                     SetStatus(Severity.Info, $"Moving \"{f.Substring(RootFolder.Length)}\" => \"\\{imdbParts.FolderName}{(imdbParts.Series == null ? "" : "\\" + imdbParts.Series)}\\\"");
 
                     var oldPath = f;  //Need to determine if underlying folder was renamed on a previous loop.
-                    if (!File.Exists(oldPath)) oldPath = Path.Combine(prevNewFolder, Path.GetFileName(oldPath));
-                    if (!File.Exists(oldPath)) { SetStatus(Severity.Error, $"Video {oldPath.Substring(RootFolder.Length)} not found."); continue; }
+                    if (!FileEx.Exists(oldPath)) oldPath = Path.Combine(prevNewFolder, Path.GetFileName(oldPath));
+                    if (!FileEx.Exists(oldPath)) { SetStatus(Severity.Error, $"Video {oldPath.Substring(RootFolder.Length)} not found."); continue; }
 
                     var folder = Path.GetDirectoryName(oldPath);
 
@@ -224,7 +224,7 @@ namespace VideoOrganizer
 
                     if (folder == previousFolder || folder == prevNewFolder || folder == RootFolder) { CreateFolder(newFolder); MoveFile(oldPath, newPath); }
                     else { MoveFolder(folder, newFolder);  }
-                    if (!File.Exists(oldPath)) oldPath = Path.Combine(newFolder, Path.GetFileName(oldPath));
+                    if (!FileEx.Exists(oldPath)) oldPath = Path.Combine(newFolder, Path.GetFileName(oldPath));
                     MovieProperties.CreateTTShortcut(Path.Combine(newFolder, imdbParts.MovieName + ".url"), imdbParts.ttMovie);
 
                     if (imdbParts.Series != null) //TV Series Episode
@@ -316,8 +316,8 @@ namespace VideoOrganizer
         private void MoveFile(string src, string dst)
         {
             if (src == dst) return;
-            if (!File.Exists(src)) { SetStatus(Severity.Error, $"Source File {src.Substring(RootFolder.Length)} does not exist."); return; }
-            if (!File.Exists(dst)) File.Move(src, dst);
+            if (!FileEx.Exists(src)) { SetStatus(Severity.Error, $"Source File {src.Substring(RootFolder.Length)} does not exist."); return; }
+            if (!FileEx.Exists(dst)) FileEx.Move(src, dst);
             else { SetStatus(Severity.Error, $"Source file {src.Substring(RootFolder.Length)} already exists in {Path.GetDirectoryName(dst).Substring(RootFolder.Length)}."); return; }
 
             //Verify that destination folder contains only one movie
@@ -414,7 +414,7 @@ namespace VideoOrganizer
                 if (Downloader.Download(job))
                 {
                     var html = FileEx.ReadHtml(job.Filename, true);
-                    File.Delete(job.Filename);
+                    FileEx.Delete(job.Filename);
 
                     //<a href='/title/tt1060050/?ref_=ttep_ep13' title='A Night in Global Dynamics' itemprop='name'>A Night in Global Dynamics</a>
                     mc = Regex.Matches(html, @"<a href='\/title\/(?<TT>tt[0-9]+)\/\?ref_=ttep_ep(?<EP>[0-9]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
@@ -543,7 +543,7 @@ namespace VideoOrganizer
             if (Downloader.Download(job))
             {
                 html = FileEx.ReadHtml(job.Filename, true);
-                File.Delete(job.Filename); //no longer needed.
+                FileEx.Delete(job.Filename); //no longer needed.
                 var items = ParseHtml(html, series);
                 if (items != null) return items;
             }
@@ -562,7 +562,7 @@ namespace VideoOrganizer
             if (Downloader.Download(job))
             {
                 html = FileEx.ReadHtml(job.Filename, true);
-                File.Delete(job.Filename); //no longer needed.
+                FileEx.Delete(job.Filename); //no longer needed.
                 var items = ParseHtml(html, series);
                 if (items != null) return items;
             }
@@ -673,7 +673,7 @@ namespace VideoOrganizer
             try
             {
                 var fn = Path.ChangeExtension(Process.GetCurrentProcess().MainModule.FileName, ".Cache.xml");
-                if (File.Exists(fn))
+                if (FileEx.Exists(fn))
                 {
                     SetStatus(Severity.Verbose, $"Debugging: Restoring TVSeries dictionary from {fn}");
                     var cache = XmlIO.Deserialize<TVSeriesCache>(fn);

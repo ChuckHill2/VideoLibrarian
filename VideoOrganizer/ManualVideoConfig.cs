@@ -368,12 +368,12 @@ namespace VideoOrganizer
             if (tt.IsNullOrEmpty()) { ShowError(m_txtImdbUrl, "IMDB Url is invalid."); return; }
 
             var tempExt = $".X{Environment.TickCount}X"; //create unique temporary backup extension
-            Directory.GetFiles(RootFolder, "*.url").ForEach(f => File.Move(f, f + tempExt)); //backup other shortcuts to avoid conflicts
+            Directory.GetFiles(RootFolder, "*.url").ForEach(f => FileEx.Move(f, f + tempExt)); //backup other shortcuts to avoid conflicts
             var shortcutPath = Path.Combine(RootFolder, "TEMP.url");  //Create temp shortcut. Will delete upon success.
             MovieProperties.CreateTTShortcut(shortcutPath, tt);
 
             var propertiesPath = Path.Combine(RootFolder, tt + ".xml"); //backup cache xml file to force MovieProperties to recreate it.
-            if (File.Exists(propertiesPath)) File.Move(propertiesPath, propertiesPath + tempExt);
+            if (FileEx.Exists(propertiesPath)) FileEx.Move(propertiesPath, propertiesPath + tempExt);
 
             MovieProperties mpx;
             try 
@@ -386,7 +386,7 @@ namespace VideoOrganizer
             {
                 //restore backed up properties and show exception
                 DeleteFile(propertiesPath);
-                if (File.Exists(propertiesPath + tempExt)) File.Move(propertiesPath + tempExt, propertiesPath);
+                if (FileEx.Exists(propertiesPath + tempExt)) FileEx.Move(propertiesPath + tempExt, propertiesPath);
                 ShowError(m_txtImdbUrl, ex.Message); 
                 return; 
             }
@@ -400,7 +400,7 @@ namespace VideoOrganizer
             Directory.GetFiles(RootFolder, "*" + tempExt).ForEach(f =>   //Restore other shortcuts
             { 
                 var f2 = f.Substring(0, f.Length - tempExt.Length);
-                if (File.Exists(f2)) DeleteFile(f); else File.Move(f, f2); 
+                if (FileEx.Exists(f2)) DeleteFile(f); else FileEx.Move(f, f2); 
             });
         }
 
@@ -408,7 +408,7 @@ namespace VideoOrganizer
         {
             var posterUrl = m_txtPosterUrl.Text;
             if (posterUrl.IsNullOrEmpty()) { ShowError(m_txtPosterUrl, "Must have poster\nUrl to download."); return; }
-            if (posterUrl == _mp.MoviePosterUrl && File.Exists(_mp.MoviePosterPath)) { ToolTipHelp.ShowTempToolTip((Control)sender, "Poster already exists.", ToolTipIcon.Info); return; }
+            if (posterUrl == _mp.MoviePosterUrl && FileEx.Exists(_mp.MoviePosterPath)) { ToolTipHelp.ShowTempToolTip((Control)sender, "Poster already exists.", ToolTipIcon.Info); return; }
 
             var pageUrl = m_chkImdbUrl.Checked ? m_txtImdbUrl.Text : new Uri(RootFolder).ToString();
             var tt = MovieProperties.GetTitleId(pageUrl);
@@ -419,7 +419,7 @@ namespace VideoOrganizer
             mp2.PathPrefix = Path.Combine(RootFolder, tt);
             using (var img = mp2.MoviePosterImg) { } //force download of movie poster
 
-            if (!File.Exists(mp2.MoviePosterPath))
+            if (!FileEx.Exists(mp2.MoviePosterPath))
             {
                 ToolTipHelp.ShowTempToolTip((Control)sender, "Poster image\ndownload FAILED.", ToolTipIcon.Error);
                 return;
@@ -688,7 +688,7 @@ namespace VideoOrganizer
                 var shortcutPath = Path.Combine(RootFolder, mp2.FullMovieName + ".url");
                 var tt = MovieProperties.EmptyTitleID;
 
-                if (_mp.UrlLink.IsNullOrEmpty() || url != new Uri(_mp.UrlLink).ToString() || !File.Exists(shortcutPath))
+                if (_mp.UrlLink.IsNullOrEmpty() || url != new Uri(_mp.UrlLink).ToString() || !FileEx.Exists(shortcutPath))
                 {
                     MovieProperties.CreateTTShortcut(shortcutPath, MovieProperties.EmptyTitleID);
                 }
@@ -722,8 +722,8 @@ namespace VideoOrganizer
             try
             {
                 if (file.StartsWith("file:///")) file = new Uri(file).LocalPath; 
-                if (!File.Exists(file)) return;
-                File.Delete(file);
+                if (!FileEx.Exists(file)) return;
+                FileEx.Delete(file);
             }
             catch(Exception ex)
             {
