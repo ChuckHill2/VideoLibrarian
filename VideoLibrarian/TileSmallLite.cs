@@ -134,7 +134,11 @@ namespace VideoLibrarian
 
         protected override void OnMouseClick(MouseEventArgs e)
         {
-            Plot_Click(this, EventArgs.Empty);
+            if (m_lblTitle.Contains(e.Location)) //don't need to avoid IMDB link because it is a real control
+                SummaryPopup.Dispose();
+            else
+                Plot_Click(this, EventArgs.Empty);
+
             base.OnMouseClick(e);
         }
 
