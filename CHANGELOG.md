@@ -90,6 +90,20 @@
 ###### <small>*VideoOrganizer*</small>
 * Added support for parsing another video file name format.
 
+#### Version 2.5.0
+
+* Update .NET Framework from 4.5 to .NET Framework 4.8 (latest)
+* Added UpdateXml console tool to refresh all the stored movie properties.
+* Optimized directory enumeration for speed.
+* Optimize many file I/O methods for speed.
+* Replaced mini popup MessageBox.
+* Perform Filtering and MovieProperty search asynchronously.
+* Added poster download during new MovieProperties creation for asynchronous download.
+* VideoLibrarian.Settings: Fix failure to update when adding/removing a media folder.
+* Fix logging to support asynchronous usage.
+* Restrict app to run only one instance.
+* Refactored http web page downloading.
+* Small tiles: Fixed clicking on TvSeries title opened TvEpisodes AND opened SummaryPopup. 
 
 ### Notes
 #### Not a bug

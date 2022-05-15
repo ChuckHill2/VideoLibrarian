@@ -39,4 +39,4 @@ using System.Reflection;
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
-[assembly: AssemblyVersion("2.4.1.0")]
+[assembly: AssemblyVersion("2.5.0.0")]

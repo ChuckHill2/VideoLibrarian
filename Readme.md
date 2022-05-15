@@ -1,4 +1,4 @@
-# A Video Librarian for All Your Movies
+# A Librarian for Your Video Collection
 
 This is a standalone Windows app that will automatically download information for all
 the videos in your video folders and present it to you in a searchable fashion
@@ -168,45 +168,56 @@ This was done to distinguish between regular dashes as part of the movie or epis
 In some editors the soft-hyphen is not visible. If so, use another text editor like *Notepad*.
 
 ### Features
+- Wherever you left off when you exit the app is the same when you restart the app. This includes the
+  size and position of the app window, sort and filter states as well as the last scroll position.
 
--   Multiple root media folders may be defined. Available through menu
-    File-\>Settings…
+- Movie tiles flow from left to right, top to bottom.
 
--   Automatically downloads missing movie information from the internet and caches 
-    it for faster startup.
+- Multiple root media folders may be defined. Available through menu File-\>Settings
 
--   Error/status text log. Available through menu File-\>Status Log…
+- Automatically downloads missing movie information from the internet and caches it for faster startup.
 
--   3 different video info item (aka UI ‘tile’) sizes. Available through menu
-    View.
+- Error/status text log. Available through menu File-\>Status Log… The viewer to use may be defined 
+  in File-\>Settings. The default is *Notepad*.
 
--   Sort tiles by multiple properties.
+- 3 different video info item (aka UI ‘tile’) sizes (small, medium, & large). Available through the *View* menu.
 
--   Filter tiles by multiple properties.
+- Sort tiles by multiple properties.
 
--   Maximum supported videos is 3200. Additional videos are ignored. See log for
-    details. Note that each entire TV-Series count as one ‘movie’.
+- Filter tiles by multiple properties.
 
--   Scrolling is supported by clicking and dragging on the scrollbar, mouse
-    wheel, and keyboard arrow keys, Home, End, PageUp, PageDown and Alt-arrow
-    keys. Arrow keys scroll by 1/10 height (or width) of the current tile.
-    Alt-arrow keys scroll by 1 pixel.
+- When sorting and filtering, all effort is made to keep the current tile in visible in the window.
 
--   Clicking on title opens the video in your video player (as defined in File->Settings).
+- Maximum supported videos is 3200. Additional movies are quietly ignored and a 
+  warning is written to the log. Note that each entire TV-Series count as one ‘movie’.
 
--   Clicking on the description (or small tile body), opens the full summary in
-    a popup window.
+- Scrolling is supported by clicking and dragging on the scrollbar, mouse wheel, and keyboard arrow keys, Home, End, PageUp, PageDown and
+  Alt-arrow keys. Arrow keys scroll by 1/10 height (or width) of the current tile. Alt-arrow keys scroll by 1 pixel.
 
--   Clicking on the location opens containing folder in Windows Explorer.
+- Managing your movies is straightforward where one folder = one movie. This makes adding/removing/property-editing easy.
 
--   Clicking on the “IMDB” icon, opens the IMDB movie page in your browser (as defined in File->Settings).
+- This is not a Web App. Movies must reside on a local drive/usb drive/network drive.
 
--   Clicking on the “Watched” checkbox, marks the video as ‘previously viewed’
-    and also shows date viewed. One can also filter and sort on this property.
+- This App only runs on Windows 7 thru Windows 11.
 
--   Clicking on the poster will blow up the tile so it fits the full screen
-    (Large tiles only). Click anywhere on the full screen image exits the
-    fullscreen mode. Useful when sitting on the couch.
+- Executable is not 'installed'. Just copy app (and 2 optional companion apps) to the folder of your choice. 
+  The Windows registry is not used, nor any other folders (except movie source folders) so uninstalling is as simple as deleting the executables.
+  
+- Only supports movies and home/personal video clips. No audio or image files.
+
+- Clicking on title opens the video in your video player (as defined in File->Settings).
+
+- Clicking on the description (or small tile body), opens the full summary in a popup window.
+
+- Clicking on the location opens containing folder in Windows Explorer.
+
+- Clicking on the “IMDB” icon, opens the IMDB movie page in your browser (as defined in File->Settings).
+
+- Clicking on the “Watched” checkbox, marks the video as ‘previously viewed’ and also shows date viewed. 
+  One can also filter and sort on this property.
+
+- Clicking on the poster will blow up the tile so it fits the full screen (Large tiles only). 
+  Click anywhere on the full screen image exits the fullscreen mode. Useful when sitting on the couch.
 
 ### Screenshots
 
