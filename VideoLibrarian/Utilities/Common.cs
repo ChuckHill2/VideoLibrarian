@@ -204,8 +204,6 @@ namespace VideoLibrarian
 
     public static class CommonExtensions
     {
-        private static readonly Regex reMultilineIndent = new Regex(@"^\s*(.+?)\s*$", RegexOptions.Multiline | RegexOptions.Compiled); //precompiled for efficiency
-
         /// <summary>
         /// Trim, remove empty lines, and indent suceeding lines of multiline string.
         /// </summary>
@@ -219,7 +217,7 @@ namespace VideoLibrarian
             if (!s.Contains('\n')) return s.Trim();
             string indent = new string(' ', indentAmount);
             int row = 0;
-            return reMultilineIndent.Replace(s, m =>
+            return RegexCache.RegEx(@"^\s*(.+?)\s*$", RegexOptions.Multiline).Replace(s, m =>
             {
                 row++;
                 if (row == 1) return m.Groups[1].Value;

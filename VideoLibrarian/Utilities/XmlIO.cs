@@ -93,7 +93,7 @@ namespace VideoLibrarian
                 string emsg = ex.GetBaseException().Message;
 
                 string position = string.Empty;
-                MatchCollection mc = Regex.Matches(ex.Message, @"\((?<R>[0-9]+),\s*(?<C>[0-9]+)\)");
+                MatchCollection mc = RegexCache.RegEx(@"\((?<R>[0-9]+),\s*(?<C>[0-9]+)\)").Matches(ex.Message);
                 if (mc.Count > 0) position = string.Format(", Row={0}, Column={1}.", mc[0].Groups["R"].Value, mc[0].Groups["C"].Value);
                 emsg = string.Format("Unable to parse the {0} XML.\r\n{1}\r\nFile: {2}{3}",typeof(T).Name, emsg, path, position);
                 throw new FormatException(emsg, ex);

@@ -131,8 +131,7 @@ namespace UpdateXml
                         {
                             p2.Serialize();
                             if (!backup.IsNullOrEmpty()) FileEx.Delete(backup);
-
-                            var re = new Regex(@"\tt[0-9]+(?:S|M|L).png$", RegexOptions.IgnoreCase); //ex. tt0000000S.png, tt0000000M.png, tt0000000L.png
+                            var re = RegexCache.RegEx(@"\tt[0-9]+(?:S|M|L).png$", RegexOptions.IgnoreCase); //ex. tt0000000S.png, tt0000000M.png, tt0000000L.png
                             foreach (var f in DirectoryEx.EnumerateAllFiles(folder).Where(m => re.IsMatch(m))) FileEx.Delete(f);
                             //We do not delete the poster image because it may have been manually modified.
                         }
@@ -165,6 +164,7 @@ namespace UpdateXml
                 Log.Write(Severity.Info, $"{added} movie properties scanned from {mf}");
             }
 
+            RegexCache.CompileToAssembly();
             Log.Dispose(); //closes the logger.
             Console.WriteLine("[Verification Complete.]");
         }

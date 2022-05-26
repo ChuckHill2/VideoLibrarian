@@ -135,6 +135,7 @@ namespace VideoValidator
                 Log.Write(Severity.Info, $"{added} movie properties scanned from {mf}");
             }
 
+            RegexCache.CompileToAssembly();
             Log.Dispose(); //closes the logger.
             Console.WriteLine("[Verification Complete.]");
         }

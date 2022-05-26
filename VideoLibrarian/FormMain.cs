@@ -121,12 +121,7 @@ namespace VideoLibrarian
                 return;
             }
 
-            var prevCacheSize = Regex.CacheSize; //==15
-            Regex.CacheSize = 32; //MovieProperties.ParseImdbPage() uses ~22 compiled regex patterns, so we boost the cache size to avoid expensive churn.
-
             LoadMovieInfo();
-
-            Regex.CacheSize = prevCacheSize;
 
             if (MoviePropertiesList.Count == 0)
             {
@@ -457,7 +452,7 @@ namespace VideoLibrarian
                         // But we want to load full speed (max threads) when loading local properties only.
                         // This example will do this.
                         //
-                        // var re = new Regex(@"\\tt[0-9]+\.xml$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+                        // var re = RegexCache.RegEx(@"\\tt[0-9]+\.xml$", RegexOptions.IgnoreCase);
                         // Dictionary<bool,HashSet<string>> dict = DirectoryEx.EnumerateAllFiles(mf, SearchOption.AllDirectories)
                         //        .Where(m => m.EndsWith(".url", StringComparison.OrdinalIgnoreCase))
                         //        .Select(m => Path.GetDirectoryName(m))

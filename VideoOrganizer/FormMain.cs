@@ -292,7 +292,7 @@ namespace VideoOrganizer
 
                 //It's OK if there is a video in a TVSeries root. folder It's a TVSeries root folder if it contains S01E01 folders
 
-                var isTVSeriesRootFolder = Directory.EnumerateDirectories(folder).Any((f)=>Regex.IsMatch(f, @"\\S[0-9]{2,2}E[0-9]{2,2}\\?$", RegexOptions.Compiled | RegexOptions.IgnoreCase));
+                var isTVSeriesRootFolder = Directory.EnumerateDirectories(folder).Any((f)=> RegexCache.RegEx(@"\\S[0-9]{2,2}E[0-9]{2,2}\\?$", RegexOptions.IgnoreCase).IsMatch(f));
                 if (isTVSeriesRootFolder) { hasMatchingShortcut = false; break; }
 
                 //It's OK if there is a shortcut in a folder full of videos.
@@ -361,7 +361,7 @@ namespace VideoOrganizer
             //  Threshold.1x01.720p.HDTV.H.265-aljasPOD.mkv
             //  01 Utopia - Episode 1.1 Mystery 2013 Eng Subs 720p [H264-mp4].mp4
             //  50.States.Of.Fright.S01E01.720p.QUIBI.WEBRip.x264-GalaxyTV.mkv
-            var pattern = @"
+            const string pattern = @"
                 ^(?:[0-9]{1,2}[ -]+)?
                 (?<NAME>.+?)
                 (?:[ \.\(]*(?<YEAR1>[0-9]{4,4})[ \.\)-]*)?
@@ -373,7 +373,7 @@ namespace VideoOrganizer
                 [^0-9]+(?<YEAR2>[0-9]{4,4})?
                 ";
 
-            mc = Regex.Matches(movieFileName, pattern, RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace);
+            mc = RegexCache.RegEx(pattern, RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace).Matches(movieFileName);
             if (mc.Count > 0)
             {
                 var name = mc[0].Groups["NAME"].Value.Replace('.', ' ').Trim();
@@ -417,7 +417,7 @@ namespace VideoOrganizer
                     FileEx.Delete(job.Filename);
 
                     //<a href='/title/tt1060050/?ref_=ttep_ep13' title='A Night in Global Dynamics' itemprop='name'>A Night in Global Dynamics</a>
-                    mc = Regex.Matches(html, @"<a href='\/title\/(?<TT>tt[0-9]+)\/\?ref_=ttep_ep(?<EP>[0-9]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+                    mc = RegexCache.RegEx(@"<a href='\/title\/(?<TT>tt[0-9]+)\/\?ref_=ttep_ep(?<EP>[0-9]+)", RegexOptions.IgnoreCase).Matches(html);
                     if (mc.Count == 0)
                     {
                         SetStatus(Severity.Error, $"Unable to find any {TVSeries[name + ".MOVIENAME"]} season {season} episodes.");
@@ -466,12 +466,12 @@ namespace VideoOrganizer
             //  Space.1999.The.End.1981.1080p.WEBRip.x264-[YTS.LT].mkv
             //  Space.1999.1981.1080p.WEBRip.x264-[YTS.LT].mkv
             //  Dead End  (Crime Drama 1937)  Humphrey Bogart, Sylvia Sidney & Joel McCrea.mp4
-            var pattern2 = @"
+            const string pattern2 = @"
                 ^(?<NAME>.+?)\(?(?<YEAR>[0-9]{4,4})
                 (?:(?<NAME2>.+?)\(?(?<YEAR2>[0-9]{4,4}))?
                 ";
 
-            mc = Regex.Matches(movieFileName, pattern2, RegexOptions.Compiled | RegexOptions.IgnorePatternWhitespace);
+            mc = RegexCache.RegEx(pattern2, RegexOptions.IgnorePatternWhitespace).Matches(movieFileName);
             if (mc.Count > 0)
             {
                 var name =  mc[0].Groups["NAME"].Value.Replace('.', ' ').Trim();
@@ -576,8 +576,8 @@ namespace VideoOrganizer
             return null;
         }
 
-        private static readonly Regex reFindResult = new Regex(@"class='result_text'><a href='\/?title\/(?<TT>tt[0-9]+)\/[^>]+>(?<NAME>[^<]+)<\/a>.*?(?<YEAR>\([0-9]{4,4}[^\)]*\))(?:[^<]*(?<SERIES>Series))?", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-        private static readonly Regex reInvalidFileNameChars = new Regex($@"\s*[{Regex.Escape(new String(Path.GetInvalidFileNameChars()))}]\s*", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        private static readonly Regex reFindResult = RegexCache.RegEx(@"class='result_text'><a href='\/?title\/(?<TT>tt[0-9]+)\/[^>]+>(?<NAME>[^<]+)<\/a>.*?(?<YEAR>\([0-9]{4,4}[^\)]*\))(?:[^<]*(?<SERIES>Series))?", RegexOptions.IgnoreCase);
+        private static readonly Regex reInvalidFileNameChars = RegexCache.RegEx($@"\s*[{Regex.Escape(new String(Path.GetInvalidFileNameChars()))}]\s*", RegexOptions.IgnoreCase);
         private static Dictionary<string, string> ParseHtml(string html, bool series)
         {
             //Find first found of series or non-series type:

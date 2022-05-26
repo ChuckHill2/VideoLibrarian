@@ -209,6 +209,7 @@
     </Compile>
     <Compile Include="Utilities\RECT.cs" />
     <Compile Include="Utilities\RectangleRef.cs" />
+    <Compile Include="Utilities\RegexCache.cs" />
     <Compile Include="Utilities\ScrollBarBookmark.cs" />
     <Compile Include="Utilities\ScrollBarEnhancedControl.cs">
       <SubType>UserControl</SubType>

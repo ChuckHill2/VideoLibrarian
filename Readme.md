@@ -132,7 +132,7 @@ tiles. That is the trade-off.
 
 ### Adding/Changing/Removing/Reorganizing Movies
 
-Because VideoLibrarian is based directly on the files within the folders, the video folders may be added, moved, renamed, or deleted at any time without any ill effect. This is the added management flexibility at the cost of some startup performance. For restart performance, a database _could_ have been used but it would have created a lot of restrictions regarding file management and a lot of problems maintaining synchronization between the database and actual movies. I opted for ease-of-use versus a small increase in startup speed.
+Because VideoLibrarian is based directly on the files within a hierarchy of folders, the video folders may be added, moved, renamed, or deleted at any time from *Windows Explorer* without any ill effect.
 
 ### Manually Changing/Correcting Movie Information
 
@@ -321,7 +321,15 @@ The UI design was inspired by [SimpleMovieCatalog](https://github.com/damienlang
   + .NET Core - Must include requisite .NET assemblies with installation. Ugh!
   + .NET Framework - .NET 4.5 must be installed on Win 7. Already included on Win 8 and Win 10. May create monolithic executable. Our goal.
   
-Resulting decision - .net Framework Winforms
+  Resulting decision - .net Framework Winforms
+
+* Storage - Database vs Folder Hierarchy
+  + One or more folder hierarchies.<br/>
+    Video folders may be added, moved, renamed, or deleted at any time without any ill effect. Data and video are always synchronized because videos and data are kept together. Additional files may be may exist in the folder like subtitle image, or text files. This is easily maintainable at the expense of a little speed (more on network drives). 
+  + Database with local single monolithic data folder (videos referenced/stored elsewhere)<br/>
+    Adding, moving, renaming, or deleting videos is very difficult while maintaining synchronicity. This would require a number maintenance utilities. Synchronization between movies and data are not automatic. This storage choice should be a little faster at the expense of maintainability.
+
+  Both cases, are very I/O bound. For 5000 videos (we are assuming only 3200 movies and many of which are TV series) we are talking about roughly 40Gb of data and 9TB of videos on various local and remote drives. Ultimately, I chose the folder hierarchy because of less code and synchronization headaches despite performance on network drives. I would suggest SDD and USB hard disk drives.
 
 ##### Low-level Design
 * Enumerate folder tree by IMDB shortcuts (not movies). 

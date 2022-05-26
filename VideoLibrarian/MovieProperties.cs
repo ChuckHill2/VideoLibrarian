@@ -134,7 +134,7 @@ namespace VideoLibrarian
 
         /// <summary>The final year that the TV series ran. Zero if on-going. Ignored if not a series header.</summary>
         public int YearEnd { get; set; }
-        /// <summary>TV Series season. If zero, this is a movie or TV series header, not a series episode</summary>
+        /// <summary>TV Series season. If non-zero this is a TV Episode</summary>
         public int Season { get; set; }
         /// <summary>Episode# within this TV series season. May be any number, even negative!</summary>
         public int Episode { get; set; }
@@ -177,14 +177,35 @@ namespace VideoLibrarian
                 // if image object not yet loaded or image object disposed... 
                 if (_moviePosterImg == null || _moviePosterImg.PixelFormat == System.Drawing.Imaging.PixelFormat.Undefined)
                 {
-                    if (MoviePosterPath.IsNullOrEmpty() || !FileEx.Exists(MoviePosterPath))
+                    if (!FileEx.Exists(MoviePosterPath))
                     {
-                        SetMoviePosterUrl(null); //Get the poster URL (not the jpg image) from the IMDB web site.
-                        DownloadMoviePosterFile();
+                        SetMoviePosterUrl(null);   //If url not exists, get the poster URL (not the jpg image) from the IMDB web site.
+                        DownloadMoviePosterFile(); //if url exists, get image file.
                     }
 
-                    if (MoviePosterPath.IsNullOrEmpty() || !FileEx.Exists(MoviePosterPath))
+                    // If episode poster file has not been found in 2 weeks, copy the parent series poster.
+                    if (!FileEx.Exists(MoviePosterPath))
+                    {
+                        if (ReleaseDate.AddDays(14) < DateTime.Now && Season > 0)
+                        {
+                            //We assume the series folder is one level up and poster image is a jpg file.
+                            var re = RegexCache.RegEx(@"\\tt[0-9]+\.jpg$", RegexOptions.IgnoreCase);
+                            var f = DirectoryEx.EnumerateAllFiles(Path.GetDirectoryName(PathPrefix) + @"\..").FirstOrDefault(m => re.IsMatch(m));
+                            if (!f.IsNullOrEmpty())
+                            {
+                                MoviePosterPath = PathPrefix + ".jpg";
+                                FileEx.Copy(f, MoviePosterPath);
+                                this.DeleteFileCacheUponExit = FileCacheScope.None;
+                            }
+                        }
+                    }
+
+                    if (!FileEx.Exists(MoviePosterPath))
+                    {
+                        if (MoviePosterUrl.IsNullOrEmpty() && ReleaseDate.AddDays(14) > DateTime.Now && Watched==DateTime.MinValue)
+                            this.DeleteFileCacheUponExit = FileCacheScope.All;
                         _moviePosterImg = CreateBlankPoster(this.MovieName);
+                    }
                     else
                     {
                         try
@@ -194,8 +215,9 @@ namespace VideoLibrarian
                         catch (Exception ex)
                         {
                             FileEx.Delete(MoviePosterPath);
-                            Log.Write(Severity.Warning, $"Corrupted poster image. Recreating poster image file \"{MoviePosterPath}\".\n{ex}");
-                            return MoviePosterImg;
+                            Log.Write(Severity.Error, $"Corrupted poster image. Recreating poster image file \"{MoviePosterPath}\".\n{ex}");
+                            _moviePosterImg = CreateBlankPoster(this.MovieName);
+                            this.DeleteFileCacheUponExit = FileCacheScope.ImagesOnly;
                         }
                     }
                 }
@@ -238,14 +260,36 @@ namespace VideoLibrarian
 
         /// <summary>
         /// How to handle file cache when there is a download failure.
+        /// Set exclusively by MoviePosterImg property getter. 
+        /// Deletion occurs in FormMain > OnFormClosing > SaveAllMovieProperties > DeleteFileCache().
         /// </summary>
         /// <remarks>
-        /// Usecase: Delay load poster image fails to be downloaded, Cached tile background is created with blank poster image.
+        /// Usecase: Poster image url not found. Cached tile background is created with blank poster image.
         /// Now that tile has been created, the true poster jpg will never be downloaded again and now stuck with a blank poster
         /// image for the tile unless tile background is manually deleted.
         /// </remarks>
         [XmlIgnore] public FileCacheScope DeleteFileCacheUponExit { get; set; }
-        public enum FileCacheScope { None, All, ImagesOnly }
+        public enum FileCacheScope
+        {
+            /// <summary>
+            /// Do not mark any files for deletion upon exit.
+            /// </summary>
+            None,
+            /// <summary>
+            /// Mark all cache files for deletion upon exit. This includes all tile png and xml files (not poster image).
+            /// </summary>
+            /// <remarks>
+            /// The source IMDB page may not be complete because IMDB does not have the poster jpg's yet.
+            /// It also presumes that the other properties are not up to date either. Maybe the next time VideoLibrarian is run.
+            /// But give up on movies/episodes that have not added a poster image after 2 weeks after release date. Likely an
+            /// image will never be added...
+            /// </remarks>
+            All,
+            /// <summary>
+            /// Mark only tile png cache files for deletion upon exit.
+            /// </summary>
+            ImagesOnly
+        }
         #endregion //Properties
 
         #region Constructors
@@ -413,7 +457,7 @@ namespace VideoLibrarian
             Parser.Clear();
 
             // Extract JSON properties. Whatever we can't find, we scrape from web page.
-            mc = Regex.Matches(html, @"<script id=""__NEXT_DATA__"" type=""application/json"">(?<JSON>.+?)</script>", RE_options);
+            mc = RegexCache.RegEx(@"<script id=""__NEXT_DATA__"" type=""application/json"">(?<JSON>.+?)</script>", RE_options).Matches(html);
             if (mc.Count > 0)
             {
                 try
@@ -455,7 +499,7 @@ namespace VideoLibrarian
                 // <meta name='title' content='2001: A Space Odyssey (1968) - IMDb'/>
                 // <meta property='og:title' content='2001: A Space Odyssey (1968)'/>
                 // <meta property='og:title' content='Epoch: Evolution (TV Movie 2003)'>
-                mc = Regex.Matches(html, @"(?:<title>|<meta name='title' content='|<meta property='og:title' content=')(?<TITLE>.+?)(?:<\/title>|'>|'\/>)", RE_options);
+                mc = RegexCache.RegEx(@"(?:<title>|<meta name='title' content='|<meta property='og:title' content=')(?<TITLE>.+?)(?:<\/title>|'>|'\/>)", RE_options).Matches(html);
                 if (mc.Count > 0)
                 {
                     ParsePageTitle(mc[0].Groups["TITLE"].Value, "W");
@@ -464,7 +508,7 @@ namespace VideoLibrarian
 
             if (Plot.IsNullOrEmpty())
             {
-                mc = Regex.Matches(html, @"data-testid='plot-xl'[^>]+>(?<PLOT>[^<]+)", RE_options);
+                mc = RegexCache.RegEx(@"data-testid='plot-xl'[^>]+>(?<PLOT>[^<]+)", RE_options).Matches(html);
                 if (mc.Count > 0)
                 {
                     Plot = mc[0].Groups["PLOT"].Value;
@@ -475,7 +519,7 @@ namespace VideoLibrarian
 
             if (Summary.IsNullOrEmpty())
             {
-                mc = Regex.Matches(html, @"storyline-plot-summary'>.+?<div>(?<SUMMARY>[^<]+)", RE_options);
+                mc = RegexCache.RegEx(@"storyline-plot-summary'>.+?<div>(?<SUMMARY>[^<]+)", RE_options).Matches(html);
                 if (mc.Count > 0)
                 {
                     Summary = mc[0].Groups["SUMMARY"].Value;
@@ -487,7 +531,7 @@ namespace VideoLibrarian
             if (Creators.IsNullOrEmpty() || Directors.IsNullOrEmpty() || Writers.IsNullOrEmpty() || Cast.IsNullOrEmpty())
             {
                 // http://regexstorm.net/tester
-                mc = Regex.Matches(html, @"<(?:a|span) [^>]+>(?<KEY>Creator|Director|Writer|Star)s?<\/(?:a|span)><div [^>]+><ul [^>]+>(?:(?:<li [^>]+><a [^>]+>([^<]+)<\/a>.*?<\/li>)+)", RE_options);
+                mc = RegexCache.RegEx(@"<(?:a|span) [^>]+>(?<KEY>Creator|Director|Writer|Star)s?<\/(?:a|span)><div [^>]+><ul [^>]+>(?:(?:<li [^>]+><a [^>]+>([^<]+)<\/a>.*?<\/li>)+)", RE_options).Matches(html);
                 if (mc.Count > 0)
                 {
                     foreach (Match m in mc)
@@ -507,7 +551,7 @@ namespace VideoLibrarian
 
             if (Genre.IsNullOrEmpty())
             {
-                mc = Regex.Matches(html, @"<a class=.*?href='\/search\/title\/\?genres[^>]+>(?<GENRE>[^<]+)<\/a>", RE_options);
+                mc = RegexCache.RegEx(@"<a class=.*?href='\/search\/title\/\?genres[^>]+>(?<GENRE>[^<]+)<\/a>", RE_options).Matches(html);
                 if (mc.Count > 0)
                 {
                     Genre = mc.Cast<Match>().Select(p => p.Groups["GENRE"].Value).ToArray();
@@ -517,7 +561,7 @@ namespace VideoLibrarian
 
             if (ReleaseDate == DateTime.MinValue)
             {
-                mc = Regex.Matches(html, @"<a class='ipc-metadata.+?ref_=tt_dt_rdat'>(?<RDATE>[^\(<]+)", RE_options);
+                mc = RegexCache.RegEx(@"<a class='ipc-metadata.+?ref_=tt_dt_rdat'>(?<RDATE>[^\(<]+)", RE_options).Matches(html);
                 if (mc.Count > 0)
                 {
                     ReleaseDate = DateTime.TryParse(mc[0].Groups["RDATE"].Value, out var dt) ? dt : DateTime.MinValue;
@@ -531,7 +575,7 @@ namespace VideoLibrarian
 
             if (EpisodeCount == 0 && MovieClass.EndsWith("Series"))
             {
-                mc = Regex.Matches(html, @"<h3 class='ipc-title__text'>Episodes\s*<span class='ipc-title__subtext'>(?<EPISODECOUNT>[0-9]+)<\/span", RE_options);
+                mc = RegexCache.RegEx(@"<h3 class='ipc-title__text'>Episodes\s*<span class='ipc-title__subtext'>(?<EPISODECOUNT>[0-9]+)<\/span", RE_options).Matches(html);
                 if (mc.Count > 0)
                 {
                     EpisodeCount = int.TryParse(mc[0].Groups["EPISODECOUNT"].Value, out var f) ? f : 0;
@@ -541,7 +585,7 @@ namespace VideoLibrarian
 
             if ((Season == 0 || Episode == 0) && MovieClass == "TV Episode")
             {
-                mc = Regex.Matches(html, @"season-episode-numbers-section'>(?:<li[^>]+><span[^>]+>(?:(S|E)([0-9]+))<\/span><\/li>){2,2}", RE_options);
+                mc = RegexCache.RegEx(@"season-episode-numbers-section'>(?:<li[^>]+><span[^>]+>(?:(S|E)([0-9]+))<\/span><\/li>){2,2}", RE_options).Matches(html);
                 if (mc.Count > 0)
                 {
                     var slabel = mc[0].Groups[1].Captures[0].Value; //=="S"
@@ -556,7 +600,7 @@ namespace VideoLibrarian
 
             if (MovieRating == 0)
             {
-                mc = Regex.Matches(html, @"rating__score[^>]+><span[^>]+>(?<RATING>[0-9\.]+)<", RE_options);
+                mc = RegexCache.RegEx(@"rating__score[^>]+><span[^>]+>(?<RATING>[0-9\.]+)<", RE_options).Matches(html);
                 if (mc.Count > 0)
                 {
                     MovieRating = float.TryParse(mc[0].Groups["RATING"].Value, out var f) ? f : 0.0f;
@@ -753,7 +797,7 @@ namespace VideoLibrarian
             // "Threshold" Trees Made of Glass: Part 1 (TV Episode 2005) - IMDb
             // Epoch: Evolution (TV Movie 2003)
             title = WebUtility.HtmlDecode(title);
-            var mc = Regex.Matches(title, @"^(?:(?:""(?<TITLE>[^""]+)"" (?<EPISODE>.+) (?=\([^\(]+$))|(?<TITLE2>.+))\((?:(?<TYPE>.+?) )?(?<YEAR>[0-9]{4,4})[–-]?(?<YEAREND>[0-9]{4,4})?", RE_options);
+            var mc = RegexCache.RegEx(@"^(?:(?:""(?<TITLE>[^""]+)"" (?<EPISODE>.+) (?=\([^\(]+$))|(?<TITLE2>.+))\((?:(?<TYPE>.+?) )?(?<YEAR>[0-9]{4,4})[–-]?(?<YEAREND>[0-9]{4,4})?").Matches(title);
             if (mc.Count > 0)
             {
                 var titlex = mc[0].Groups["TITLE"].Value.Trim();
@@ -807,17 +851,17 @@ namespace VideoLibrarian
                     var job = new Downloader.Job(UrlLink, HtmlPath);
                     if (!Downloader.Download(job))
                     {
-                        this.DeleteFileCacheUponExit = FileCacheScope.ImagesOnly;
                         return false; // Downloader.Download() logs its own errors. It will also update data.Url to redirected path and job.Filename
                     }
                     HtmlPath = job.Filename;
                 }
 
                 html = FileEx.ReadHtml(HtmlPath);  //no duplicate whitespace, no whitespace before '<' and no whitespace after '>'
+                FileEx.Delete(HtmlPath); //We no longer keep the web page because the layout changes sooo frequently!
             }
 
             //// <div class='poster'><a href='/title/tt0401729/mediaviewer/rm3022336?ref_=tt_ov_i'><img alt='John Carter Poster' title='John Carter Poster' src='https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_UY268_CR6,0,182,268_AL_.jpg'></a></div>
-            mc = Regex.Matches(html, @"<div class='poster'><a href='(?<URL>\/title\/[^\/]+\/mediaviewer\/(?<ID>[0-9a-z]+)[^']+).+? src='(?<POSTER>[^']+)'", RE_options);
+            mc = RegexCache.RegEx(@"<div class='poster'><a href='(?<URL>\/title\/[^\/]+\/mediaviewer\/(?<ID>[0-9a-z]+)[^']+).+? src='(?<POSTER>[^']+)'", RE_options).Matches(html);
             if (mc.Count > 0)
             {
                 var posterUrl = mc[0].Groups["POSTER"].Value; //get the small poster image in the page, but we continue to look for a larger/better image.
@@ -831,14 +875,14 @@ namespace VideoLibrarian
                     var html2 = FileEx.ReadHtml(job.Filename);
                     FileEx.Delete(job.Filename); //no longer needed. extension already used for this cache file.
                     // {'editTagsLink':'/registration/signin','id':'rm3022336','h':1000,'msrc':'https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_SY500_CR0,0,364,500_AL_.jpg','src':'https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_SY1000_CR0,0,728,1000_AL_.jpg','w':728,'imageCount':164,'altText':'Taylor Kitsch in John Carter (2012)','caption':'<a href=\'/name/nm2018237/\'>Taylor Kitsch</a> in <a href=\'/title/tt0401729/\'>John Carter (2012)</a>','imageType':'poster','relatedNames':[{'constId':'nm2018237','displayName':'Taylor Kitsch','url':'/name/nm2018237?ref_=tt_mv'}],'relatedTitles':[{'constId':'tt0401729','displayName':'John Carter','url':'/title/tt0401729?ref_=tt_mv'}],'reportImageLink':'/registration/signin','tracking':'/title/tt0401729/mediaviewer/rm3022336/tr','voteData':{'totalLikeVotes':0,'userVoteStatus':'favorite-off'},'votingLink':'/registration/signin'}],'baseUrl':'/title/tt0401729/mediaviewer','galleryIndexUrl':'/title/tt0401729/mediaindex','galleryTitle':'John Carter (2012)','id':'tt0401729','interstitialModel':
-                    mc = Regex.Matches(html2, string.Concat("'id':'", id, "'.+?'src':'(?<POSTER>[^']+)'"), RE_options);
+                    mc = Regex.Matches(html2, string.Concat("'id':'", id, "'.+?'src':'(?<POSTER>[^']+)'"), RegexOptions.IgnoreCase); //this pattern is unique to this file so do not compile.
                     if (mc.Count > 0) posterUrl = mc[0].Groups["POSTER"].Value;
                     else
                     {
                         // <meta property='og:image' content='https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_SY500_CR0,0,364,500_AL_.jpg'/>
                         // <meta itemprop='image' content='https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_SY500_CR0,0,364,500_AL_.jpg'/>
                         // <meta name='twitter:image' content='https://m.media-amazon.com/images/M/MV5BMDEwZmIzNjYtNjUwNS00MzgzLWJiOGYtZWMxZGQ5NDcxZjUwXkEyXkFqcGdeQXVyNTIzOTk5ODM@._V1_SY500_CR0,0,364,500_AL_.jpg'/>
-                        mc = Regex.Matches(html2, @"<meta (?:property='og:image'|itemprop='image'|name='twitter:image') content='(?<POSTER>[^']+)'", RE_options);
+                        mc = RegexCache.RegEx(@"<meta (?:property='og:image'|itemprop='image'|name='twitter:image') content='(?<POSTER>[^']+)'", RE_options).Matches(html2);
                         foreach (Match m in mc)
                         {
                             var x = m.Groups["POSTER"].Value;
@@ -858,7 +902,7 @@ namespace VideoLibrarian
 
             //<meta property='og:image' content='https://m.media-amazon.com/images/M/MV5BMTY5MzM2MzkxNF5BMl5BanBnXkFtZTgwNTMzMDcyNzM@._V1_FMjpg_UX1000_.jpg'/>
             //<meta property='twitter:image' content='https://m.media-amazon.com/images/M/MV5BMTY5MzM2MzkxNF5BMl5BanBnXkFtZTgwNTMzMDcyNzM@._V1_FMjpg_UX1000_.jpg'/>
-            mc = Regex.Matches(html, @"<meta property='(?:og|twitter):image' content='(?<URL>https:[^']+\.jpg)'", RE_options);
+            mc = RegexCache.RegEx(@"<meta property='(?:og|twitter):image' content='(?<URL>https:[^']+\.jpg)'", RE_options).Matches(html);
             if (mc.Count > 0)
             {
                 this.MoviePosterUrl = mc[0].Groups["URL"].Value;
@@ -867,7 +911,7 @@ namespace VideoLibrarian
 
             //If it doesn't exist, get first image from poster carousel.
             // Url always contains 'mediaviewer' with property '?ref_=tt_ov_i'
-            mc = Regex.Matches(html, @"href='(?<URL>\/title\/tt[^\/]+\/mediaviewer\/rm[^\/]+\/\?ref_=tt_ov_i)'", RE_options);
+            mc = RegexCache.RegEx(@"href='(?<URL>\/title\/tt[^\/]+\/mediaviewer\/rm[^\/]+\/\?ref_=tt_ov_i)'", RE_options).Matches(html);
             if (mc.Count > 0)
             {
                 var mediaViewerUrl = FileEx.GetAbsoluteUrl(this.UrlLink, mc[0].Groups["URL"].Value);
@@ -878,7 +922,7 @@ namespace VideoLibrarian
                 {
                     var html2 = FileEx.ReadHtml(job.Filename);
                     FileEx.Delete(job.Filename); //no longer needed. extension already used for this cache file.
-                    mc = Regex.Matches(html2, @"'(?<URL>https:\/\/m\.media-amazon\.com\/images\/[^' ]+\.jpg)'", RE_options);
+                    mc = RegexCache.RegEx(@"'(?<URL>https:\/\/m\.media-amazon\.com\/images\/[^' ]+\.jpg)'", RE_options).Matches(html2);
                     if (mc.Count > 0)
                     {
                         this.MoviePosterUrl = mc[0].Groups["URL"].Value;
@@ -887,12 +931,6 @@ namespace VideoLibrarian
                 }
             }
 
-            // The source IMDB page may not be complete because IMDB does not have the poster jpg's yet.
-            // It also presumes that the other properties are not up to date either. Maybe the next time VideoLibrarian is run.
-            // But give up on movies/episodes that have not added a poster image after a month. Likely an image will never be added...
-            // Also if the poster jpg has been manually created by other means don't automatically delete the filecache.
-            if (ReleaseDate.AddMonths(1) > DateTime.Now && !FileEx.Exists(this.MoviePosterPath))
-                this.DeleteFileCacheUponExit = FileCacheScope.All;
             return false; //no change. couldn't find poster url.
         }
 
@@ -920,7 +958,6 @@ namespace VideoLibrarian
                     }
                     else
                     {
-                        this.DeleteFileCacheUponExit = FileCacheScope.ImagesOnly;
                         return false;
                     }
                 }
@@ -936,7 +973,6 @@ namespace VideoLibrarian
                     }
                     else
                     {
-                        this.DeleteFileCacheUponExit = FileCacheScope.ImagesOnly;
                         return false;
                     }
                 }
@@ -1521,7 +1557,7 @@ namespace VideoLibrarian
             if (!m.Success) return string.Empty;  //url not a match
             return m.Groups["TT"].Value == string.Empty ? MovieProperties.EmptyTitleID : m.Groups["TT"].Value;
         }
-        private static readonly Regex ReTitleId = new Regex(@"^(?:(?:https?:\/\/(?:www\.)?imdb\.com\/title\/(?<TT>tt[0-9]+))|(?<FILE>file:\/\/\/))", RE_options);
+        private static readonly Regex ReTitleId = RegexCache.RegEx(@"^(?:(?:https?:\/\/(?:www\.)?imdb\.com\/title\/(?<TT>tt[0-9]+))|(?<FILE>file:\/\/\/))", RE_options);
 
         /// <summary>
         /// Check if folder or file should be ignored.
@@ -1554,7 +1590,7 @@ namespace VideoLibrarian
             (\{[^\\]+\})|
             (\[[^\\]+\])
             )\\";
-        private static readonly Regex reIgnoredFolder = new Regex(bracketPattern, RegexOptions.Compiled | RegexOptions.IgnorePatternWhitespace);
+        private static readonly Regex reIgnoredFolder = RegexCache.RegEx(bracketPattern, RegexOptions.IgnorePatternWhitespace);
         #endregion
 
         /// <summary>

@@ -105,6 +105,10 @@
 * Refactored http web page downloading.
 * Small tiles: Fixed clicking on TvSeries title opened TvEpisodes AND opened SummaryPopup. 
 
+#### Unreleased
+* Cache 30+ compiled regex patterns for speed.
+* Better handling of missing poster images.
+
 ### Notes
 #### Not a bug
 At runtime, if there are 2 identical TV Series in 2 different root folders, all episodes

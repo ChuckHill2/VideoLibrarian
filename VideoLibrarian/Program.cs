@@ -67,6 +67,7 @@ namespace VideoLibrarian
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new FormMain());
 
+            RegexCache.CompileToAssembly();
             Log.Dispose(); //Closes the logger.
         }
 

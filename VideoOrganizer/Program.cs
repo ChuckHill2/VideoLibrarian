@@ -55,6 +55,7 @@ namespace VideoOrganizer
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new FormMain());
 
+            RegexCache.CompileToAssembly();
             Log.Dispose(); //closes the logger.
         }
 

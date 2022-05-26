@@ -164,12 +164,11 @@ namespace VideoLibrarian
 
             if (noScript)
             {
-                results = reNoScript.Replace(results, string.Empty);
+                results = RegexCache.RegEx(@"(<script.+?</script>)|(<style.+?</style>)|(<svg.+?</svg>)", RegexOptions.IgnoreCase).Replace(results, string.Empty);
             }
 
             return results;
         }
-        private static readonly Regex reNoScript = new Regex(@"(<script.+?</script>)|(<style.+?</style>)|(<svg.+?</svg>)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         #region Win32
         /// <summary>
