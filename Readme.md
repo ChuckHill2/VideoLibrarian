@@ -278,7 +278,7 @@ container format is so popular. See: <https://mkvtoolnix.download>.
 ### Developer
 
 With the following exceptions, no 3rd-party source code was used. It was entirely 
-hand-crafted and optimized. It was developed entirely within .Net Framework 4.5 
+hand-crafted and optimized. It was developed entirely within .Net Framework 4.8 
 Forms on Visual Studio 2019.
 
 #### 3rd Party Code
@@ -319,7 +319,7 @@ The UI design was inspired by [SimpleMovieCatalog](https://github.com/damienlang
     - WPF? Gallery cannot support large number video tiles.
 * Build Environment
   + .NET Core - Must include requisite .NET assemblies with installation. Ugh!
-  + .NET Framework - .NET 4.5 must be installed on Win 7. Already included on Win 8 and Win 10. May create monolithic executable. Our goal.
+  + .NET Framework - .NET 4.8 must be installed on Win 7. Already included on Win 8 and Win 10. May create monolithic executable. Our goal.
   
   Resulting decision - .net Framework Winforms
 
