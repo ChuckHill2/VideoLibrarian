@@ -192,6 +192,7 @@
     <Compile Include="Utilities\FolderSelectDialog.cs" />
     <Compile Include="Utilities\GDITools.cs" />
     <Compile Include="Utilities\GlobalMouseHook.cs" />
+    <Compile Include="Utilities\KeyValueList.cs" />
     <Compile Include="Utilities\LabeledTextBox.cs">
       <SubType>Component</SubType>
     </Compile>

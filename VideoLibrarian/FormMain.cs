@@ -42,20 +42,20 @@ using System.Windows.Forms;
 
 namespace VideoLibrarian
 {
-    using VKEY = System.Collections.Generic.KeyValuePair<ViewType, string>;
     public enum ViewType { SmallTiles, MediumTiles, LargeTiles };
 
     public partial class FormMain : Form
     {
         private ToolTipHelp tt;
 
-        public SettingProperties Settings;
-        private ViewType View;
+        public SettingProperties Settings; //updated by SettingsDialog()
+        private ViewType View;  //current view type (e.g. small, medium, or large)
         private SortProperties SortKeys;
         private FilterProperties Filters = null;
-        private int ScrollPosition;
+        private KeyValueList<string,int> ScrollPositions;
         private int MaxLoadedProperties;
 
+        private readonly Dictionary<string, ViewTiles> Views = new Dictionary<string, ViewTiles>(); //Cache
         private ViewTiles CurrentViewTiles = new ViewTiles();
         private List<MovieProperties> MoviePropertiesList = new List<MovieProperties>();
         private GlobalMouseHook mouseHook;
@@ -81,17 +81,18 @@ namespace VideoLibrarian
             mouseHook.MouseLeave += mouseHook_MouseLeave;
 
             FormMainProperties data = FormMainProperties.Deserialize();
-            //if DesktopBounds NOT visible on screen, reset it to fullscreen.
-            if (!Screen.GetWorkingArea(new Point(10, 10)).IntersectsWith(data.DesktopBounds)) data.DesktopBounds = Screen.GetWorkingArea(new Point(10, 10));
 
-            //this.DesktopBounds = data.DesktopBounds;
+            //if DesktopBounds NOT visible on screen, reset it to fullscreen.
+            if (!Screen.GetWorkingArea(new Point(10, 10)).IntersectsWith(data.DesktopBounds))
+                data.DesktopBounds = Screen.GetWorkingArea(new Point(10, 10));
+
             this.Tag = (Rectangle)data.DesktopBounds; //Set AFTER all tiles have been loaded. See LoadTiles()
 
             this.Settings = data.Settings;
             this.View =  data.View;
             this.SortKeys = new SortProperties(data.SortKey);
             this.Filters = data.Filters;
-            this.ScrollPosition = data.ScrollPosition;
+            this.ScrollPositions = data.ScrollPositions;
             this.MaxLoadedProperties = data.MaxLoadedProperties;
             Log.SeverityFilter = data.LogSeverity;
 
@@ -245,19 +246,10 @@ namespace VideoLibrarian
                 data.SortKey = this.SortKeys.ToString();
                 if (this.Filters != null && !this.Filters.FilteringDisabled) data.Filters = this.Filters;
 
-                if (m_miBack.Enabled) //if TVSeries, get scroll position of parent view.
-                {
-                    var key = ViewTiles.CreateKey(this.View);
-                    ViewTiles view;
-                    if (Views.TryGetValue(key, out view))
-                        data.ScrollPosition = view.ScrollPosition;
-                    else
-                        data.ScrollPosition = 0;
-                }
-                else
-                {
-                    data.ScrollPosition = m_flowPanel.VerticalScroll.Value;
-                }
+                if (this.CurrentViewTiles != null)
+                    this.ScrollPositions[this.CurrentViewTiles.Key] = m_flowPanel.VerticalScroll.Value;
+
+                data.ScrollPositions = this.ScrollPositions;
 
                 data.MaxLoadedProperties = this.MaxLoadedProperties;
                 data.LogSeverity = Log.SeverityFilter;
@@ -269,26 +261,29 @@ namespace VideoLibrarian
             }
         }
 
-        private readonly Dictionary<VKEY, ViewTiles> Views = new Dictionary<VKEY, ViewTiles>(); //Cache
-        private ViewTiles GetView(string title = null, List<MovieProperties> mp = null)
+        private ViewTiles GetView(string titleId = null, List<MovieProperties> mp = null)
         {
             ViewTiles view;
 
             if (mp == null || mp == MoviePropertiesList)
             {
                 mp = MoviePropertiesList;
-                title = string.Empty;
+                titleId = string.Empty;
             }
 
-            var key = ViewTiles.CreateKey(this.View, title);
+            if (this.CurrentViewTiles!=null && this.CurrentViewTiles.Key != null)
+                this.ScrollPositions[this.CurrentViewTiles.Key] = m_flowPanel.VerticalScroll.Value;
 
-            if (Views.TryGetValue(key, out view)) 
+            var key = ViewTiles.CreateKey(this.View, titleId);
+
+            if (Views.TryGetValue(key, out view))
             {
                 if (mp == MoviePropertiesList)
                 {
                     if (Filters != null && Filters.Filter(view.Tiles)) view.ScrollPosition = -1; //flag caller to compute position based upon 'current' tile.
                     if (SortKeys != null && SortKeys.Sort(view.Tiles)) view.ScrollPosition = -1; 
                 }
+                view.LastUsed = Environment.TickCount;
                 return view;
             }
 
@@ -297,6 +292,9 @@ namespace VideoLibrarian
             //---------
 
             view = new ViewTiles();
+            view.Key = key;
+            view.LastUsed = Environment.TickCount;
+
             var maxTiles = 0;
             Func<int,int,int> min = (a, b) => a > b ? b : a;
             switch(this.View)
@@ -350,19 +348,18 @@ namespace VideoLibrarian
             var tile = view.Tiles.FirstOrDefault(v => v.IsVisible);
             if (tile == null) tile = view.Tiles[0];
             view.CurrentTile = tile;
-            view.ScrollPosition = this.ScrollPosition; //initial scroll position at program startup
-            this.ScrollPosition = 0;
+            view.ScrollPosition = this.ScrollPositions[key];
             
             return view;
         }
 
-        public void LoadTiles(string title = "", List<MovieProperties> mp = null)
+        public void LoadTiles(string titleId = "", List<MovieProperties> mp = null)
         {
             CurrentViewTiles.CurrentTile = (ITile)m_flowPanel.CurrentVisibleControl;
             CurrentViewTiles.ScrollPosition = m_flowPanel.VerticalScroll.Value;
             PleaseWait.Show(this, "Creating/sorting/filtering tiles.  Be patient. This may take awhile.", (state) =>
             {
-                CurrentViewTiles = GetView(title, mp);
+                CurrentViewTiles = GetView(titleId, mp);
             });
 
             if (this.Tag != null) //Set in FormMain_Load()
@@ -392,7 +389,7 @@ namespace VideoLibrarian
                 {
                     //Error at System.Windows.Forms.NativeWindow.CreateHandle(CreateParams cp)
                     if (i == 1) throw;
-                    PurgeAllCache(title);
+                    PurgeAllCache(titleId);
                     continue;
                 }
                 break;
@@ -689,40 +686,16 @@ namespace VideoLibrarian
         /// </summary>
         /// <param name="neededUserObjects"></param>
         /// <param name="newView">new cache key (e.g. view name)</param>
-        private void PurgeCache(int neededUserObjects, VKEY newView)
+        private void PurgeCache(int neededUserObjects, string newView)
         {
             Func<int> availableUserObjects = () => 10000 - GetGuiResources(Process.GetCurrentProcess().Handle, 1); //uiFlags == 1 == GR_USEROBJECTS. Return the count of USER objects.
-            Func<VKEY, string> toString = (kv) =>
-            {
-                if (string.IsNullOrEmpty(kv.Value)) return kv.Key.ToString();
-                return string.Concat(kv.Key.ToString(), "-Series:", kv.Value);
-            };
 
             if (Views.Count == 0) return;
             if (availableUserObjects() > neededUserObjects) return;
-            var deletedList = new List<VKEY>(Views.Count);
+            var deletedList = new List<string>(Views.Count);
 
-            //Sort cache values to delete by smallest cache values first.
-            var order = new List<ViewType>(3) { ViewType.SmallTiles, ViewType.MediumTiles, ViewType.LargeTiles };
-            order.Remove(newView.Key);
-            order.Add(newView.Key); //put current view last.
-
-            var views = Views.ToArray();
-            Comparison<KeyValuePair<VKEY, ViewTiles>> comparer = (x, y) =>
+            foreach(var kv in Views.OrderBy(m=>m.Value.LastUsed))
             {
-                int v = string.CompareOrdinal(y.Key.Value, x.Key.Value);
-                if (v != 0) return v;
-
-                v = order.IndexOf(x.Key.Key) - order.IndexOf(y.Key.Key);
-                if (v != 0) return v;
-
-                return x.Value.Tiles.Length - y.Value.Tiles.Length;
-            };
-            Array.Sort(views, Comparer<KeyValuePair<VKEY, ViewTiles>>.Create(comparer));
-
-            foreach(var kv in views)
-            {
-                Log.Write(Severity.Warning, $"Insufficient resources (USER Objects) for new view {toString(newView)}. Deleting cached view {toString(kv.Key)}.");
                 var gen = kv.Value.Tiles!=null && kv.Value.Tiles.Length > 0 ? GC.GetGeneration(kv.Value.Tiles[0]) : 0;
                 DisposeTiles(kv.Value.Tiles);
                 kv.Value.Tiles = null;
@@ -743,13 +716,13 @@ namespace VideoLibrarian
             if (seriesTitle==null)
             {
                 foreach (var kv in Views) DisposeTiles(kv.Value.Tiles);
-                GC.Collect(0, GCCollectionMode.Default, false);  //be sure tiles list is closed and memory deallocated.
                 Views.Clear();
+                GC.Collect(0, GCCollectionMode.Default, false);  //be sure tiles list is closed and memory deallocated.
                 return;
             }
 
             var key = ViewTiles.CreateKey(this.View, seriesTitle); 
-            var deletedList = new List<VKEY>(Views.Count);
+            var deletedList = new List<string>(Views.Count);
             foreach(var kv in Views)
             {
                 if (kv.Key.Equals(key)) continue; //do not delete self
@@ -784,13 +757,13 @@ namespace VideoLibrarian
         private class ViewTiles
         {
             public ITile[] Tiles;
-            public ITile CurrentTile;
+            public ITile CurrentTile; //used in sorting and filtering in order to track where the current tile is located and adjust the scroll position accordingly.
             public int ScrollPosition;
+            public int LastUsed;  //used by Purge() to delete oldest list
+            public string Key; //The key representing this object in a dictionary.
 
-            public static VKEY CreateKey(ViewType view, string title = null)
-            {
-                return new KeyValuePair<ViewType, string>(view, title ?? string.Empty);
-            }
+            //A delimited list of these keys will be serialized into a long string, so we try to make this unique and as small as possible.
+            public static string CreateKey(ViewType view, string titleId = null) => $"{(int)view}{titleId}";
         }
         #endregion
     }

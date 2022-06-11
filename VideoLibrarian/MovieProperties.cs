@@ -259,6 +259,11 @@ namespace VideoLibrarian
         [XmlIgnore] public string PathPrefix { get; set; }
 
         /// <summary>
+        /// Unique IMDB title ID (ex. "tt123456")
+        /// </summary>
+        [XmlIgnore] public string TitleId { get; set; }
+
+        /// <summary>
         /// How to handle file cache when there is a download failure.
         /// Set exclusively by MoviePosterImg property getter. 
         /// Deletion occurs in FormMain > OnFormClosing > SaveAllMovieProperties > DeleteFileCache().
@@ -418,6 +423,7 @@ namespace VideoLibrarian
                     }
                 }
 
+                TitleId = tt == EmptyTitleID ? $"ff{(uint)unchecked(dir.GetHashCode())}" : tt;
                 PathPrefix = string.Concat(dir, "\\", tt);
             }
 

@@ -51,7 +51,8 @@ namespace VideoLibrarian
         [XmlElement(Order=5)] public ViewType View { get; set; }
         [XmlElement(Order=6)] public string SortKey { get; set; }
         [XmlElement(Order=7)] public FilterProperties Filters { get; set; }
-        [XmlElement(Order=8)] public int ScrollPosition { get; set; }
+        [XmlElement("ScrollPositions", Order=8)] public string ScrollPositionsString { get; set; }
+        [XmlIgnore] public KeyValueList<string,int> ScrollPositions { get; set; }
         [XmlComment("Explicit number of properties/tiles to load. For debugging use only.")]
         [XmlElement(Order = 9)] public int MaxLoadedProperties { get; set; }
         [XmlComment("Logging severity level: Success,Error,Warning,Info,Verbose. For debugging use only.")]
@@ -74,19 +75,23 @@ namespace VideoLibrarian
             this.View = ViewType.SmallTiles;
             this.SortKey = string.Empty;
             //this.Filters = new FilterProperties();
-            this.ScrollPosition = 0;
+            this.ScrollPositionsString = string.Empty;
+            this.ScrollPositions = new KeyValueList<string, int>();
             this.MaxLoadedProperties = 0;
             this.LogSeverity = Severity.Warning;
         }
 
         public void Serialize()
         {
+            ScrollPositionsString = ScrollPositions.Serialize();
             XmlIO.Serialize(this, FileName);
         }
 
         public static FormMainProperties Deserialize()
         {
-            return XmlIO.Deserialize<FormMainProperties>(FileName);
+            var props = XmlIO.Deserialize<FormMainProperties>(FileName);
+            props.ScrollPositions = KeyValueList<string, int>.Deserialize(props.ScrollPositionsString);
+            return props;
         }
     }
 }
