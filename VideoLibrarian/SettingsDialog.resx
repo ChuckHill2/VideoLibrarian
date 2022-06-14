@@ -120,6 +120,9 @@
   <data name="m_cmbBrowser.AccessibleDescription" xml:space="preserve">
     <value>Full path of the browser (+ any command-line args) to use when clicking on the IMDB\nicon or leave empty to use the system default browser.  Select from known installed\nbrowser list, click 'n drag from Windows Explorer, or select from the open file dialog.</value>
   </data>
+  <data name="m_grpLogSeverity.AccessibleDescription" xml:space="preserve">
+    <value>Message status and error logging severity levels. See File-&gt;Status log...\nSelect how much information you want written to the log.  Severity levels\nare cumulatative e.g. 'Error' includes Error+Success+None.</value>
+  </data>
   <data name="m_txtLogViewer.AccessibleDescription" xml:space="preserve">
     <value>Full path of the text viewer/editor (+ any command-line args) to use when viewing the status\nlog, or leave empty to use the system default text editor (normally notepad.exe).  Select via\ntyping, copy 'n paste, click 'n drag from Windows Explorer, or select from the open file dialog.</value>
   </data>

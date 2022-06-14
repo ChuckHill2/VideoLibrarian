@@ -45,5 +45,7 @@ namespace VideoLibrarian
 
         [DefaultValue("")]
         public string LogViewer { get; set; } = "";
+
+        public Severity LogSeverity { get; set; } = Severity.Warning;
     }
 }

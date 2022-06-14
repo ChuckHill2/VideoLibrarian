@@ -94,7 +94,7 @@ namespace VideoLibrarian
             this.Filters = data.Filters;
             this.ScrollPositions = data.ScrollPositions;
             this.MaxLoadedProperties = data.MaxLoadedProperties;
-            Log.SeverityFilter = data.LogSeverity;
+            Log.SeverityFilter = Settings.LogSeverity;
 
             SetViewMenu(this.View);
 
@@ -260,7 +260,6 @@ namespace VideoLibrarian
 
                 data.ScrollPositions = this.ScrollPositions;
                 data.MaxLoadedProperties = this.MaxLoadedProperties;
-                data.LogSeverity = Log.SeverityFilter;
                 data.Serialize();
             }
             catch (Exception ex)

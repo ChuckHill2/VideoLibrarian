@@ -46,7 +46,7 @@ namespace UpdateXml
 
                     FormMainProperties data = XmlIO.Deserialize<FormMainProperties>(filename);
 
-                    Log.SeverityFilter = data.LogSeverity;
+                    Log.SeverityFilter = data.Settings.LogSeverity;
                     MediaFolders = data.Settings.MediaFolders;
                 }
                 catch (Exception ex)

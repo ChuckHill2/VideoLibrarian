@@ -55,8 +55,6 @@ namespace VideoLibrarian
         public KeyValueList<string, int> ScrollPositions { get; set; }
         [XmlComment("Explicit number of properties/tiles to load. For debugging use only.")]
         [XmlElement(Order = 9)] public int MaxLoadedProperties { get; set; }
-        [XmlComment("Logging severity level: Success,Error,Warning,Info,Verbose. For debugging use only.")]
-        [XmlElement(Order = 10)] public Severity LogSeverity { get; set; }
 
         public FormMainProperties()
         {
@@ -77,7 +75,6 @@ namespace VideoLibrarian
             //this.Filters = new FilterProperties();
             this.ScrollPositions = new KeyValueList<string, int>();
             this.MaxLoadedProperties = 0;
-            this.LogSeverity = Severity.Warning;
         }
 
         public void Serialize()

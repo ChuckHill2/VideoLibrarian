@@ -40,6 +40,7 @@ namespace VideoLibrarian
         private ToolTipHelp tt;
         private SettingProperties OriginalSettings;
         private SettingProperties NewSettings = null;
+        private CheckBox[] LevelButtons;
 
         public static SettingProperties Show(IWin32Window owner, SettingProperties settings = null)
         {
@@ -60,6 +61,17 @@ namespace VideoLibrarian
             tt = new ToolTipHelp(this);
 
             if (settings == null) return;
+
+            LevelButtons = new CheckBox[]
+            {
+                m_chkNone,
+                m_chkSuccess,
+                m_chkError,
+                m_chkWarning,
+                m_chkInfo,
+                m_chkVerbose
+            };
+            m_chkLevel_Click(LevelButtons[(int)settings.LogSeverity], EventArgs.Empty);
 
             if (settings.MediaFolders != null && settings.MediaFolders.Length > 0)
                 m_lstFolders.Items.AddRange(settings.MediaFolders);
@@ -96,6 +108,15 @@ namespace VideoLibrarian
             exe = m_txtLogViewer.Text.Trim();
             if (!ValidateExe(exe)) { m_txtLogViewer.Focus(); return; }
             NewSettings.LogViewer = exe;
+
+            for(int i=LevelButtons.Length-1; i>=0; i--)
+            {
+                if (LevelButtons[i].Checked)
+                {
+                    NewSettings.LogSeverity = (Severity)i;
+                    break;
+                }
+            }
 
             this.DialogResult = DialogResult.OK;
             //this.Close(); close is implicit.
@@ -195,7 +216,7 @@ namespace VideoLibrarian
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
             {
                 var file = ((string[])e.Data.GetData(DataFormats.FileDrop))[0];
-                if (FileEx.Exists(file) && file.EndsWith(".exe",StringComparison.CurrentCultureIgnoreCase))
+                if (FileEx.Exists(file) && file.EndsWith(".exe", StringComparison.CurrentCultureIgnoreCase))
                 {
                     ((Control)sender).Text = file;
                 }
@@ -269,6 +290,17 @@ namespace VideoLibrarian
         private void m_cmbBrowser_SelectionChangeCommitted(object sender, EventArgs e)
         {
             m_txtBrowser.Text = m_cmbBrowser.SelectedItem.ToString();
+        }
+
+        private void m_chkLevel_Click(object sender, EventArgs e)
+        {
+            var btn = sender as CheckBox;
+            bool ischecked = true;
+            for (int i= 0; i < LevelButtons.Length; i++)
+            {
+                LevelButtons[i].Checked = ischecked;
+                if (LevelButtons[i] == btn) ischecked = false;
+            }
         }
     }
 }
