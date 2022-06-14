@@ -441,7 +441,7 @@ namespace VideoLibrarian
             if (mp.Episodes != null && mp.Episodes.Count > 0)
             {
                 //Must be a TV series so just load the TV Series tiles.
-                FormMain.This.LoadTiles(mp.TitleId, mp.Episodes);
+                FormMain.This.LoadTiles(mp.SortKey, mp.Episodes);
                 return;
             }
             //This should never occur since title clicking is disabled in the tile. Well, just in case!

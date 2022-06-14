@@ -229,6 +229,7 @@ namespace VideoLibrarian
                 //See LoadMovieInfo().
                 if (MoviePropertiesList.Count == 0) return;
 
+                //In case this function is running in a thread.
                 if (this.InvokeRequired)
                 {
                     this.BeginInvoke(new Action(SaveState));
@@ -246,11 +247,18 @@ namespace VideoLibrarian
                 data.SortKey = this.SortKeys.ToString();
                 if (this.Filters != null && !this.Filters.FilteringDisabled) data.Filters = this.Filters;
 
+                //Update current view final position.
                 if (this.CurrentViewTiles != null)
                     this.ScrollPositions[this.CurrentViewTiles.Key] = m_flowPanel.VerticalScroll.Value;
 
-                data.ScrollPositions = this.ScrollPositions;
+                //Unclutter scroll positions serialized list by removing scroll positions that equal zero as this is the default anyway.
+                for (int i=ScrollPositions.Count - 1; i >= 0; i--)
+                {
+                    if (ScrollPositions[i].Value > 0) continue;
+                    ScrollPositions.RemoveAt(i);
+                }
 
+                data.ScrollPositions = this.ScrollPositions;
                 data.MaxLoadedProperties = this.MaxLoadedProperties;
                 data.LogSeverity = Log.SeverityFilter;
                 data.Serialize();
@@ -353,7 +361,7 @@ namespace VideoLibrarian
             return view;
         }
 
-        public void LoadTiles(string titleId = "", List<MovieProperties> mp = null)
+        public void LoadTiles(string titleId = null, List<MovieProperties> mp = null)
         {
             CurrentViewTiles.CurrentTile = (ITile)m_flowPanel.CurrentVisibleControl;
             CurrentViewTiles.ScrollPosition = m_flowPanel.VerticalScroll.Value;
@@ -389,7 +397,7 @@ namespace VideoLibrarian
                 {
                     //Error at System.Windows.Forms.NativeWindow.CreateHandle(CreateParams cp)
                     if (i == 1) throw;
-                    PurgeAllCache(titleId);
+                    PurgeAllCache(ViewTiles.CreateKey(this.View, titleId));
                     continue;
                 }
                 break;
@@ -674,7 +682,8 @@ namespace VideoLibrarian
         [DllImport("User32.dll")]
         private static extern int GetGuiResources(IntPtr hProcess, int uiFlags);
         /// <summary>
-        /// Purge cache if the new MovieProperty tiles may cause out-of-resources error.
+        /// Purge enough of the oldest views from cache to allow enough free space for the newest view.
+        /// Too many open MovieProperty tiles may cause out-of-resources error.
         /// If there are too many movies, an out-of-window-handles (aka USER Objects) error 
         /// may occur and lock up the application where the only way out is to terminate via
         /// the Task Manager. A Win32 process may have a maximum of 10000 open USER Objects. 
@@ -685,8 +694,8 @@ namespace VideoLibrarian
         ///    **Large Tile Lite consists of 5 window handles. 10000/5 = 2000 movies
         /// </summary>
         /// <param name="neededUserObjects"></param>
-        /// <param name="newView">new cache key (e.g. view name)</param>
-        private void PurgeCache(int neededUserObjects, string newView)
+        /// <param name="cacheKey">new potential cache key (e.g. view name) (unused)</param>
+        private void PurgeCache(int neededUserObjects, string cacheKey)
         {
             Func<int> availableUserObjects = () => 10000 - GetGuiResources(Process.GetCurrentProcess().Handle, 1); //uiFlags == 1 == GR_USEROBJECTS. Return the count of USER objects.
 
@@ -694,8 +703,11 @@ namespace VideoLibrarian
             if (availableUserObjects() > neededUserObjects) return;
             var deletedList = new List<string>(Views.Count);
 
-            foreach(var kv in Views.OrderBy(m=>m.Value.LastUsed))
+            var newestMainView = Views.OrderByDescending(m => m.Value.LastUsed).FirstOrDefault(m => m.Key.Contains(":" + ViewTiles.MainKey)); //there may be up to 3 "Main" views (e.g. small,medium, and large)
+
+            foreach(var kv in Views.OrderBy(m=>m.Value.LastUsed)) //order by least used first
             {
+                if (kv.Key == newestMainView.Key) continue;
                 var gen = kv.Value.Tiles!=null && kv.Value.Tiles.Length > 0 ? GC.GetGeneration(kv.Value.Tiles[0]) : 0;
                 DisposeTiles(kv.Value.Tiles);
                 kv.Value.Tiles = null;
@@ -710,10 +722,10 @@ namespace VideoLibrarian
         /// <summary>
         /// Delete all cached tiles except self.
         /// </summary>
-        /// <param name="seriesTitle">Main (e.g. "") or series title to exclude. Null to just remove all views and all tiles.</param>
-        private void PurgeAllCache(string seriesTitle)
+        /// <param name="cacheKey">Cache view to exclude. Null to just remove all views and all tiles.</param>
+        private void PurgeAllCache(string cacheKey)
         {
-            if (seriesTitle==null)
+            if (cacheKey==null)
             {
                 foreach (var kv in Views) DisposeTiles(kv.Value.Tiles);
                 Views.Clear();
@@ -721,7 +733,7 @@ namespace VideoLibrarian
                 return;
             }
 
-            var key = ViewTiles.CreateKey(this.View, seriesTitle); 
+            var key = ViewTiles.CreateKey(this.View, cacheKey); 
             var deletedList = new List<string>(Views.Count);
             foreach(var kv in Views)
             {
@@ -756,6 +768,8 @@ namespace VideoLibrarian
         /// </summary>
         private class ViewTiles
         {
+            public const string MainKey = "Main"; //label for top-level View
+
             public ITile[] Tiles;
             public ITile CurrentTile; //used in sorting and filtering in order to track where the current tile is located and adjust the scroll position accordingly.
             public int ScrollPosition;
@@ -763,7 +777,7 @@ namespace VideoLibrarian
             public string Key; //The key representing this object in a dictionary.
 
             //A delimited list of these keys will be serialized into a long string, so we try to make this unique and as small as possible.
-            public static string CreateKey(ViewType view, string titleId = null) => $"{(int)view}{titleId}";
+            public static string CreateKey(ViewType view, string titleId = null) => $"{view}:{(string.IsNullOrEmpty(titleId) ? MainKey : titleId)}";
         }
         #endregion
     }
