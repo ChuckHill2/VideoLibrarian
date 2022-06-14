@@ -428,6 +428,12 @@ namespace VideoLibrarian
 
         public void LoadMovieInfo()
         {
+            Func<string, int> episodeIndexOf = ss =>
+            {
+                int ii = ss.IndexOf('\xAD') - 1;
+                return ii < 0 ? ss.Length : ii;
+            };
+
             //This may take awhile. Don't lock up the UI.
             PleaseWait.Show(this, "Finding, extracting, loading movie info...  Be patient. This may take awhile.", (state) =>
             {
@@ -536,10 +542,10 @@ namespace VideoLibrarian
                         continue;
                     }
 
-                    if (series != null && p.Season != 0) //tvEpisode preceded by tvSeries
+                    if (series != null && p.Season != 0) //tvEpisode that is preceded by tvSeries
                     {
-                        //tvSeries moviename == "Series Name", tvEpisode moviename=="Series Name - Episode name"
-                        if (series.MovieName.Length != p.MovieName.IndexOf('\xAD')-1) //edge case: tvSeries+episodes followed by orphaned tvEpisode
+                        //tvSeries moviename == "Series Name", (tvEpisode moviename=="Series Name - Episode name" OR tvEpisode moviename=="Series Name")
+                        if (series.MovieName.Length != episodeIndexOf(p.MovieName)) //edge case: tvSeries+episodes followed by another orphaned tvEpisode.
                         {
                             if (series.Episodes.Count == 0) series.Episodes = null; //if tvSeries has no episodes
                             series = null;
