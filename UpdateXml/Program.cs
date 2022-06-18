@@ -103,14 +103,12 @@ namespace UpdateXml
                         if (Path.GetFileNameWithoutExtension(xmlFile) == MovieProperties.EmptyTitleID) return; //custom non-IMDB MovieProperties.
 
                         var p1 = new MovieProperties(folder);
-                        if (p1.ToString() == "UNKNOWN") throw new InvalidDataException($"Original incomplete/corrupted movie property for folder: {folder}");
 
                         FileEx.Delete(xmlFile + ".backup");
                         FileEx.Move(xmlFile, xmlFile + ".backup"); //save just in case
 
                         //create upon demand new movie properties file.
                         var p2 = new MovieProperties(folder);
-                        if (p2.ToString() == "UNKNOWN") throw new InvalidDataException($"New incomplete/corrupted movie property for folder: {folder}");
 
                         //Save the orginal poster image url, if it exists. It may have been manually updated by user.
                         if (!p1.MoviePosterUrl.IsNullOrEmpty())

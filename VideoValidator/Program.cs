@@ -119,8 +119,6 @@ namespace VideoValidator
                                 Console.Write($"{added + 1}\b\b\b\b\b\b"); //Counter to show that we are actually busy working.
 
                                 var p = new MovieProperties(folder, false);
-                                if (p.ToString() == "UNKNOWN") //Incomplete/corrupted movie property. See log file.
-                                    throw new InvalidDataException($"Incomplete/corrupted movie property for folder: {folder}");
 
                                 p.VerifyVideoFile(); //don't need to do anything with the return value as VerifyVideoFile() already writes the messages to Log.
 

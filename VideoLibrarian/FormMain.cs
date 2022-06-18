@@ -308,36 +308,37 @@ namespace VideoLibrarian
             {
              #if (!IN_DESIGNER) //Use lightweight tiles using minimal window handles.  
                 //Use of too many tiles will run out of window handles (aka USER Objects).
+                //Note: max tiles empirically determined by using taskManageer->DetailedView, User Objects column for this process.
                 case ViewType.SmallTiles:
-                    maxTiles = 4750;  //2 window handles/tile = (10000 max handles - 500 padding) / (windowHandles/tile)
-                    PurgeCache(2 * min(mp.Count,maxTiles), key);
+                    maxTiles = 3316;  //3 window handles/tile == (10000 max handles - 50 padding) / (windowHandles/tile)
+                    PurgeCache(3 * min(mp.Count,maxTiles), key);
                     view.Tiles = mp.Take(maxTiles).Select(m => TileSmallLite.Create(m)).ToArray(); //uses 4 window handles 
                     break;
                 case ViewType.MediumTiles:
-                    maxTiles = 3167;  //3 window handles/tile
+                    maxTiles = 3316;  //3 window handles/tile
                     PurgeCache(3 * min(mp.Count, maxTiles), key);
                     view.Tiles = mp.Take(maxTiles).Select(m => TileMediumLite.Create(m)).ToArray();
                     break;
                 case ViewType.LargeTiles:
-                    maxTiles = 3167;   //3 window handles/tile
-                    PurgeCache(3 * min(mp.Count, maxTiles), key);
+                    maxTiles = 2487;   //4 window handles/tile
+                    PurgeCache(4 * min(mp.Count, maxTiles), key);
                     view.Tiles = mp.Take(maxTiles).Select(m => TileLargeLite.Create(m)).ToArray(); //Can't use .AsParallel().AsOrdered() because WinForms is strictly single-threaded!
                     break;
-             #else //Using template tiles for verifying layout.
+             #else //Using template tiles for verifying layout. and testing UserObject handling.
                 case ViewType.SmallTiles:
-                    maxTiles = 863;
+                    maxTiles = 901;
                     PurgeCache(11 * min(mp.Count,maxTiles), key);
-                    view.Tiles = mp.Take(maxTiles).Select(m => TileSmall.Create(m)).ToArray(); //uses 11 window handles
+                    view.Tiles = mp.Take(maxTiles).Select(m => TileSmall.Create(m)).ToArray(); //uses 11 window handles/tile
                     break;
                 case ViewType.MediumTiles:
-                    maxTiles = 558;
+                    maxTiles = 583; 
                     PurgeCache(17 * min(mp.Count,maxTiles), key);
-                    view.Tiles = mp.Take(maxTiles).Select(m => TileMedium.Create(m)).ToArray(); //uses 17 window handles
+                    view.Tiles = mp.Take(maxTiles).Select(m => TileMedium.Create(m)).ToArray(); //uses 17 window handles/tile
                     break;
                 case ViewType.LargeTiles:
-                    maxTiles = 296;
-                    PurgeCache(32 * min(mp.Count,maxTiles), key);
-                    view.Tiles = mp.Take(maxTiles).Select(m => TileLarge.Create(m)).ToArray();  //uses 32 window handles
+                    maxTiles = 291;  //81 UserObjects Base window + sort dialog (busiest dialog); 34 UserObjects/Tile;  actual value=9959
+                    PurgeCache(34 * min(mp.Count,maxTiles), key);
+                    view.Tiles = mp.Take(maxTiles).Select(m => TileLarge.Create(m)).ToArray();  //uses 34 window handles/tile
                     break;
              #endif
                 default: throw new InvalidEnumArgumentException("Unknown ViewType Enum"); //should never occur
@@ -353,7 +354,7 @@ namespace VideoLibrarian
                 if (SortKeys != null) SortKeys.Sort(view.Tiles);
             }
             var tile = view.Tiles.FirstOrDefault(v => v.IsVisible);
-            if (tile == null) tile = view.Tiles[0];
+            if (tile == null && view != null && view.Tiles.Length > 0) tile = view.Tiles[0];
             view.CurrentTile = tile;
             view.ScrollPosition = this.ScrollPositions[key];
             
@@ -392,10 +393,11 @@ namespace VideoLibrarian
                     m_flowPanel.Controls.Clear();
                     m_flowPanel.Controls.AddRange((Control[])CurrentViewTiles.Tiles);
                 }
-                catch (System.ComponentModel.Win32Exception) //Error creating window handle. ex.ErrorCode == 0x80004005
+                catch (System.ComponentModel.Win32Exception ex) //Error creating window handle. ex.ErrorCode == 0x80004005
                 {
                     //Error at System.Windows.Forms.NativeWindow.CreateHandle(CreateParams cp)
                     if (i == 1) throw;
+                    Log.Write(Severity.Error, "Error loading tiles. Purge view cache and retry: {1}", ex);
                     PurgeAllCache(ViewTiles.CreateKey(this.View, titleId));
                     continue;
                 }
@@ -501,9 +503,7 @@ namespace VideoLibrarian
                     {
                         try
                         {
-                            var p = new MovieProperties(folder, forcePropertiesUpdate);
-                            if (p.ToString() == "UNKNOWN") //Incomplete/corrupted movie property. See log file. Ignore for now.
-                                throw new InvalidDataException($"Incomplete/corrupted movie property for folder: {folder}");
+                            var p = new MovieProperties(folder, forcePropertiesUpdate); //may throw exceptions.
 
                             lock (lockObj)
                             {
@@ -515,11 +515,11 @@ namespace VideoLibrarian
                         }
                         catch (Exception ex)
                         {
-                            Log.Write(Severity.Error, $"Movie property failed to load from {folder}: {ex.Message}");
+                            Log.Write(Severity.Error, $"Video property failed to load from {folder}: {ex.Message}");
                         }
                     });
 
-                    Log.Write(Severity.Info, $"{added} movie properties loaded from {mf}");
+                    Log.Write(Severity.Info, $"{added} video properties loaded from {mf}");
                 }
                 if (MoviePropertiesList.Count == 0) return;
 
@@ -530,6 +530,9 @@ namespace VideoLibrarian
                 MoviePropertiesList.Sort(Comparer<MovieProperties>.Create((a, b) => string.CompareOrdinal(a.SortKey, b.SortKey)));
 
                 //Now move matching tvEpisodes in each tvSeries episodes list
+                var totalMovieProperties = MoviePropertiesList.Count;
+                var totalSeries = 0;
+                var totalEpisodes = 0;
                 int kount = MoviePropertiesList.Count;
                 MovieProperties series = null; //when this has a value, this is the current tvSeries
                 for (int i = 0; i < kount; i++)
@@ -539,6 +542,7 @@ namespace VideoLibrarian
                     {
                         series = p;
                         series.Episodes = new List<MovieProperties>();
+                        totalSeries++;
                         continue;
                     }
 
@@ -549,11 +553,13 @@ namespace VideoLibrarian
                         {
                             if (series.Episodes.Count == 0) series.Episodes = null; //if tvSeries has no episodes
                             series = null;
+                            totalSeries--;
                             continue;
                         }
 
                         series.Episodes.Add(p);
                         MoviePropertiesList.RemoveAt(i);
+                        totalEpisodes++;
                         i--;
                         kount--;
                         continue;
@@ -566,6 +572,8 @@ namespace VideoLibrarian
                         series = null;
                     }
                 }
+
+                Log.Write(Severity.Info, $"Total Videos={totalMovieProperties}, Movies={totalMovieProperties- totalSeries- totalEpisodes}, Series={totalSeries}, Episodes={totalEpisodes}.");
 
                 if (this.MaxLoadedProperties > 0 && MoviePropertiesList.Count >= this.MaxLoadedProperties)
                 {
@@ -599,6 +607,7 @@ namespace VideoLibrarian
                 LoadMovieInfo();
                 m_flowPanel.SuspendLayout();
                 m_flowPanel.Controls.Clear();
+                Log.Write(Severity.Info, "Purge view cache due to new movie folders.");
                 PurgeAllCache(null); 
                 LoadTiles();
                 EnableMenuBar(MoviePropertiesList.Count > 0);
@@ -688,18 +697,18 @@ namespace VideoLibrarian
         private static extern int GetGuiResources(IntPtr hProcess, int uiFlags);
         /// <summary>
         /// Purge enough of the oldest views from cache to allow enough free space for the newest view.
-        /// Too many open MovieProperty tiles may cause out-of-resources error.
+        /// Too many open MovieProperty tiles (e.g. controls) may cause out-of-resources error.
         /// If there are too many movies, an out-of-window-handles (aka USER Objects) error 
         /// may occur and lock up the application where the only way out is to terminate via
         /// the Task Manager. A Win32 process may have a maximum of 10000 open USER Objects. 
         /// The following code helps mitigate this problem at the expense of performance.
         /// Rules:
-        ///    **Small Tile Lite consists of 4 window handles. 10000/4 = 2500 movies
-        ///    **Medium Tile Lite consists of 5 window handles. 10000/5 = 2000 movies
-        ///    **Large Tile Lite consists of 5 window handles. 10000/5 = 2000 movies
+        ///    **Small Tile Lite consists of 2 window handles. 10000/2 = 5000 movies
+        ///    **Medium Tile Lite consists of 3 window handles. 10000/3 = 3333 movies
+        ///    **Large Tile Lite consists of 3 window handles. 10000/3 = 3333 movies
         /// </summary>
         /// <param name="neededUserObjects"></param>
-        /// <param name="cacheKey">new potential cache key (e.g. view name) (unused)</param>
+        /// <param name="cacheKey">new potential cache key (e.g. view key) (used for logging)</param>
         private void PurgeCache(int neededUserObjects, string cacheKey)
         {
             Func<int> availableUserObjects = () => 10000 - GetGuiResources(Process.GetCurrentProcess().Handle, 1); //uiFlags == 1 == GR_USEROBJECTS. Return the count of USER objects.
@@ -713,15 +722,48 @@ namespace VideoLibrarian
             foreach(var kv in Views.OrderBy(m=>m.Value.LastUsed)) //order by least used first
             {
                 if (kv.Key == newestMainView.Key) continue;
-                var gen = kv.Value.Tiles!=null && kv.Value.Tiles.Length > 0 ? GC.GetGeneration(kv.Value.Tiles[0]) : 0;
-                DisposeTiles(kv.Value.Tiles);
-                kv.Value.Tiles = null;
+                Log.Write(Severity.Warning, $"Insufficient resources (USER Objects) for new view {cacheKey}. Deleting oldest cached view {kv.Key}.");
+                var t = kv.Value.Tiles;
+                kv.Value.Tiles = null;  //remove all references so GC is free to collect tiles
                 kv.Value.CurrentTile = null;
+                DisposeTiles(t,false);
                 deletedList.Add(kv.Key);
-                GC.Collect(gen,GCCollectionMode.Default,true);  //be sure tiles list is closed and memory deallocated.
                 if (availableUserObjects() > neededUserObjects) break;
             }
-            foreach(var kv in deletedList) { Views.Remove(kv); }
+
+            //Ok, this new view is really, really large. No room for both the new view and parent view.
+            if (availableUserObjects() < neededUserObjects)
+            {
+                var kv = newestMainView;
+                Log.Write(Severity.Warning, $"Insufficient resources (USER Objects) for new view {cacheKey}. Deleting oldest cached view {kv.Key}.");
+                var t = kv.Value.Tiles;
+                kv.Value.Tiles = null;
+                kv.Value.CurrentTile = null;
+                DisposeTiles(t, false);
+                deletedList.Add(kv.Key);
+            }
+
+            foreach (var kv in deletedList) { Views.Remove(kv); }
+
+            //This should never happen... If it does, we have a bug.
+            if (availableUserObjects() < neededUserObjects)
+            {
+                Log.Write(Severity.Error, $"Insufficient resources (USER Objects) for new view {cacheKey} even with view cache emptied! Requested UserObjects={neededUserObjects}. Available UserObjects={availableUserObjects()}");
+                FatalUserObjectsMessage();
+            }
+        }
+
+        private void FatalUserObjectsMessage()
+        {
+            if (this.InvokeRequired)
+            {
+                this.Invoke((Action)(()=>FatalUserObjectsMessage()));
+                return;
+            }
+
+            MessageBox.Show(this, "Cannot load new view due to insufficient system\nresources. VideoLibrarian cannot continue. Exiting...", "Loading Movies", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            this.SaveState();
+            Environment.Exit(0);
         }
 
         /// <summary>
@@ -732,9 +774,14 @@ namespace VideoLibrarian
         {
             if (cacheKey==null)
             {
-                foreach (var kv in Views) DisposeTiles(kv.Value.Tiles);
+                foreach (var kv in Views)
+                {
+                    var t = kv.Value.Tiles;
+                    kv.Value.Tiles = null;
+                    kv.Value.CurrentTile = null;
+                    DisposeTiles(t, true);
+                }
                 Views.Clear();
-                GC.Collect(0, GCCollectionMode.Default, false);  //be sure tiles list is closed and memory deallocated.
                 return;
             }
 
@@ -743,27 +790,28 @@ namespace VideoLibrarian
             foreach(var kv in Views)
             {
                 if (kv.Key.Equals(key)) continue; //do not delete self
-                var gen = kv.Value.Tiles != null && kv.Value.Tiles.Length > 0 ? GC.GetGeneration(kv.Value.Tiles[0]) : 0;
-                DisposeTiles(kv.Value.Tiles);
+                var t = kv.Value.Tiles;
                 kv.Value.Tiles = null;
                 kv.Value.CurrentTile = null;
+                DisposeTiles(t, true);
                 deletedList.Add(kv.Key);
-                GC.Collect(gen, GCCollectionMode.Default, false);  //be sure tiles list is closed and memory deallocated.
             }
             foreach (var kv in deletedList) { Views.Remove(kv); }
         }
 
-        private void DisposeTiles(ITile[] tiles)
+        private void DisposeTiles(ITile[] tiles, bool postAction)
         {
             if (tiles.Length == 0) return;
             var c = (Control)tiles[0];
             if (c.InvokeRequired)
             {
-                c.BeginInvoke((Action<ITile[]>)DisposeTiles, new object[] { tiles });
+                if (postAction) c.BeginInvoke((Action<ITile[], bool>)DisposeTiles, new object[] { tiles, postAction }); //this doesn't wait and returns immediately.
+                else c.Invoke((Action<ITile[], bool>)DisposeTiles, new object[] { tiles, postAction }); //this waits for action to complete.
                 return;
             }
 
             foreach (var t in tiles) ((Control)t).Dispose();
+            GC.Collect();  //be sure tiles list is closed and memory deallocated.
         }
         #endregion
 

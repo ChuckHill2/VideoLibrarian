@@ -379,8 +379,6 @@ namespace VideoOrganizer
             try 
             { 
                 mpx = new MovieProperties(RootFolder);
-                if (mpx.ToString() == "UNKNOWN") 
-                    throw new InvalidDataException($"Incomplete/corrupted movie property folder: {RootFolder}");
             }
             catch (Exception ex) 
             {

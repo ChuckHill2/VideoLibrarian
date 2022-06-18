@@ -215,7 +215,7 @@ namespace VideoLibrarian
                         catch (Exception ex)
                         {
                             FileEx.Delete(MoviePosterPath);
-                            Log.Write(Severity.Error, $"Corrupted poster image. Recreating poster image file \"{MoviePosterPath}\".\n{ex}");
+                            Log.Write(Severity.Warning, $"Corrupted poster image. Recreating poster image file \"{MoviePosterPath}\".\n{ex}");
                             _moviePosterImg = CreateBlankPoster(this.MovieName);
                             this.DeleteFileCacheUponExit = FileCacheScope.ImagesOnly;
                         }
@@ -384,6 +384,10 @@ namespace VideoLibrarian
                     this.Serialize();
                 }
             }
+
+            //After all is said and done, MovieName must never be undefined.
+            if (this.MovieName.IsNullOrEmpty())
+                throw new InvalidDataException($"Incomplete/corrupted video property (MovieName is undefined) in folder: {path}.");
         }
         #endregion
 
@@ -691,12 +695,6 @@ namespace VideoLibrarian
                 Parser.Found("YearJb");
             }
 
-            if (YearEnd == 0)
-            {
-                YearEnd = int.TryParse(props1["releaseYear"]["endYear"], out i) ? i : 0;
-                Parser.Found(YearEnd, "YearEndJ");
-            }
-
             if (Runtime==0 && (MoviePath.IsNullOrEmpty() || !FileEx.Exists(this.MoviePath)))
             {
                 //This is normally set from async extract of video file properties: GetVideoFileProperties()
@@ -734,10 +732,14 @@ namespace VideoLibrarian
 
             if (Summary.IsNullOrEmpty())
             {
-                Summary = props2["summaries"]?["edges"]?[0]?["node"]?["plotText"]?["plaidHtml"]?.Value;
+                Summary = props1["primaryVideos"]?["edges"]?[0]?["node"]?["description"]?["value"]?.Value;
+                Parser.Found(Summary, "SummaryJ1");
+                if (Summary.IsNullOrEmpty()) Summary = props2["summaries"]?["edges"]?[0]?["node"]?["plotText"]?["plaidHtml"]?.Value;
+                Parser.Found(Summary, "SummaryJ2");
                 if (Summary.IsNullOrEmpty()) Summary = props2["outlines"]?["edges"]?[0]?["node"]?["plotText"]?["plaidHtml"]?.Value;
+                Parser.Found(Summary, "SummaryJ3");
+
                 if (!Summary.IsNullOrEmpty() && Summary.Contains('&')) Summary = WebUtility.HtmlDecode(Summary);
-                Parser.Found(Summary, "SummaryJ");
             }
 
             // Directors/Writers/Cast/Creators
