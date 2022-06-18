@@ -27,6 +27,7 @@ directory as the executable.
     informational, warnings, and errors.
 -   **VideoLibrarian.SavedState.xml** – This file contains all the current configuration
     values.
+-   **RegexLib.dll** - Used for pre-compiled regex patterns (speed).
 -   **NReco.VideoInfo.dll** – Used to extract information from the video file.
 -   **ffprobe.exe** – Used to extract information from the video file.
 
@@ -315,8 +316,13 @@ The UI design was inspired by [SimpleMovieCatalog](https://github.com/damienlang
 * Language
   + C++ - Workable, but unnecessary complexity and more difficult to maintain.
   + C# - Faster and easier to maintain. There are no performance bottlenecks that low-level C++ needs to overcome. Supporting Win7+. Natively supports requisite https and regex.
-    - WinForms? Can support large number of gallery items.
-    - WPF? Gallery cannot support large number video tiles.
+* Frameworks
+    - C#/WinForms? 
+    - C#/WPF?
+    - ~~C#/Blazor (new)~~ sounds great, but it is a client-server model and with browser sandboxing substantially increases the complexity. May as well give up and use the Plex media server.
+    
+    Note: Any any framework that uses underlying Win32 is automatically constrained as the size of a virtual gallery window can only scroll up to 65535 pixels. However as I am intimately familiar with both Win32 and WinForms, I can simulate true 32bit scrolling with WinForms. 
+    
 * Build Environment
   + .NET Core - Must include requisite .NET assemblies with installation. Ugh!
   + .NET Framework - .NET 4.8 must be installed on Win 7. Already included on Win 8 and Win 10. May create monolithic executable. Our goal.
