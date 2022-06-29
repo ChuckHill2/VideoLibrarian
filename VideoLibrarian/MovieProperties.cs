@@ -527,14 +527,26 @@ namespace VideoLibrarian
                 }
             }
 
-            if (Summary.IsNullOrEmpty())
+            //if (Summary.IsNullOrEmpty())     // Json summary is typically the plot or nothing so we always try to get a better summary.
             {
-                mc = RegexCache.RegEx(@"storyline-plot-summary'>.+?<div>(?<SUMMARY>[^<]+)", RE_options).Matches(html);
-                if (mc.Count > 0)
+                var job = new Downloader.Job(UrlLink + "plotsummary", PathPrefix + "-Summary.htm");
+                if (Downloader.Download(job))
                 {
-                    Summary = mc[0].Groups["SUMMARY"].Value;
-                    if (!Summary.IsNullOrEmpty() && Summary.Contains('&')) Summary = WebUtility.HtmlDecode(Summary);
-                    Parser.Found(Summary, "SummaryW");
+                    var summaryhtml = FileEx.ReadHtml(job.Filename, true);
+                    FileEx.Delete(job.Filename);
+
+                    //Summaries may have crew names embedded in the summaries so we remove the hyperlink.
+                    //E.g. replace "<a href='/name/nm0000631/'>Ridley Scott</a>" with " Ridley Scott"
+                    summaryhtml = RegexCache.RegEx(@"<a href='/name[^>]+>(?<NAME>[^<]+)</a>", RE_options).Replace(summaryhtml,m=>" "+m.Groups["NAME"].Value);
+
+                    mc = RegexCache.RegEx(@"<li class='ipl-zebra-list__item' id='summary-[^>]+><p>(?<SUMMARY>[^<]+)", RE_options).Matches(summaryhtml);
+                    if (mc.Count > 0)
+                    {
+                        var summaries = mc.Cast<Match>().Select(m => m.Groups["SUMMARY"].Value).Append(this.Summary??string.Empty);
+                        Summary = summaries.Aggregate("", (max, cur) => max.Length > cur.Length ? max : cur);  //Pick the most verbose summary.
+                        if (Summary.Contains('&')) Summary = WebUtility.HtmlDecode(Summary);
+                        Parser.Found(Summary, "SummaryW");
+                    }
                 }
             }
 
@@ -1470,6 +1482,10 @@ namespace VideoLibrarian
         /// </summary>
         /// <param name="path">Name of shortcut (*.url) to read</param>
         /// <returns>URL within shortcut</returns>
+        /// <remarks>
+        /// Removes any urlencoded properties (e.g. ?abc=def&ccc=ddd).
+        /// Always ends with trailing '/'
+        /// </remarks>
         public static string GetUrlFromShortcut(string path)
         {
             using (var sr = new StreamReader(path))
@@ -1480,9 +1496,9 @@ namespace VideoLibrarian
                     if (line.StartsWith("URL="))
                     {
                         var url = line.Substring(4).Trim();
-                        //Remove urlencoded properties (e.g. ?abc=def&ccc=ddd)
                         var i = url.IndexOf('?');
                         if (i != -1) url = url.Substring(0, i);
+                        if (url[url.Length - 1] != '/') url += "/";
                         return url;
                     }
                 }
