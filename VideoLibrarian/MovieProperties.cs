@@ -847,6 +847,7 @@ namespace VideoLibrarian
                 if (MovieClass.IsNullOrEmpty())
                 {
                     MovieClass = type.IsNullOrEmpty() ? "Feature Movie" : type;
+                    if (MovieClass == "TV Mini-Series") MovieClass = "TV Mini Series";
                     Parser.Found("MovieClass" + sourceId);
                 }
             }
