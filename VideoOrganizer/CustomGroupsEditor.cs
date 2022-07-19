@@ -42,7 +42,7 @@ namespace VideoOrganizer
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
-            base.OnFormClosing(e);
+            base.OnFormClosing(e); //This must be first so EditListBox may flush any outstanding changes before retrieving it's Items.  Alternatively may use m_lbGroups.Flush().
             Groups = ((IEnumerable)m_lbGroups.Items).Cast<string>().Select(m => m.Trim()).Where(m => m.Length > 0).ToList();
             var newAllKnownGroups = ((IEnumerable)m_lbGroups.DropdownItems).Cast<string>().Select(m => m.Trim()).Where(m => m.Length > 0).ToList();
             SaveKnownGroups(newAllKnownGroups);

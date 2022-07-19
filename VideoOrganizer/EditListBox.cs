@@ -200,30 +200,42 @@ namespace ChuckHill2.Forms
 
             this.Controls.Add(m_cbEditor);
         }
-
-        private Form Owner = null;
-        protected override void OnParentChanged(EventArgs e)
+        
+        /// <summary>
+        /// Manually flush/commit any outstanding changes.
+        /// </summary>
+        public void Flush()
         {
+            m_cbEditor_Leave(m_cbEditor, EventArgs.Empty);
+        }
+
+        // Need to know when the parent form/dialog box is accessible. OnParentChanged is not 
+        // guarenteed to have a form in the control chain (e.g. group boxes, etc), yet.. This is required in 
+        // order to hook into the Form's FormClosing Event to be able to flush any combobox changes.
+        private Form FormOwner = null;
+        protected override void OnVisibleChanged(EventArgs e)
+        {
+            if (!base.Visible) return;
             Control c = base.Parent;
             while(!(c is Form))
             {
                 c = c.Parent;
+                if (c == null) break;
             }
             if (c != null)
             {
-                if (Owner !=null) Owner.FormClosing -= Owner_FormClosing;
-                Owner = (Form)c;
-                Owner.FormClosing += Owner_FormClosing;
+                if (FormOwner !=null) FormOwner.FormClosing -= FormOwner_FormClosing; //remove previous hook
+                FormOwner = (Form)c;
+                FormOwner.FormClosing += FormOwner_FormClosing; //add new hook
             }
 
-            base.OnParentChanged(e);
+            base.OnVisibleChanged(e);
         }
-
-        private void Owner_FormClosing(object sender, FormClosingEventArgs e)
+        private void FormOwner_FormClosing(object sender, FormClosingEventArgs e)
         {
             m_cbEditor_Leave(m_cbEditor, EventArgs.Empty);
             Form f = sender as Form;
-            if (f != null) f.FormClosing -= Owner_FormClosing;
+            if (f != null) f.FormClosing -= FormOwner_FormClosing;
         }
 
         private void InitializeContextMenu()
