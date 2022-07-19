@@ -29,6 +29,7 @@
 //--------------------------------------------------------------------------
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 
@@ -36,6 +37,9 @@ namespace VideoLibrarian
 {
     public partial class FilterDialog : Form
     {
+        private static int DlgHeight; //maintain height between instances (width is fixed)
+        private ToolTipHelp _tt; //Tooltip help manager
+
         private FilterProperties OriginalFilter;
         private FilterProperties NewFilter = null;
 
@@ -56,13 +60,29 @@ namespace VideoLibrarian
             OriginalFilter = filter;
  
             InitializeComponent();
+            _tt = new ToolTipHelp(this); //must be after InitializeComponent()
 
             //this.Font = new Font("Microsoft Sans Serif", 9f,FontStyle.Regular,GraphicsUnit.Pixel,0);
             //this.Scale(new System.Drawing.SizeF(2, 2)); //Scales sizes control dimensions, but not font
 
             this.SuspendLayout();
+            if (DlgHeight != 0) this.Height = DlgHeight;
 
             m_cbIn.DataSource = Enum.GetValues(typeof(ContainsLocation));
+
+            m_cbCustomGroup.DataSource = FilterProperties.AvailableGroups;
+            m_cbCustomGroup.DisplayMember = "FriendlyName";
+            //Hide CustomGroup control if there are no custom groups
+            if (FilterProperties.AvailableGroups.Length < 2)
+            {
+                var top = m_grpCustomGroup.Top;
+                var bottom = m_grpGenre.Bottom;
+                m_grpCustomGroup.Visible = false;
+                m_grpGenre.Top = top;
+                m_grpGenre.Height = bottom - top;
+                m_grpVideoType.Top = top;
+                m_grpVideoType.Height = bottom - top;
+            }
 
             m_clbGenre.Items.Clear();
             m_clbGenre.Items.AddRange(FilterProperties.AvailableGenres.Select(m=>(object)m).ToArray());
@@ -75,6 +95,7 @@ namespace VideoLibrarian
             if (OriginalFilter == null) //Use default filters
             {
                 m_cbIn.SelectedItem = ContainsLocation.Anywhere;
+                //m_cbCustomGroup.SelectedItem = FilterProperties.AvailableGroups[0]; //not needed. this is the default.
 
                 for (int i = 0; i < m_clbGenre.Items.Count; i++) m_clbGenre.SetItemChecked(i, true);
                 for (int i = 0; i < m_clbVideoType.Items.Count; i++) m_clbVideoType.SetItemChecked(i, true);
@@ -101,6 +122,9 @@ namespace VideoLibrarian
 
             m_txtContains.Text = filter.ContainsSubstring ?? string.Empty;
             m_cbIn.SelectedItem = filter.ContainsLocation;
+
+            m_cbCustomGroup.SelectedItem = filter.CustomGroup == "" ? FilterProperties.AvailableGroups[0] :
+                FilterProperties.AvailableGroups.FirstOrDefault(m => m.Name.EqualsI(filter.CustomGroup)) ?? FilterProperties.AvailableGroups[0];
 
             var comparer = new EqualityComparer<FilterProperties.FilterValue>((x, y) => x.Name.Equals(y.Name, StringComparison.Ordinal));
             for (int i = 0; i < m_clbGenre.Items.Count; i++)
@@ -153,6 +177,12 @@ namespace VideoLibrarian
             this.ResumeLayout();
         }
 
+        protected override void OnClosed(EventArgs e)
+        {
+            DlgHeight = this.Height;
+            base.OnClosed(e);
+        }
+
         private void m_btnOK_Click(object sender, EventArgs e)
         {
             this.NewFilter = ValidateAndReturn();
@@ -199,6 +229,8 @@ namespace VideoLibrarian
             fp.ContainsSubstring  = m_txtContains.Text;
             fp.ContainsLocation = (ContainsLocation)m_cbIn.SelectedItem;
 
+            fp.CustomGroup = ((FilterProperties.FilterValue)m_cbCustomGroup.SelectedItem).Name;
+
             var list = new List<FilterProperties.FilterValue>(m_clbGenre.Items.Count);
             for (int i = 0; i < m_clbGenre.Items.Count; i++)
             {
@@ -232,12 +264,15 @@ namespace VideoLibrarian
         {
             bool enabled = !m_chkDisabled.Checked;
 
+            m_chkDisabled.Text = enabled ? "Disable Filtering" : "Enable Filtering";
+
             m_grpContains.Enabled = enabled;
             m_grpGenre.Enabled = enabled;
             m_grpRating.Enabled = enabled;
             m_grpVideoType.Enabled = enabled;
             m_grpReleaseYear.Enabled = enabled;
             m_grpWatch.Enabled = enabled;
+            m_grpCustomGroup.Enabled = enabled;
         }
 
         private void m_btnContainsClear_Click(object sender, EventArgs e)

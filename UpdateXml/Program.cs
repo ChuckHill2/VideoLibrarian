@@ -116,10 +116,8 @@ namespace UpdateXml
                             p2.MoviePosterUrl = p1.MoviePosterUrl;
                         }
 
-                        if (p2.Watched != p1.Watched)
-                        {
-                            p2.Watched = p1.Watched;
-                        }
+                        p2.CustomGroups = p1.CustomGroups;
+                        p2.Watched = p1.Watched;
 
                         //backup file name may have changed so get it the hard way.
                         var backup = Directory.EnumerateFiles(folder, "tt*.xml.backup").FirstOrDefault();

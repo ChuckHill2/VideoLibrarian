@@ -56,6 +56,8 @@
             this.m_txtContains = new System.Windows.Forms.TextBox();
             this.m_lbIn = new System.Windows.Forms.Label();
             this.m_cbIn = new System.Windows.Forms.ComboBox();
+            this.m_grpCustomGroup = new System.Windows.Forms.GroupBox();
+            this.m_cbCustomGroup = new System.Windows.Forms.ComboBox();
             this.m_grpGenre.SuspendLayout();
             this.m_grpVideoType.SuspendLayout();
             this.m_grpRating.SuspendLayout();
@@ -64,6 +66,7 @@
             ((System.ComponentModel.ISupportInitialize)(this.m_numReleaseTo)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.m_numReleaseFrom)).BeginInit();
             this.m_grpContains.SuspendLayout();
+            this.m_grpCustomGroup.SuspendLayout();
             this.SuspendLayout();
             // 
             // m_clbVideoType
@@ -85,7 +88,7 @@
             this.m_clbVideoType.Location = new System.Drawing.Point(9, 29);
             this.m_clbVideoType.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.m_clbVideoType.Name = "m_clbVideoType";
-            this.m_clbVideoType.Size = new System.Drawing.Size(205, 273);
+            this.m_clbVideoType.Size = new System.Drawing.Size(205, 195);
             this.m_clbVideoType.TabIndex = 5;
             this.m_clbVideoType.ThreeDCheckBoxes = true;
             // 
@@ -94,7 +97,7 @@
             this.m_btnVtypeSelectNone.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.m_btnVtypeSelectNone.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F);
-            this.m_btnVtypeSelectNone.Location = new System.Drawing.Point(139, 309);
+            this.m_btnVtypeSelectNone.Location = new System.Drawing.Point(139, 231);
             this.m_btnVtypeSelectNone.Margin = new System.Windows.Forms.Padding(0);
             this.m_btnVtypeSelectNone.Name = "m_btnVtypeSelectNone";
             this.m_btnVtypeSelectNone.Size = new System.Drawing.Size(75, 56);
@@ -108,7 +111,7 @@
             this.m_btnVtypeSelectAll.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.m_btnVtypeSelectAll.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F);
-            this.m_btnVtypeSelectAll.Location = new System.Drawing.Point(9, 310);
+            this.m_btnVtypeSelectAll.Location = new System.Drawing.Point(9, 232);
             this.m_btnVtypeSelectAll.Margin = new System.Windows.Forms.Padding(0);
             this.m_btnVtypeSelectAll.Name = "m_btnVtypeSelectAll";
             this.m_btnVtypeSelectAll.Size = new System.Drawing.Size(75, 56);
@@ -122,6 +125,7 @@
             this.m_cbRating.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.m_cbRating.BackColor = System.Drawing.Color.AliceBlue;
+            this.m_cbRating.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.m_cbRating.FormattingEnabled = true;
             this.m_cbRating.Items.AddRange(new object[] {
             "9+",
@@ -198,11 +202,11 @@
             this.m_grpGenre.Controls.Add(this.m_btnGenreSelectNone);
             this.m_grpGenre.Controls.Add(this.m_btnGenreSelectAll);
             this.m_grpGenre.Controls.Add(this.m_clbGenre);
-            this.m_grpGenre.Location = new System.Drawing.Point(16, 91);
+            this.m_grpGenre.Location = new System.Drawing.Point(16, 170);
             this.m_grpGenre.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.m_grpGenre.Name = "m_grpGenre";
             this.m_grpGenre.Padding = new System.Windows.Forms.Padding(4, 5, 4, 5);
-            this.m_grpGenre.Size = new System.Drawing.Size(212, 377);
+            this.m_grpGenre.Size = new System.Drawing.Size(212, 299);
             this.m_grpGenre.TabIndex = 15;
             this.m_grpGenre.TabStop = false;
             this.m_grpGenre.Text = "Genre";
@@ -212,7 +216,7 @@
             this.m_btnGenreSelectNone.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.m_btnGenreSelectNone.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F);
-            this.m_btnGenreSelectNone.Location = new System.Drawing.Point(126, 309);
+            this.m_btnGenreSelectNone.Location = new System.Drawing.Point(126, 231);
             this.m_btnGenreSelectNone.Margin = new System.Windows.Forms.Padding(0);
             this.m_btnGenreSelectNone.Name = "m_btnGenreSelectNone";
             this.m_btnGenreSelectNone.Size = new System.Drawing.Size(75, 56);
@@ -226,7 +230,7 @@
             this.m_btnGenreSelectAll.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.m_btnGenreSelectAll.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F);
-            this.m_btnGenreSelectAll.Location = new System.Drawing.Point(9, 310);
+            this.m_btnGenreSelectAll.Location = new System.Drawing.Point(9, 232);
             this.m_btnGenreSelectAll.Margin = new System.Windows.Forms.Padding(0);
             this.m_btnGenreSelectAll.Name = "m_btnGenreSelectAll";
             this.m_btnGenreSelectAll.Size = new System.Drawing.Size(75, 56);
@@ -269,7 +273,7 @@
             this.m_clbGenre.Location = new System.Drawing.Point(9, 29);
             this.m_clbGenre.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.m_clbGenre.Name = "m_clbGenre";
-            this.m_clbGenre.Size = new System.Drawing.Size(192, 273);
+            this.m_clbGenre.Size = new System.Drawing.Size(192, 195);
             this.m_clbGenre.TabIndex = 5;
             this.m_clbGenre.ThreeDCheckBoxes = true;
             // 
@@ -280,11 +284,11 @@
             this.m_grpVideoType.Controls.Add(this.m_clbVideoType);
             this.m_grpVideoType.Controls.Add(this.m_btnVtypeSelectAll);
             this.m_grpVideoType.Controls.Add(this.m_btnVtypeSelectNone);
-            this.m_grpVideoType.Location = new System.Drawing.Point(238, 91);
+            this.m_grpVideoType.Location = new System.Drawing.Point(238, 170);
             this.m_grpVideoType.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.m_grpVideoType.Name = "m_grpVideoType";
             this.m_grpVideoType.Padding = new System.Windows.Forms.Padding(4, 5, 4, 5);
-            this.m_grpVideoType.Size = new System.Drawing.Size(225, 377);
+            this.m_grpVideoType.Size = new System.Drawing.Size(225, 299);
             this.m_grpVideoType.TabIndex = 16;
             this.m_grpVideoType.TabStop = false;
             this.m_grpVideoType.Text = "Video Type";
@@ -430,11 +434,12 @@
             // m_chkDisabled
             // 
             this.m_chkDisabled.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.m_chkDisabled.Appearance = System.Windows.Forms.Appearance.Button;
             this.m_chkDisabled.AutoSize = true;
-            this.m_chkDisabled.Location = new System.Drawing.Point(18, 487);
+            this.m_chkDisabled.Location = new System.Drawing.Point(18, 485);
             this.m_chkDisabled.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.m_chkDisabled.Name = "m_chkDisabled";
-            this.m_chkDisabled.Size = new System.Drawing.Size(162, 24);
+            this.m_chkDisabled.Size = new System.Drawing.Size(153, 30);
             this.m_chkDisabled.TabIndex = 22;
             this.m_chkDisabled.Text = "Disable All Filtering";
             this.m_chkDisabled.UseVisualStyleBackColor = true;
@@ -493,6 +498,7 @@
             // 
             this.m_cbIn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.m_cbIn.BackColor = System.Drawing.Color.AliceBlue;
+            this.m_cbIn.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.m_cbIn.FormattingEnabled = true;
             this.m_cbIn.Location = new System.Drawing.Point(468, 29);
             this.m_cbIn.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
@@ -500,12 +506,37 @@
             this.m_cbIn.Size = new System.Drawing.Size(134, 28);
             this.m_cbIn.TabIndex = 9;
             // 
+            // m_grpCustomGroup
+            // 
+            this.m_grpCustomGroup.AccessibleDescription = "Select a single user-defined movie attribute\\nto filter on. \"Any\" assumes no filt" +
+    "ering.";
+            this.m_grpCustomGroup.Controls.Add(this.m_cbCustomGroup);
+            this.m_grpCustomGroup.Location = new System.Drawing.Point(16, 91);
+            this.m_grpCustomGroup.Name = "m_grpCustomGroup";
+            this.m_grpCustomGroup.Size = new System.Drawing.Size(447, 69);
+            this.m_grpCustomGroup.TabIndex = 24;
+            this.m_grpCustomGroup.TabStop = false;
+            this.m_grpCustomGroup.Text = "Custom Group";
+            // 
+            // m_cbCustomGroup
+            // 
+            this.m_cbCustomGroup.AccessibleDescription = "Select a single user-defined movie attribute\\nto filter on. \"Any\" assumes no filt" +
+    "ering.";
+            this.m_cbCustomGroup.BackColor = System.Drawing.Color.AliceBlue;
+            this.m_cbCustomGroup.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.m_cbCustomGroup.FormattingEnabled = true;
+            this.m_cbCustomGroup.Location = new System.Drawing.Point(9, 27);
+            this.m_cbCustomGroup.Name = "m_cbCustomGroup";
+            this.m_cbCustomGroup.Size = new System.Drawing.Size(427, 28);
+            this.m_cbCustomGroup.TabIndex = 0;
+            // 
             // FilterDialog
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.CancelButton = this.m_btnCancel;
             this.ClientSize = new System.Drawing.Size(644, 530);
+            this.Controls.Add(this.m_grpCustomGroup);
             this.Controls.Add(this.m_grpContains);
             this.Controls.Add(this.m_chkDisabled);
             this.Controls.Add(this.m_btnCancel);
@@ -518,7 +549,7 @@
             this.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.MaximizeBox = false;
-            this.MaximumSize = new System.Drawing.Size(660, 800);
+            this.MaximumSize = new System.Drawing.Size(660, 824);
             this.MinimizeBox = false;
             this.MinimumSize = new System.Drawing.Size(660, 569);
             this.Name = "FilterDialog";
@@ -538,6 +569,7 @@
             ((System.ComponentModel.ISupportInitialize)(this.m_numReleaseFrom)).EndInit();
             this.m_grpContains.ResumeLayout(false);
             this.m_grpContains.PerformLayout();
+            this.m_grpCustomGroup.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -573,5 +605,7 @@
         private System.Windows.Forms.Label m_lbIn;
         private System.Windows.Forms.ComboBox m_cbIn;
         private System.Windows.Forms.Button m_btnContainsClear;
+        private System.Windows.Forms.GroupBox m_grpCustomGroup;
+        private System.Windows.Forms.ComboBox m_cbCustomGroup;
     }
 }

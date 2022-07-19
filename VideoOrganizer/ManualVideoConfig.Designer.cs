@@ -33,6 +33,8 @@ namespace VideoOrganizer
             this.m_btnSave = new System.Windows.Forms.Button();
             this.m_btnCancel = new System.Windows.Forms.Button();
             this.m_pnlAllProperties = new System.Windows.Forms.Panel();
+            this.m_btnEditCustomGroups = new System.Windows.Forms.Button();
+            this.m_txtCustomGroups = new VideoLibrarian.LabeledTextBox();
             this.m_btnDownloadPoster = new System.Windows.Forms.Button();
             this.m_btnDownloadWebpage = new System.Windows.Forms.Button();
             this.m_txtCreators = new VideoLibrarian.LabeledTextBox();
@@ -110,7 +112,7 @@ namespace VideoOrganizer
             // m_btnSave
             // 
             this.m_btnSave.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.m_btnSave.Location = new System.Drawing.Point(479, 523);
+            this.m_btnSave.Location = new System.Drawing.Point(479, 548);
             this.m_btnSave.Name = "m_btnSave";
             this.m_btnSave.Size = new System.Drawing.Size(75, 23);
             this.m_btnSave.TabIndex = 4;
@@ -121,7 +123,7 @@ namespace VideoOrganizer
             // m_btnCancel
             // 
             this.m_btnCancel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.m_btnCancel.Location = new System.Drawing.Point(560, 523);
+            this.m_btnCancel.Location = new System.Drawing.Point(560, 548);
             this.m_btnCancel.Name = "m_btnCancel";
             this.m_btnCancel.Size = new System.Drawing.Size(75, 23);
             this.m_btnCancel.TabIndex = 5;
@@ -134,6 +136,8 @@ namespace VideoOrganizer
             this.m_pnlAllProperties.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
+            this.m_pnlAllProperties.Controls.Add(this.m_btnEditCustomGroups);
+            this.m_pnlAllProperties.Controls.Add(this.m_txtCustomGroups);
             this.m_pnlAllProperties.Controls.Add(this.m_btnDownloadPoster);
             this.m_pnlAllProperties.Controls.Add(this.m_btnDownloadWebpage);
             this.m_pnlAllProperties.Controls.Add(this.m_txtCreators);
@@ -158,8 +162,35 @@ namespace VideoOrganizer
             this.m_pnlAllProperties.Controls.Add(this.m_grpExtractedVidProps);
             this.m_pnlAllProperties.Location = new System.Drawing.Point(12, 39);
             this.m_pnlAllProperties.Name = "m_pnlAllProperties";
-            this.m_pnlAllProperties.Size = new System.Drawing.Size(623, 482);
+            this.m_pnlAllProperties.Size = new System.Drawing.Size(623, 507);
             this.m_pnlAllProperties.TabIndex = 3;
+            // 
+            // m_btnEditCustomGroups
+            // 
+            this.m_btnEditCustomGroups.AccessibleDescription = "Edit Custom Groups";
+            this.m_btnEditCustomGroups.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.m_btnEditCustomGroups.FlatAppearance.MouseOverBackColor = System.Drawing.SystemColors.ControlDark;
+            this.m_btnEditCustomGroups.Image = global::VideoOrganizer.Properties.Resources.Edit;
+            this.m_btnEditCustomGroups.Location = new System.Drawing.Point(601, 412);
+            this.m_btnEditCustomGroups.Name = "m_btnEditCustomGroups";
+            this.m_btnEditCustomGroups.Size = new System.Drawing.Size(22, 22);
+            this.m_btnEditCustomGroups.TabIndex = 57;
+            this.m_btnEditCustomGroups.UseVisualStyleBackColor = true;
+            this.m_btnEditCustomGroups.Click += new System.EventHandler(this.m_btnEditCustomGroups_Click);
+            // 
+            // m_txtCustomGroups
+            // 
+            this.m_txtCustomGroups.AccessibleDescription = "Semicolon-delimited list of user-defined attribute/groups\\nthat this movie belong" +
+    "s to. Used for filtering but not\\nsorting. This field is not used by tv episodes" +
+    ".";
+            this.m_txtCustomGroups.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.m_txtCustomGroups.Location = new System.Drawing.Point(247, 413);
+            this.m_txtCustomGroups.Name = "m_txtCustomGroups";
+            this.m_txtCustomGroups.ReadOnly = true;
+            this.m_txtCustomGroups.Size = new System.Drawing.Size(353, 20);
+            this.m_txtCustomGroups.TabIndex = 56;
+            this.m_txtCustomGroups.TextLabel = "Custom Groups";
             // 
             // m_btnDownloadPoster
             // 
@@ -253,7 +284,7 @@ namespace VideoOrganizer
             this.m_grpGenre.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.m_grpGenre.Name = "m_grpGenre";
             this.m_grpGenre.Padding = new System.Windows.Forms.Padding(4, 5, 4, 5);
-            this.m_grpGenre.Size = new System.Drawing.Size(111, 476);
+            this.m_grpGenre.Size = new System.Drawing.Size(111, 501);
             this.m_grpGenre.TabIndex = 0;
             this.m_grpGenre.TabStop = false;
             this.m_grpGenre.Text = "Genre";
@@ -371,7 +402,6 @@ namespace VideoOrganizer
             // 
             // m_txtPosterUrl
             // 
-            this.m_txtPosterUrl.AccessibleDescription = resources.GetString("m_txtPosterUrl.AccessibleDescription");
             this.m_txtPosterUrl.AllowDrop = true;
             this.m_txtPosterUrl.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
@@ -689,7 +719,7 @@ namespace VideoOrganizer
             this.m_grpExtractedVidProps.Controls.Add(this.m_lblAspectRatioLabel);
             this.m_grpExtractedVidProps.Controls.Add(this.m_lblRuntimeLabel);
             this.m_grpExtractedVidProps.Controls.Add(this.m_lblDownloadDateLabel);
-            this.m_grpExtractedVidProps.Location = new System.Drawing.Point(119, 415);
+            this.m_grpExtractedVidProps.Location = new System.Drawing.Point(119, 440);
             this.m_grpExtractedVidProps.Name = "m_grpExtractedVidProps";
             this.m_grpExtractedVidProps.Size = new System.Drawing.Size(379, 63);
             this.m_grpExtractedVidProps.TabIndex = 17;
@@ -831,7 +861,7 @@ namespace VideoOrganizer
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(647, 558);
+            this.ClientSize = new System.Drawing.Size(647, 583);
             this.Controls.Add(this.m_btnSelectMovieFile);
             this.Controls.Add(this.m_btnSelectMovieFolder);
             this.Controls.Add(this.m_txtMoviePath);
@@ -840,9 +870,9 @@ namespace VideoOrganizer
             this.Controls.Add(this.m_pnlAllProperties);
             this.Icon = global::VideoOrganizer.Properties.Resources.favicon;
             this.MaximizeBox = false;
-            this.MaximumSize = new System.Drawing.Size(9999, 597);
+            this.MaximumSize = new System.Drawing.Size(9999, 622);
             this.MinimizeBox = false;
-            this.MinimumSize = new System.Drawing.Size(540, 597);
+            this.MinimumSize = new System.Drawing.Size(540, 622);
             this.Name = "ManualVideoConfig";
             this.ShowInTaskbar = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
@@ -923,5 +953,7 @@ namespace VideoOrganizer
         private System.Windows.Forms.GroupBox m_grpVerticalDivider;
         private System.Windows.Forms.Button m_btnDownloadWebpage;
         private System.Windows.Forms.Button m_btnDownloadPoster;
+        private System.Windows.Forms.Button m_btnEditCustomGroups;
+        private VideoLibrarian.LabeledTextBox m_txtCustomGroups;
     }
 }

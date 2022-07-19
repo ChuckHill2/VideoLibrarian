@@ -124,20 +124,21 @@ namespace VideoOrganizer
                 filename = ofd.FileName;
             }
 
-            if (!MovieProperties.IsVideoFile(filename))
+            if (MovieProperties.IsVideoFile(filename) ||
+                (Path.GetExtension(filename).EqualsI(".xml") && Path.GetFileNameWithoutExtension(filename).StartsWith("tt")))
             {
-                ShowError(c, "Only video files are allowed.");
+                HideError();
+                m_txtMoviePath.Text = filename;
+                m_txtMoviePath.Enabled = false;
+                m_txtMoviePath.AllowDrop = false;
+                m_btnSelectMovieFile.Enabled = false;
+                m_btnSelectMovieFolder.Enabled = false;
+                RootFolder = Path.GetDirectoryName(filename);
+                LoadDialog(true);
                 return;
             }
 
-            HideError();
-            m_txtMoviePath.Text = filename;
-            m_txtMoviePath.Enabled = false;
-            m_txtMoviePath.AllowDrop = false;
-            m_btnSelectMovieFile.Enabled = false;
-            m_btnSelectMovieFolder.Enabled = false;
-            RootFolder = Path.GetDirectoryName(filename);
-            LoadDialog(true);
+            ShowError(c, "Only video files or associated xml files are allowed.");
         }
 
         private void m_txtMoviePath_DragDrop(object sender, DragEventArgs e)
@@ -158,24 +159,42 @@ namespace VideoOrganizer
                 return;
             }
 
-            if (!MovieProperties.IsVideoFile(file)) return;
+            if (MovieProperties.IsVideoFile(file))
+            {
+                m_txtMoviePath.Text = file;
+                m_txtMoviePath.Enabled = false;
+                m_txtMoviePath.AllowDrop = false;
+                m_btnSelectMovieFile.Enabled = false;
+                m_btnSelectMovieFolder.Enabled = false;
+                RootFolder = Path.GetDirectoryName(file);
+                LoadDialog(true);
+                return;
+            }
 
-            m_txtMoviePath.Text = file;
-            m_txtMoviePath.Enabled = false;
-            m_txtMoviePath.AllowDrop = false;
-            m_btnSelectMovieFile.Enabled = false;
-            m_btnSelectMovieFolder.Enabled = false;
-            RootFolder = Path.GetDirectoryName(file);
-            LoadDialog(true);
+            if (Path.GetExtension(file).EqualsI(".xml")
+                && Path.GetFileNameWithoutExtension(file).StartsWith("tt"))
+            {
+                m_txtMoviePath.Text = file;
+                m_txtMoviePath.Enabled = false;
+                m_txtMoviePath.AllowDrop = false;
+                m_btnSelectMovieFile.Enabled = false;
+                m_btnSelectMovieFolder.Enabled = false;
+                RootFolder = Path.GetDirectoryName(file);
+                LoadDialog(true);
+                return;
+            }
         }
 
         private void m_txtMoviePath_DragEnter(object sender, DragEventArgs e)
         {
             if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return;
             var file = ((string[])e.Data.GetData(DataFormats.FileDrop))[0];
-            if (!Directory.Exists(file) && !MovieProperties.IsVideoFile(file)) return;
-
-            e.Effect = DragDropEffects.Link;
+            if (Directory.Exists(file)
+                || MovieProperties.IsVideoFile(file)
+                || (Path.GetExtension(file).EqualsI(".xml") && Path.GetFileNameWithoutExtension(file).StartsWith("tt")))
+            {
+                e.Effect = DragDropEffects.Link;
+            }
         }
 
         private void m_txtMoviePath_KeyPress(object sender, KeyPressEventArgs e)
@@ -455,6 +474,8 @@ namespace VideoOrganizer
                     m_grpEpisode.Visible = false;
                     m_grpSeries.Visible = true;
                     m_txtEpisodeName.Enabled = false;
+                    m_txtCustomGroups.Visible = true;
+                    m_btnEditCustomGroups.Visible = true;
 
                     //The following are children of m_grpExtractedVidProps
                     m_lblDownloadDate.Visible = m_lblDownloadDateLabel.Visible = true;
@@ -468,6 +489,8 @@ namespace VideoOrganizer
                     m_grpEpisode.Visible = true;
                     m_grpSeries.Visible = false;
                     m_txtEpisodeName.Enabled = true;
+                    m_txtCustomGroups.Visible = false;
+                    m_btnEditCustomGroups.Visible = false;
 
                     m_lblDownloadDate.Visible = m_lblDownloadDateLabel.Visible = true;
                     m_lblRuntime.Visible = m_lblRuntimeLabel.Visible = true;
@@ -480,6 +503,8 @@ namespace VideoOrganizer
                     m_grpEpisode.Visible = false;
                     m_grpSeries.Visible = false;
                     m_txtEpisodeName.Enabled = false;
+                    m_txtCustomGroups.Visible = true;
+                    m_btnEditCustomGroups.Visible = true;
 
                     m_lblDownloadDate.Visible = m_lblDownloadDateLabel.Visible = true;
                     m_lblRuntime.Visible = m_lblRuntimeLabel.Visible = true;
@@ -524,6 +549,11 @@ namespace VideoOrganizer
             c.Select(0, 0);
             if (c.Text.IsNullOrEmpty()) { ToolTipHelp.ShowTempToolTip((Control)sender, "Value empty. Nothing to view.", ToolTipIcon.Info); return; };
             Process.Start(c.Text);
+        }
+
+        private void m_btnEditCustomGroups_Click(object sender, EventArgs e)
+        {
+            m_txtCustomGroups.Text = CustomGroupsEditor.Show(this, m_txtCustomGroups.Text);
         }
 
         /// <summary>
@@ -609,6 +639,13 @@ namespace VideoOrganizer
 
             MovieFileLength = _mp.MovieFileLength;
             MovieHash = _mp.MovieHash;
+
+            m_txtCustomGroups.Text = _mp.CustomGroups ?? "".Trim();
+            if (m_txtCustomGroups.Text.Length > 0)
+                m_txtCustomGroups.Text = string.Join(";",
+                    m_txtCustomGroups.Text.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(s => s.Trim())
+                    .Where(m => !m.EqualsI(FilterProperties.CustomGroup_Any)));
 
             m_btnSave.Enabled = true;
         }
@@ -702,6 +739,9 @@ namespace VideoOrganizer
             mp2.HtmlPath = mp2.PathPrefix + ".htm";
             mp2.MoviePosterPath = mp2.PathPrefix + ".jpg";
             mp2.FolderName = Path.GetFileName(RootFolder);
+
+            if (!mp2.MovieClass.EndsWith("Episode"))
+                mp2.CustomGroups = m_txtCustomGroups.Text;
 
             if (!_mp.Equals(mp2))
             {

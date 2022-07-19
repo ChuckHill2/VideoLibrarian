@@ -58,6 +58,12 @@
     <Compile Include="AboutBox.Designer.cs">
       <DependentUpon>AboutBox.cs</DependentUpon>
     </Compile>
+    <Compile Include="CustomGroupsEditor.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="CustomGroupsEditor.Designer.cs">
+      <DependentUpon>CustomGroupsEditor.cs</DependentUpon>
+    </Compile>
     <Compile Include="FormMain.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -70,10 +76,16 @@
     <Compile Include="ManualVideoConfig.Designer.cs">
       <DependentUpon>ManualVideoConfig.cs</DependentUpon>
     </Compile>
+    <Compile Include="EditListBox.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="AboutBox.resx">
       <DependentUpon>AboutBox.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="CustomGroupsEditor.resx">
+      <DependentUpon>CustomGroupsEditor.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="FormMain.resx">
       <DependentUpon>FormMain.cs</DependentUpon>
@@ -126,6 +138,13 @@
   <ItemGroup>
     <EmbeddedResource Include="Resources\FileSave16Black.png" />
     <EmbeddedResource Include="Resources\FileSave16Gray.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\Edit.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\Add.png" />
+    <EmbeddedResource Include="Resources\Remove.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

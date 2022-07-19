@@ -38,17 +38,21 @@ namespace VideoLibrarian
     public enum ContainsLocation //where to look for substring
     {
         Anywhere,
-        MovieName,
-        Plot,
-        Crew
+        Title,
+        Plot,  //+summary
+        Crew,
+        CustomGroups //user-defined attributes (not part of IMDB) 
     }
 
     [XmlInclude(typeof(ContainsLocation))]
     public class FilterProperties
     {
+        public const string CustomGroup_Any = "Any"; //Special reserved CustomGroup siginifying that filtering is disabled. Equivalant to empty string.
+
         //All possible values
         [XmlIgnore] public static FilterValue[] AvailableGenres { get; private set; }
         [XmlIgnore] public static FilterValue[] AvailableClasses { get; private set; }
+        [XmlIgnore] public static FilterValue[] AvailableGroups { get; private set; }
         [XmlIgnore] public static int MinYear { get; private set; }
         [XmlIgnore] public static int MaxYear { get; private set; }
         [XmlIgnore] public static int MinRating { get; private set; }
@@ -58,6 +62,16 @@ namespace VideoLibrarian
         //Current Values
         public string ContainsSubstring { get; set; }
         public ContainsLocation ContainsLocation { get; set; }
+        private string __CustomGroup = "";
+        public string CustomGroup
+        {
+            get => __CustomGroup;
+            set
+            {
+                if (value == CustomGroup_Any) value = string.Empty;
+                __CustomGroup = value;
+            }
+        }
         public FilterValue[] Genres { get; set; }
         public FilterValue[] Classes { get; set; }
         public int StartYear { get; set; }
@@ -90,6 +104,7 @@ namespace VideoLibrarian
 
             var genres = new Dictionary<string, int>();
             var classes = new Dictionary<string, int>();
+            var groups = new Dictionary<string, int>();
 
             MinYear = 9999;
             MaxYear = 0;
@@ -106,6 +121,12 @@ namespace VideoLibrarian
                     else genres.Add(g, 1);
                 }
 
+                foreach (var g in m.CustomGroups?.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()))
+                {
+                    if (groups.TryGetValue(g, out k)) groups[g] = k + 1;
+                    else groups.Add(g, 1);
+                }
+
                 if (classes.TryGetValue(m.MovieClass, out k)) classes[m.MovieClass] = k + 1;
                 else classes.Add(m.MovieClass, 1);
 
@@ -120,6 +141,7 @@ namespace VideoLibrarian
 
             AvailableGenres = genres.Select(m => new FilterValue(m.Key, m.Value)).OrderBy(m => m.Name, StringComparer.OrdinalIgnoreCase).ToArray();
             AvailableClasses = classes.Select(m => new FilterValue(m.Key, m.Value)).OrderBy(m => m.Name, StringComparer.OrdinalIgnoreCase).ToArray();
+            AvailableGroups = groups.Where(m => !m.Key.EqualsI(CustomGroup_Any)).Select(m => new FilterValue(m.Key, m.Value)).OrderBy(m => m.Name, StringComparer.OrdinalIgnoreCase).Prepend(new FilterValue(CustomGroup_Any, 0)).ToArray();
         }
 
         /// <summary>
@@ -153,9 +175,10 @@ namespace VideoLibrarian
                             m.Summary.ContainsI(this.ContainsSubstring) ||
                             m.Cast.ContainsI(this.ContainsSubstring) ||
                             m.Creators.ContainsI(this.ContainsSubstring) ||
-                            m.Directors.ContainsI(this.ContainsSubstring);
+                            m.Directors.ContainsI(this.ContainsSubstring) ||
+                            m.CustomGroups.ContainsI(this.ContainsSubstring);
                         break;
-                    case ContainsLocation.MovieName:
+                    case ContainsLocation.Title:
                         hasContainsValue = (m) => m.MovieName.ContainsI(this.ContainsSubstring);
                         break;
                     case ContainsLocation.Plot:
@@ -167,6 +190,10 @@ namespace VideoLibrarian
                             m.Creators.ContainsI(this.ContainsSubstring) ||
                             m.Directors.ContainsI(this.ContainsSubstring);
                         break;
+                    case ContainsLocation.CustomGroups:
+                        if (this.CustomGroup == "") hasContainsValue = (m) => true;
+                        else hasContainsValue = (m) => m.CustomGroups.ContainsI(this.ContainsSubstring);
+                        break;
                 }
             }
 
@@ -177,9 +204,10 @@ namespace VideoLibrarian
                 var hasYear = tile.MovieProps.Year >= StartYear && tile.MovieProps.Year <= EndYear;
                 var hasRating = tile.MovieProps.MovieRating >= Rating || (tile.MovieProps.MovieRating < 1 && IncludeUnrated);
                 var hasWatched = Watched == null || Watched == (tile.MovieProps.Watched != DateTime.MinValue);
+                var hasCustomGroup = this.CustomGroup == "" ? true : tile.MovieProps.CustomGroups.ContainsI(this.CustomGroup);
 
                 bool ch = tile.IsVisible;
-                tile.IsVisible = hasGenre && hasClass && hasYear && hasRating && hasWatched && hasContainsValue(tile.MovieProps);
+                tile.IsVisible = hasGenre && hasClass && hasYear && hasRating && hasWatched && hasCustomGroup && hasContainsValue(tile.MovieProps);
                 if (ch != tile.IsVisible) changed = true;
             });
 
@@ -187,7 +215,7 @@ namespace VideoLibrarian
         }
 
         [XmlRoot("Value")]
-        public struct FilterValue
+        public class FilterValue
         {
             private string _friendlyName;
             private string _name;
@@ -198,7 +226,11 @@ namespace VideoLibrarian
             {
                 get
                 {
-                    if (_friendlyName == null) _friendlyName = string.Concat(Name??"null"," (",Count.ToString(),")");
+                    if (_friendlyName == null)
+                    {
+                        if (Count==0) _friendlyName = Name ?? "null";
+                        else _friendlyName = string.Concat(Name ?? "null", " (", Count.ToString(), ")");
+                    }
                     return _friendlyName;
                 }
             }
@@ -208,6 +240,8 @@ namespace VideoLibrarian
 
             [XmlIgnore] 
             public int Count { get { return _count; } set { _count = value; } }
+
+            public FilterValue() { } //parameterless constructor for xml serialization
 
             public FilterValue(string name, int count) 
             { 

@@ -30,6 +30,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
 using System.Drawing;
@@ -164,6 +165,10 @@ namespace VideoLibrarian
         /// <summary>Date video was viewed by user. Unwatched=='0001-01-01' aka DateTime.MinValue</summary>
         [XmlElement(DataType = "date")]
         public DateTime Watched { get; set; }
+
+        /// <summary>Semicolon-delimited list of user-defined attribute/groups that this movie belongs to. Used for filtering but not sorting. This field is unused for tv episodes.</summary>
+        [DefaultValueAttribute("")]
+        public string CustomGroups { get; set; } = "";
 
         // Derived/Computed info.
 
