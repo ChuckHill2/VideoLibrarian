@@ -17,6 +17,7 @@ namespace VideoOrganizer
 {
     public partial class CustomGroupsEditor : Form
     {
+        private static readonly string AllKnownGroupsFilename = Path.ChangeExtension(Process.GetCurrentProcess().MainModule.FileName, ".CustomGroups.txt");
         private List<string> Groups;
         private List<string> AllKnownGroups;
 
@@ -39,37 +40,45 @@ namespace VideoOrganizer
             if (AllKnownGroups.Count > 0) m_lbGroups.DropdownItems.AddRange(AllKnownGroups.ToArray());
         }
 
-        protected override void OnClosing(CancelEventArgs e)
+        protected override void OnFormClosing(FormClosingEventArgs e)
         {
+            base.OnFormClosing(e);
             Groups = ((IEnumerable)m_lbGroups.Items).Cast<string>().Select(m => m.Trim()).Where(m => m.Length > 0).ToList();
-            var newAllKnownGroups = ((IEnumerable)m_lbGroups.Items).Cast<string>().Select(m => m.Trim()).Where(m => m.Length > 0).ToList();
+            var newAllKnownGroups = ((IEnumerable)m_lbGroups.DropdownItems).Cast<string>().Select(m => m.Trim()).Where(m => m.Length > 0).ToList();
             SaveKnownGroups(newAllKnownGroups);
-            base.OnClosing(e);
         }
 
         private List<string> GetKnownGroups()
         {
-            var fn = Path.ChangeExtension(Process.GetCurrentProcess().MainModule.FileName, ".CustomGroups.txt");
-            if (!FileEx.Exists(fn)) return new List<string>();
-            return File.ReadLines(fn).Select(ln =>
+            var groups = new List<string>();
+            if (!FileEx.Exists(AllKnownGroupsFilename)) return groups;
+
+            using(var sr = new StreamReader(AllKnownGroupsFilename))
             {
-                int i = ln.IndexOf('#');
-                if (i == -1) return ln.Trim();
-                return ln.Substring(0, i).Trim();
-            }).Where(ln => ln.Length > 0).ToList();
+                string line;
+                while((line=sr.ReadLine())!=null)
+                {
+                    int i = line.IndexOf('#');
+                    if (i != -1) line = line.Substring(0, i);
+                    line = line.Trim();
+                    if (line.Length == 0) continue;
+                    groups.Add(line);
+                }
+            }
+
+            return groups;
         }
 
         private void SaveKnownGroups(List<string> groups)
         {
             if (groups.SequenceEqual(AllKnownGroups)) return; //no change
 
-            var fn = Path.ChangeExtension(Process.GetCurrentProcess().MainModule.FileName, ".CustomGroups.txt");
-            using (var sw = new StreamWriter(fn, false))
+            using (var sw = new StreamWriter(AllKnownGroupsFilename, false))
             {
                 sw.WriteLine("# List of all known Custom (aka user-defined) groups used for VideoLibrarian filtering.");
                 sw.WriteLine("# This list is used by VideoOrganizer manual video properties editor.");
                 sw.WriteLine("# This file is dynamically updated whenever the editor adds a new group.");
-                sw.WriteLine("# You may also edit this file and add groups yourself.");
+                sw.WriteLine("# You may also edit this file and add/remove groups yourself.");
                 sw.WriteLine();
                 foreach (var g in groups)
                 {

@@ -201,6 +201,31 @@ namespace ChuckHill2.Forms
             this.Controls.Add(m_cbEditor);
         }
 
+        private Form Owner = null;
+        protected override void OnParentChanged(EventArgs e)
+        {
+            Control c = base.Parent;
+            while(!(c is Form))
+            {
+                c = c.Parent;
+            }
+            if (c != null)
+            {
+                if (Owner !=null) Owner.FormClosing -= Owner_FormClosing;
+                Owner = (Form)c;
+                Owner.FormClosing += Owner_FormClosing;
+            }
+
+            base.OnParentChanged(e);
+        }
+
+        private void Owner_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            m_cbEditor_Leave(m_cbEditor, EventArgs.Empty);
+            Form f = sender as Form;
+            if (f != null) f.FormClosing -= Owner_FormClosing;
+        }
+
         private void InitializeContextMenu()
         {
             var addToolStripMenuItem = new ToolStripMenuItem();
