@@ -32,6 +32,7 @@ using System.Collections;
 using System.ComponentModel;
 using System.Drawing;
 using System.Drawing.Design;
+using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 
@@ -39,8 +40,19 @@ namespace ChuckHill2.Forms
 {
     ///  @image html Example.png
     /// <summary>
-    /// User-Editable ListBox control.
+    /// User-Editable ListBox control that is supported in winforms designer.
     /// </summary>
+    /// <remarks>
+    /// • This is a standard listbox with an editable combobox for the selected item.<br/>
+    /// • This has been tested only with arrays of text. Strings are considered case-insensitive.<br/>
+    /// • Right-click context menu allows one to add or remove an item from the listbox. 
+    ///    In addition, clearing the text from the combobox also removes the item.<br/>
+    /// • All leading and trailing whitespace is trimmed.<br/>
+    /// • Adding custom/modified text to the textbox part of the combobox is valid and will be added to the combobox dropdown.<br/>
+    /// • Invalid characters may be specified in the textbox part of the combobox such that they cannot be entered on the keyboard.
+    /// • Duplicate items are valid. If one wants unique items, then it is up to the caller to retrieve the unique ones (see linq Distinct()).<br/>
+    /// • DataSources, and multiple columns are not supported.
+    /// </remarks>
     [ToolboxBitmap(typeof(ListBox))]
     [Description("UI Editable ListBox")]
     public class EditListBox : ListBox
@@ -116,10 +128,11 @@ namespace ChuckHill2.Forms
         public new event EventHandler BindingContextChanged;
         [Obsolete(NOTUSED, true), Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public new event EventHandler ContextMenuStripChanged;
-        #pragma warning restore CS0067 //The event is never used
+#pragma warning restore CS0067 //The event is never used
         //! @endcond
         #endregion
 
+        private static readonly PrivateResources Resources = new PrivateResources();
         private ComboBox m_cbEditor = new ComboBox();
         private Brush _disabledTranslucentBackground = new SolidBrush(Color.FromArgb(32, SystemColors.InactiveCaption));
         private Point TextOffset;
@@ -241,7 +254,7 @@ namespace ChuckHill2.Forms
         private void InitializeContextMenu()
         {
             var addToolStripMenuItem = new ToolStripMenuItem();
-            //addToolStripMenuItem.Image = global::VideoOrganizer.Properties.Resources.Add;
+            addToolStripMenuItem.Image = Resources.AddIcon;
             addToolStripMenuItem.Name = "addToolStripMenuItem";
             addToolStripMenuItem.Text = "Add";
             addToolStripMenuItem.Click += ctxMenu_Add;
@@ -251,7 +264,7 @@ namespace ChuckHill2.Forms
             addToolStripMenuItem.RightToLeft = this.RightToLeft;
 
             var removeToolStripMenuItem = new ToolStripMenuItem();
-            //removeToolStripMenuItem.Image = global::VideoOrganizer.Properties.Resources.Remove;
+            removeToolStripMenuItem.Image = Resources.RemoveIcon;
             removeToolStripMenuItem.Name = "removeToolStripMenuItem";
             removeToolStripMenuItem.Text = "Remove";
             removeToolStripMenuItem.Click += ctxMenu_Remove;
@@ -285,6 +298,10 @@ namespace ChuckHill2.Forms
             if (index == -1) return;
             base.Items.RemoveAt(index);
 
+            //Note: setting base.SelectedIndex triggers OnPaint/OnDrawItem immediately, then this method continues...
+            // so we need to set CurrentIndex first before SelectedIndex.
+            CurrentIndex = -1;
+
             if (base.Items.Count > 0)
             {
                 if (index >= base.Items.Count) base.SelectedIndex = index - 1;
@@ -296,8 +313,6 @@ namespace ChuckHill2.Forms
                 m_cbEditor.Text = string.Empty;
                 m_cbEditor.Hide();
             }
-
-            CurrentIndex = -1;
         }
 
         private void m_cbEditor_KeyPress(object sender, KeyPressEventArgs e)
@@ -461,6 +476,57 @@ namespace ChuckHill2.Forms
             }
 
             base.OnPaint(e);
+        }
+
+        /// <summary>
+        /// We keep our own graphic resources here to make this file entirely self-contained so it may be copied an reused elsewhere without any dependencies.
+        /// </summary>
+        private class PrivateResources : IDisposable
+        {
+            private WeakReference<Image> addIconRef = new WeakReference<Image>(null);
+            private WeakReference<Image> removeIconRef = new WeakReference<Image>(null);
+
+            public Image AddIcon => GetImageRef(addIconRef, AddBase64);
+            public Image RemoveIcon => GetImageRef(removeIconRef, RemoveBase64);
+
+            public void Dispose()
+            {
+                DisposeRef(addIconRef);
+                DisposeRef(removeIconRef);
+            }
+
+            private Image GetImageRef(WeakReference<Image> wr, string base64String)
+            {
+                if (wr.TryGetTarget(out var im) && im != null) return im;
+                im = Base64StringToBitmap(base64String);
+                wr.SetTarget(im);
+                return im;
+            }
+
+            private void DisposeRef(WeakReference<Image> wr)
+            {
+                if (wr.TryGetTarget(out var im) && im != null) im.Dispose();
+                wr.SetTarget(null);
+            }
+
+            private static Bitmap Base64StringToBitmap(string base64String)
+            {
+                byte[] byteBuffer = Convert.FromBase64String(base64String);
+                MemoryStream memoryStream = new MemoryStream(byteBuffer);
+                memoryStream.Position = 0;
+                Bitmap bmpReturn = (Bitmap)Bitmap.FromStream(memoryStream, false, true);
+                memoryStream.Close();
+                memoryStream = null;
+                byteBuffer = null;
+                return bmpReturn;
+            }
+
+            //Convert image to base64 string: https://www.base64-image.de/
+            //Note: Paint.Net creates smallest png sizes.
+
+            private const string AddBase64 = @"iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsIAAA7CARUoSoAAAAC4SURBVDhPY/z//z8DJYAJSpMN4C5gZGQE08jAaJYrWPJc2m4MSZg+vC7g5ucHY3wArwHMHOxgjA/gNeDP379gjA9QbAA8ENUm2f1nYkaYxwp0OpcAxP/fPnxk+P3jJ5gNAv/+/mO4lXcIHLBwHey83AxcQgJwzAbk/2diBGMQG1kOpBYG8Eaj4epAsOT50PXkReOvnz/AGB/Aa8Df3z/BGB/Aa8C/f3/AGB8gYMBfMMYHBjo3MjAAAEtrUXscr0A2AAAAAElFTkSuQmCC";
+
+            private const string RemoveBase64 = @"iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAVUExURQAAANYFJNsFJeYFI+4FHvMFHAAAAJvJhKUAAAAHdFJOU////////wAaSwNGAAAACXBIWXMAAA7CAAAOwgEVKEqAAAAAJklEQVQoU2NgQwN0E2BkggNGsAAzCwsLKxAAKWZyDUUFJAuwsQEACg8FuX1YRIgAAAAASUVORK5CYII=";
         }
     }
 }

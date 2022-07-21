@@ -142,9 +142,5 @@
   <ItemGroup>
     <EmbeddedResource Include="Resources\Edit.png" />
   </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="Resources\Add.png" />
-    <EmbeddedResource Include="Resources\Remove.png" />
-  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
