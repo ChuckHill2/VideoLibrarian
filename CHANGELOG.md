@@ -105,9 +105,16 @@
 * Refactored http web page downloading.
 * Small tiles: Fixed clicking on TvSeries title opened TvEpisodes AND opened SummaryPopup. 
 
-#### Unreleased
+#### Version 2.6
 * Cache 30+ compiled regex patterns for speed.
 * Better handling of missing poster images.
+* Support scroll position in TV Series view.
+* Set logging severity levels in Settings dialog.
+* Fixed bug where TV Series episode that has no episode name, orphans subsequent episodes.
+* Movie description web scrape update.
+* Added custom user-defined attributes for filtering.
+* Added support to VideoOrganizer/manual editing for adding user-defined attributes.
+
 
 ### Notes
 #### Not a bug
