@@ -34,8 +34,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Reflection;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using VideoLibrarian;
@@ -44,10 +42,21 @@ namespace VideoValidator
 {
     class Program
     {
+        private static readonly bool isDoubleClicked = (Console.CursorLeft == 0 && Console.CursorTop == 0); //started from WindowsExplorer?
         private static string[] MediaFolders; //folders to enumerate for *.url and associated video files.
 
         static void Main(string[] args)
         {
+#if !DEBUG
+            if (isDoubleClicked)
+            {
+                AboutMsg();
+                Console.WriteLine();
+                Console.Write("VideoValidator was started from Windows Explorer. Do you want to continue? [Yes] ");
+                var answer = (int)Console.ReadKey().Key;
+                if (!(answer == 'Y' || answer == 'y' || answer == '\r')) Environment.Exit(1);
+            }
+#endif
             ProcessEx.AllowOnlyOneInstance();
             EmbeddedAssemblyResolver.SetResolver(); //Required for embedded assemblies in VideoLibrarian.exe assembly.
             Log.MessageCapture += (Severity sev, string msg) => Console.WriteLine($"{sev}: {msg}");
@@ -147,7 +156,8 @@ namespace VideoValidator
                     //we have no other command-line switches...
                     //var arg = args[0].Substring(1).ToLower();
                     //if (arg == "?" || arg == "h" || arg == "help") ExitMsg();
-                    ExitMsg();
+                    AboutMsg();
+                    Environment.Exit(1);
                 }
 
                 var dirs = new List<string>();
@@ -160,7 +170,7 @@ namespace VideoValidator
             }
         }
 
-        private static void ExitMsg()
+        private static void AboutMsg()
         {
             Console.WriteLine(@"
 Validate/verify that all the movie files in the specified folders are NOT corrupted.
@@ -183,7 +193,6 @@ VideoValidator may take a very long time to complete depending how many video
 files there are (6hrs or more for >2000 videos). This is due to the necessity
 of having to read the entire content of all the large video files.
 ");
-            Environment.Exit(1);
         }
     }
 }
