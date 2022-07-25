@@ -361,19 +361,19 @@ namespace VideoOrganizer
             //  Threshold.1x01.720p.HDTV.H.265-aljasPOD.mkv
             //  01 Utopia - Episode 1.1 Mystery 2013 Eng Subs 720p [H264-mp4].mp4
             //  50.States.Of.Fright.S01E01.720p.QUIBI.WEBRip.x264-GalaxyTV.mkv
-            const string pattern = @"
+            const string patternEpisodes = @"
                 ^(?:[0-9]{1,2}[ -]+)?
                 (?<NAME>.+?)
                 (?:[ \.\(]*(?<YEAR1>[0-9]{4,4})[ \.\)-]*)?
                 (?:
-                (?:S(?<S1>[0-9]{2,2})E(?<E1>[0-9]{2,2}))|
+                (?:S(?<S1>[0-9]{1,2})E(?<E1>[0-9]{1,2}))|
                 (?:(?<S2>[0-9]{1,2})x(?<E2>[0-9]{1,2}))|
                 (?:[ \.-]+Episode[ \.](?<S3>[0-9]{1,2})\.(?<E3>[0-9]{1,2}))
                 )
                 [^0-9]+(?<YEAR2>[0-9]{4,4})?
                 ";
 
-            mc = RegexCache.RegEx(pattern, RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace).Matches(movieFileName);
+            mc = RegexCache.RegEx(patternEpisodes, RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace).Matches(movieFileName);
             if (mc.Count > 0)
             {
                 var name = mc[0].Groups["NAME"].Value.Replace('.', ' ').Trim();
@@ -417,17 +417,37 @@ namespace VideoOrganizer
                     FileEx.Delete(job.Filename);
 
                     //<a href='/title/tt1060050/?ref_=ttep_ep13' title='A Night in Global Dynamics' itemprop='name'>A Night in Global Dynamics</a>
-                    mc = RegexCache.RegEx(@"<a href='\/title\/(?<TT>tt[0-9]+)\/\?ref_=ttep_ep(?<EP>[0-9]+)", RegexOptions.IgnoreCase).Matches(html);
-                    if (mc.Count == 0)
+                    //Warning: =ttep_ep([0-9]+) does not 100% always refer to episode with same number.
+
+                    //Retrieve tt id and episode# properties from episode image and "S1, Ep1" image overlay.
+                    mc = RegexCache.RegEx(@"<div data-const='(?<TT>tt[0-9]+)[^>]+><img[^>]+><div>S(?<S>[0-9]+), Ep(?<E>[0-9]+)", RegexOptions.IgnoreCase).Matches(html);
+                    int episodesFound = 0;
+                    foreach (Match m in mc)
+                    {
+                        var tt2 = m.Groups["TT"].Value;
+                        int.TryParse(m.Groups["E"].Value, out int ep);
+                        TVSeries[$"{name}.S{season:00}E{ep:00}"] = tt2;
+                        episodesFound++;
+                    }
+
+                    //fallback if there is no episode image.
+                    mc = RegexCache.RegEx(@"<a href='\/title\/(?<TT>tt[0-9]+)\/\?ref_=ttep_ep(?<E>[0-9]+)", RegexOptions.IgnoreCase).Matches(html);
+                    foreach (Match m in mc)
+                    {
+                        var tt2 = m.Groups["TT"].Value;
+                        int.TryParse(m.Groups["E"].Value, out int ep);
+
+                        if (TVSeries.FirstOrDefault(kv => kv.Value == tt2).Value == null)
+                        {
+                            TVSeries[$"{name}.S{season:00}E{ep:00}"] = tt2;
+                            episodesFound++;
+                        }
+                    }
+
+                    if (episodesFound==0)
                     {
                         SetStatus(Severity.Error, $"Unable to find any {TVSeries[name + ".MOVIENAME"]} season {season} episodes.");
                         return null;
-                    }
-
-                    foreach (Match m in mc)
-                    {
-                        int.TryParse(m.Groups["EP"].Value, out int ep);
-                        TVSeries[$"{name}.S{season:00}E{ep:00}"] = m.Groups["TT"].Value;
                     }
                 }
                 else
@@ -466,12 +486,12 @@ namespace VideoOrganizer
             //  Space.1999.The.End.1981.1080p.WEBRip.x264-[YTS.LT].mkv
             //  Space.1999.1981.1080p.WEBRip.x264-[YTS.LT].mkv
             //  Dead End  (Crime Drama 1937)  Humphrey Bogart, Sylvia Sidney & Joel McCrea.mp4
-            const string pattern2 = @"
+            const string patternMovies = @"
                 ^(?<NAME>.+?)\(?(?<YEAR>[0-9]{4,4})
                 (?:(?<NAME2>.+?)\(?(?<YEAR2>[0-9]{4,4}))?
                 ";
 
-            mc = RegexCache.RegEx(pattern2, RegexOptions.IgnorePatternWhitespace).Matches(movieFileName);
+            mc = RegexCache.RegEx(patternMovies, RegexOptions.IgnorePatternWhitespace).Matches(movieFileName);
             if (mc.Count > 0)
             {
                 var name =  mc[0].Groups["NAME"].Value.Replace('.', ' ').Trim();

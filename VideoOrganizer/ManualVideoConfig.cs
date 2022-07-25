@@ -448,8 +448,17 @@ namespace VideoOrganizer
 
         private void m_lnkRecompute_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
+            if (m_txtMoviePath.Text=="" || Directory.Exists(m_txtMoviePath.Text)) return;
+            string movieFile = null;
+            if (!MovieProperties.IsVideoFile(m_txtMoviePath.Text))
+            {
+                movieFile = DirectoryEx.EnumerateAllFiles(Path.GetDirectoryName(m_txtMoviePath.Text)).FirstOrDefault(m => MovieProperties.IsVideoFile(m));
+                if (movieFile == null) return;
+            }
+            else movieFile = m_txtMoviePath.Text;
+
             var mpx = new MovieProperties();
-            mpx.MoviePath = m_txtMoviePath.Text;
+            mpx.MoviePath = movieFile;
             mpx.GetVideoFileProperties();
 
             m_lblDownloadDate.Text = mpx.DownloadDate.ToString("g");
