@@ -449,11 +449,18 @@ namespace VideoOrganizer
         private void m_lnkRecompute_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
             if (m_txtMoviePath.Text=="" || Directory.Exists(m_txtMoviePath.Text)) return;
+
+            MiniMessageBox.Show(m_lnkRecompute, "Computing properties...", "Please Wait...", MiniMessageBox.Buttons.None, MiniMessageBox.Symbol.Wait);
+
             string movieFile = null;
             if (!MovieProperties.IsVideoFile(m_txtMoviePath.Text))
             {
                 movieFile = DirectoryEx.EnumerateAllFiles(Path.GetDirectoryName(m_txtMoviePath.Text)).FirstOrDefault(m => MovieProperties.IsVideoFile(m));
-                if (movieFile == null) return;
+                if (movieFile == null)
+                {
+                    MiniMessageBox.Hide();
+                    return;
+                }
             }
             else movieFile = m_txtMoviePath.Text;
 
@@ -468,6 +475,7 @@ namespace VideoOrganizer
 
             MovieFileLength = mpx.MovieFileLength;
             MovieHash = mpx.MovieHash;
+            MiniMessageBox.Hide();
         }
 
         private void m_clbVideoType_ItemCheck(object sender, ItemCheckEventArgs e)
