@@ -152,6 +152,7 @@ namespace VideoLibrarian
         [ThreadStatic] private static DialogResult MMResult = DialogResult.None;
         private Resources resx = new Resources();
         private System.Drawing.Icon CaptionIcon = GetAppIcon();
+        private Control OwningControl;
         private Font CaptionFont;
         private Font MessageFont;
         private Image MessageIcon;
@@ -280,9 +281,11 @@ namespace VideoLibrarian
         /// <remarks>This functions just like it's big brothers: MessageBox and MessageBoxEx. This does not need to be a child of a form owner. This may also run within Program.Main or Console.Main</remarks>
         public static DialogResult ShowDialog(IWin32Window owner, string text, string caption = null, Buttons buttons = Buttons.OK, Symbol icon = Symbol.None)
         {
-            using (var dlg = new MiniMessageBox(true, text, caption, buttons, icon))
+            var owningControl = GetOwner(owner);
+
+            using (var dlg = new MiniMessageBox(owningControl, true, text, caption, buttons, icon))
             {
-                return dlg.ShowDialog(GetOwner(owner));
+                return dlg.ShowDialog(owningControl);
             }
         }
 
@@ -324,8 +327,9 @@ namespace VideoLibrarian
                 return;
             }
 
-            MMDialog = new MiniMessageBox(false, text, caption, buttons, icon);
-            MMDialog.Show(GetOwner(owner));
+            var owningControl = GetOwner(owner);
+            MMDialog = new MiniMessageBox(owningControl, false, text, caption, buttons, icon);
+            MMDialog.Show(owningControl);
         }
 
         private static Buttons ToMMButton(MessageBoxButtons b)
@@ -418,8 +422,10 @@ namespace VideoLibrarian
         }
 
         //*********** private constructor *******************************************************************************
-        private MiniMessageBox(bool isModal, string msg, string caption, Buttons buttons, Symbol icon)
+        private MiniMessageBox(IWin32Window owningControl, bool isModal, string msg, string caption, Buttons buttons, Symbol icon)
         {
+            this.OwningControl = owningControl as Control;
+
             this.SuspendLayout();
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
@@ -525,14 +531,27 @@ namespace VideoLibrarian
             }
 
             //Center popup over parent
-            Rectangle ownerBounds = this.Owner == null ? Screen.FromControl(this).WorkingArea : this.Owner.DesktopBounds;
-            Rectangle ownerClientRetangle = this.Owner == null ? Screen.FromControl(this).WorkingArea : this.Owner.ClientRectangle;
+
+            Rectangle ownerBounds = this.OwningControl == null ?
+                this.Owner == null ?
+                Screen.FromControl(this).WorkingArea :
+                this.Owner.DesktopBounds :
+                OwningControl.Parent==null ?
+                this.Owner.DesktopBounds : 
+                OwningControl.Parent.RectangleToScreen(OwningControl.Bounds);
+
+            Rectangle ownerClientRetangle = this.OwningControl == null ?
+                this.Owner == null ?
+                Screen.FromControl(this).WorkingArea :
+                this.Owner.ClientRectangle :
+                OwningControl.ClientRectangle;
+
             this.Location = new Point(
                 (ownerBounds.Width - this.DesktopBounds.Width) / 2 + ownerBounds.X,
                 (ownerBounds.Height - this.DesktopBounds.Height) / 2 + ownerBounds.Y - ownerClientRetangle.Height / 6);
 
             this.ResumeLayout(false);
-            base.OnShown(e);
+            base.OnLoad(e);
         }
 
         protected override void Dispose(bool disposing)
