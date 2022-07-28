@@ -115,6 +115,10 @@
 * Added custom user-defined attributes for filtering.
 * Added support to VideoOrganizer/manual editing for adding user-defined attributes.
 
+#### Version 2.6.1
+* VideoOrganizer: More robust scrape for episodes. Manual Editing - handle bug when selected file is an xml file.
+* VideoOrganizer/Manual editing: Add "please wait" dialog to the video properties "Recompute" link.
+* Added user startup confirmation to console apps *UpdateXml* and *VideoValidator*.
 
 ### Notes
 #### Not a bug
