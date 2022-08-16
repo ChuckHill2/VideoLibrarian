@@ -46,17 +46,22 @@ namespace VideoOrganizer
         private long MovieFileLength = 0L;
         private Guid MovieHash = Guid.Empty;
 
-        public static void Show(IWin32Window owner, string rootFolder)
+        /// <summary>
+        /// Opens the movie properties editor
+        /// </summary>
+        /// <param name="owner">Parent form</param>
+        /// <param name="defaultFolder">The root folder used as the default folder for the open directory and open file dialogs. May be null.</param>
+        /// <param name="destFile">The explicit folder or file (video or xml movie properties file) that contains (or will contain) the movie properties file. May be null.</param>
+        public static void Show(IWin32Window owner, string defaultFolder, string destFile = null)
         {
-            using (var dlg = new ManualVideoConfig(rootFolder))
+            using (var dlg = new ManualVideoConfig(defaultFolder, destFile))
             {
                 dlg.ShowDialog(owner);
             }
         }
 
-        private ManualVideoConfig(string rootFolder)
+        private ManualVideoConfig(string defaultFolder, string destFile)
         {
-            RootFolder = rootFolder;
             InitializeComponent();
             _tt = new ToolTipHelp(this); //must be after InitializeComponent()
 
@@ -72,6 +77,44 @@ namespace VideoOrganizer
             m_lblAspectRatio.Text = "0:0";
             m_lblDimensions.Text = "0 x 0 pixels";
             m_lblRuntime.Text = "0 minutes (0:00)";
+
+            if (destFile.IsNullOrEmpty())
+            {
+                m_txtMoviePath.Text = defaultFolder;
+                RootFolder = defaultFolder;
+            }
+            else if (Directory.Exists(destFile))
+            {
+                m_txtMoviePath.Enabled = false;
+                m_txtMoviePath.AllowDrop = false;
+                m_btnSelectMovieFile.Enabled = false;
+                m_btnSelectMovieFolder.Enabled = false;
+
+                var f2 = Directory.EnumerateFiles(destFile).FirstOrDefault(f => MovieProperties.IsVideoFile(f) || MovieProperties.IsPropertiesFile(f));
+                if (f2 == null)
+                {
+                    m_txtMoviePath.Text = destFile;
+                    RootFolder = destFile;
+                }
+                else
+                {
+                    m_txtMoviePath.Text = f2;
+                    RootFolder = Path.GetDirectoryName(f2);
+                }
+
+                LoadDialog(true);
+                return;
+            }
+            else if (MovieProperties.IsVideoFile(destFile) || MovieProperties.IsPropertiesFile(destFile))
+            {
+                m_txtMoviePath.Text = destFile;
+                m_txtMoviePath.Enabled = false;
+                m_txtMoviePath.AllowDrop = false;
+                m_btnSelectMovieFile.Enabled = false;
+                m_btnSelectMovieFolder.Enabled = false;
+                RootFolder = Path.GetDirectoryName(destFile);
+                LoadDialog(true);
+            }
         }
 
         private void m_btnCancel_Click(object sender, EventArgs e)
@@ -91,12 +134,23 @@ namespace VideoOrganizer
             var dir = FolderSelectDialog.Show(this, "Select TV Series Root Folder", initialDirectory);
             if (dir == null) return;
             HideError();
-            m_txtMoviePath.Text = dir;
             m_txtMoviePath.Enabled = false;
             m_txtMoviePath.AllowDrop = false;
             m_btnSelectMovieFile.Enabled = false;
             m_btnSelectMovieFolder.Enabled = false;
-            RootFolder = dir;
+
+            var f2 = Directory.EnumerateFiles(dir).FirstOrDefault(f => MovieProperties.IsVideoFile(f) || MovieProperties.IsPropertiesFile(f));
+            if (f2 == null)
+            {
+                m_txtMoviePath.Text = dir;
+                RootFolder = dir;
+            }
+            else
+            {
+                m_txtMoviePath.Text = f2;
+                RootFolder = Path.GetDirectoryName(f2);
+            }
+
             LoadDialog(true);
         }
 
@@ -149,30 +203,28 @@ namespace VideoOrganizer
 
             if (Directory.Exists(file))
             {
-                m_txtMoviePath.Text = file;
                 m_txtMoviePath.Enabled = false;
                 m_txtMoviePath.AllowDrop = false;
                 m_btnSelectMovieFile.Enabled = false;
                 m_btnSelectMovieFolder.Enabled = false;
-                RootFolder = file;
+
+                var f2 = Directory.EnumerateFiles(file).FirstOrDefault(f => MovieProperties.IsVideoFile(f) || MovieProperties.IsPropertiesFile(f));
+                if (f2 == null)
+                {
+                    m_txtMoviePath.Text = file;
+                    RootFolder = file;
+                }
+                else
+                {
+                    m_txtMoviePath.Text = f2;
+                    RootFolder = Path.GetDirectoryName(f2);
+                }
+
                 LoadDialog(true);
                 return;
             }
 
-            if (MovieProperties.IsVideoFile(file))
-            {
-                m_txtMoviePath.Text = file;
-                m_txtMoviePath.Enabled = false;
-                m_txtMoviePath.AllowDrop = false;
-                m_btnSelectMovieFile.Enabled = false;
-                m_btnSelectMovieFolder.Enabled = false;
-                RootFolder = Path.GetDirectoryName(file);
-                LoadDialog(true);
-                return;
-            }
-
-            if (Path.GetExtension(file).EqualsI(".xml")
-                && Path.GetFileNameWithoutExtension(file).StartsWith("tt"))
+            if (MovieProperties.IsVideoFile(file) || MovieProperties.IsPropertiesFile(file))
             {
                 m_txtMoviePath.Text = file;
                 m_txtMoviePath.Enabled = false;
@@ -189,9 +241,7 @@ namespace VideoOrganizer
         {
             if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return;
             var file = ((string[])e.Data.GetData(DataFormats.FileDrop))[0];
-            if (Directory.Exists(file)
-                || MovieProperties.IsVideoFile(file)
-                || (Path.GetExtension(file).EqualsI(".xml") && Path.GetFileNameWithoutExtension(file).StartsWith("tt")))
+            if (Directory.Exists(file) || MovieProperties.IsVideoFile(file) || MovieProperties.IsPropertiesFile(file))
             {
                 e.Effect = DragDropEffects.Link;
             }
@@ -580,28 +630,35 @@ namespace VideoOrganizer
         private void LoadDialog(bool justLoadAvailable)
         {
             m_pnlAllProperties.Enabled = true;
+            var allVideoTypes = m_clbVideoType.Items.OfType<string>().ToArray();
+
             if (Directory.Exists(m_txtMoviePath.Text))
             {
-                //If the movie path is just a directory, then it must be a Series folder.
-                m_clbVideoType.Items.Clear();
-                m_clbVideoType.Items.AddRange(new[] { "TV Mini-Series", "TV Series" });
-
-                //But if the series folder contains a video, then the user must remove the video.
-                if (Directory.EnumerateFiles(m_txtMoviePath.Text, "*.*")
-                    .Any(f => MovieProperties.IsVideoFile(f)))
+                var videoFile = DirectoryEx.EnumerateAllFiles(RootFolder).FirstOrDefault(f => MovieProperties.IsVideoFile(f));
+                var propFile = DirectoryEx.EnumerateAllFiles(RootFolder).FirstOrDefault(f => MovieProperties.IsPropertiesFile(f));
+                //If the movie path is a directory without a video, then it must be a Series folder.
+                if (videoFile == null && propFile==null)
                 {
-                    MiniMessageBox.ShowDialog(this, "Selecting a folder assumes that this is a TV Series " +
-                        "root folder and must not contain a video file " +
-                        "You must remove the video file from this folder.",
-                        "Selected Series Folder", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+
+                    m_clbVideoType.Items.Clear();
+                    m_clbVideoType.Items.AddRange(new[] { "TV Mini Series", "TV Series" });
+
+                    MiniMessageBox.ShowDialog(this, "Selecting a folder without a video assumes that this is a TV Series root folder and must not contain a video file.",
+                        "Selected Series Folder", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }
 
             //Load any existing properties.
             try { _mp = new MovieProperties(RootFolder, false, justLoadAvailable); }
-            catch (Exception ex) 
+            catch(InvalidDataException)
             {
                 //No properties to load, so we're done loading.
+                _mp = new MovieProperties();
+                return;
+            }
+            catch (Exception ex) 
+            {
+                //Data load error.
                 MiniMessageBox.ShowDialog(this, ex.Message, "Existing Movie Properties", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 _mp = new MovieProperties();
                 return; 
@@ -615,6 +672,15 @@ namespace VideoOrganizer
                 i = m_clbGenre.Items.IndexOf(g);
                 if (i == -1) continue;
                 m_clbGenre.SetItemChecked(i, true);
+            }
+
+            if (_mp.MovieClass == "TV Mini-Series") _mp.MovieClass = "TV Mini Series"; //Standardize name with en-US IMDB name.
+
+            //Not a series after all
+            if (_mp.MovieClass != "TV Mini Series" && _mp.MovieClass != "TV Series" && m_clbVideoType.Items.Count==2)
+            {
+                m_clbVideoType.Items.Clear();
+                m_clbVideoType.Items.AddRange(allVideoTypes);
             }
 
             i = m_clbVideoType.Items.IndexOf(_mp.MovieClass);

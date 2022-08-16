@@ -94,6 +94,28 @@ namespace VideoOrganizer
             ManualVideoConfig.Show(this, m_txtRoot.Text);
         }
 
+        private void m_btnManualConfig_DragEnter(object sender, DragEventArgs e)
+        {
+            if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return;
+            var file = ((string[])e.Data.GetData(DataFormats.FileDrop))[0];
+            if (Directory.Exists(file) || MovieProperties.IsVideoFile(file) || MovieProperties.IsPropertiesFile(file))
+            {
+                e.Effect = DragDropEffects.Link;
+            }
+        }
+
+        private void m_btnManualConfig_DragDrop(object sender, DragEventArgs e)
+        {
+            if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return;
+            var file = ((string[])e.Data.GetData(DataFormats.FileDrop))[0];
+
+            if (Directory.Exists(file) || MovieProperties.IsVideoFile(file) || MovieProperties.IsPropertiesFile(file))
+            {
+                ManualVideoConfig.Show(this, m_txtRoot.Text, file);
+                return;
+            }
+        }
+
         private void m_btnGo_Click(object sender, EventArgs e)
         {
             if (m_txtRoot.Text == string.Empty)

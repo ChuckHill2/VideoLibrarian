@@ -121,7 +121,8 @@ namespace VideoOrganizer
             // 
             // m_btnManualConfig
             // 
-            this.m_btnManualConfig.AccessibleDescription = "Create/edit properties for a single video.";
+            this.m_btnManualConfig.AccessibleDescription = "Create/edit properties for a single video. May drag n'drop the series\\nfolder, movie file, or tt123456.xml properties file directly on this button.";
+            this.m_btnManualConfig.AllowDrop = true;
             this.m_btnManualConfig.Anchor = System.Windows.Forms.AnchorStyles.Bottom;
             this.m_btnManualConfig.AutoSize = true;
             this.m_btnManualConfig.Location = new System.Drawing.Point(232, 523);
@@ -131,6 +132,8 @@ namespace VideoOrganizer
             this.m_btnManualConfig.Text = "Edit Video Properties";
             this.m_btnManualConfig.UseVisualStyleBackColor = true;
             this.m_btnManualConfig.Click += new System.EventHandler(this.m_btnManualConfig_Click);
+            this.m_btnManualConfig.DragDrop += new System.Windows.Forms.DragEventHandler(this.m_btnManualConfig_DragDrop);
+            this.m_btnManualConfig.DragEnter += new System.Windows.Forms.DragEventHandler(this.m_btnManualConfig_DragEnter);
             // 
             // FormMain
             // 
