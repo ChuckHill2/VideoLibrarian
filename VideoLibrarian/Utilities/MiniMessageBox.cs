@@ -432,7 +432,7 @@ namespace VideoLibrarian
             this.FormBorderStyle = FormBorderStyle.None;
             this.BackColor = Colors.Background;
             this.Name = "MiniMessageBox";
-            this.ShowInTaskbar = false;
+            this.ShowInTaskbar = owningControl==null; //if 'owned' by desktop, show in taskbar.
             this.StartPosition = FormStartPosition.CenterParent;
             this.Text = "MiniMessageBox";
             this.ResumeLayout(false);
@@ -754,11 +754,38 @@ namespace VideoLibrarian
         private static IWin32Window GetOwner(IWin32Window owner)
         {
             //Bullit-proof that we have an owner. Default null == desktop.
+            // 'owner' can be any Win32 windows-based control, but only the first *visible* Form may host another form (e.g. this popup).
+            // In the end, 'owner' may still be null, but that just refers to the desktop.
+
+            if (owner!=null)
+            {
+                var ctrl = owner as Control;
+                if (ctrl!=null)
+                {
+                    Control p = ctrl;
+                    while(!(p is Form))
+                    {
+                        p = p.Parent;
+                        if (p == null) break;
+                    }
+                    if (p!=null)
+                    {
+                        var f = (Form)p;
+                        while(!f.Visible)  //MiniMessageBox called in a Form constructor
+                        {
+                            f = f.Owner;
+                            if (f == null) break;
+                        }
+                        owner = f;
+                    }
+                }
+            }
+
             if (owner == null) owner = System.Windows.Forms.Form.ActiveForm;
             if (owner == null)
             {
                 FormCollection fc = System.Windows.Forms.Application.OpenForms;
-                if (fc != null && fc.Count > 0) owner = fc[0];
+                if (fc != null && fc.Count > 0) owner = fc[fc.Count-1];
             }
             return owner;
         }
