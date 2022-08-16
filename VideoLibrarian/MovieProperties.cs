@@ -392,7 +392,7 @@ namespace VideoLibrarian
 
             //After all is said and done, MovieName must never be undefined.
             if (this.MovieName.IsNullOrEmpty())
-                throw new InvalidDataException($"Incomplete/corrupted video property (MovieName is undefined) in folder: {path}.");
+                throw new InvalidDataException($"Incomplete/corrupted video properties (MovieName is undefined) in folder: {path}.");
         }
         #endregion
 
@@ -1588,6 +1588,25 @@ namespace VideoLibrarian
             return m.Groups["TT"].Value == string.Empty ? MovieProperties.EmptyTitleID : m.Groups["TT"].Value;
         }
         private static readonly Regex ReTitleId = RegexCache.RegEx(@"^(?:(?:https?:\/\/(?:www\.)?imdb\.com\/title\/(?<TT>tt[0-9]+))|(?<FILE>file:\/\/\/))", RE_options);
+
+        /// <summary>
+        /// Test if filename refers to a movie properties xml file (e.g. "directorypath\tt123456.xml")
+        /// </summary>
+        /// <param name="file"></param>
+        /// <returns></returns>
+        public static bool IsPropertiesFile(string file) => ReIsPropertiesFile.IsMatch(file);
+        private static readonly Regex ReIsPropertiesFile = RegexCache.RegEx(@"\\tt[0-9]+\.xml$", RegexOptions.IgnoreCase);
+
+        /// <summary>
+        /// Test if file refers to a valid IMDB shortcut.
+        /// </summary>
+        /// <param name="file"></param>
+        /// <returns></returns>
+        public static bool IsValidShortcut(string file)
+        {
+            if (!file.EndsWith(".url", StringComparison.InvariantCultureIgnoreCase)) return false;
+            return !GetTitleId(file).IsNullOrEmpty();
+        }
 
         /// <summary>
         /// Check if folder or file should be ignored.
