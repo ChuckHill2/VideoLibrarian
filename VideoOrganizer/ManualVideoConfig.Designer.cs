@@ -259,7 +259,7 @@ namespace VideoOrganizer
             "Home Video",
             "Short",
             "TV Episode",
-            "TV Mini-Series",
+            "TV Mini Series",
             "TV Movie",
             "TV Series",
             "TV Short",
