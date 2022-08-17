@@ -37,8 +37,8 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
-// Lifted from ChuckHill2,Utilities.Forms
 // Depends on GDI.ExtractAssociatedIcon() and GDI.ApplyShadows() only.
+// Lifted from repos\ChuckHill2.Utilities\Source\ChuckHill2.Utilities\Tools.cs
 
 namespace VideoLibrarian
 {
@@ -282,8 +282,8 @@ namespace VideoLibrarian
         public static DialogResult ShowDialog(IWin32Window owner, string text, string caption = null, Buttons buttons = Buttons.OK, Symbol icon = Symbol.None)
         {
             var owningControl = GetOwner(owner);
-
-            using (var dlg = new MiniMessageBox(owningControl, true, text, caption, buttons, icon))
+            if (owner != null && owner is Control && !((Control)owner).Visible) owner = owningControl;
+            using (var dlg = new MiniMessageBox(owner ?? owningControl, true, text, caption, buttons, icon))
             {
                 return dlg.ShowDialog(owningControl);
             }
@@ -328,7 +328,9 @@ namespace VideoLibrarian
             }
 
             var owningControl = GetOwner(owner);
-            MMDialog = new MiniMessageBox(owningControl, false, text, caption, buttons, icon);
+            if (owner != null && owner is Control && !((Control)owner).Visible) owner = owningControl;
+
+            MMDialog = new MiniMessageBox(owner ?? owningControl, false, text, caption, buttons, icon);
             MMDialog.Show(owningControl);
         }
 
@@ -433,7 +435,8 @@ namespace VideoLibrarian
             this.BackColor = Colors.Background;
             this.Name = "MiniMessageBox";
             this.ShowInTaskbar = owningControl==null; //if 'owned' by desktop, show in taskbar.
-            this.StartPosition = FormStartPosition.CenterParent;
+            //this.StartPosition = FormStartPosition.CenterParent;  //we center the popup location as *we* choose.
+            this.StartPosition = FormStartPosition.Manual;
             this.Text = "MiniMessageBox";
             this.ResumeLayout(false);
 
@@ -530,26 +533,21 @@ namespace VideoLibrarian
                 this.Controls.Add(btn);
             }
 
-            //Center popup over parent
+            //Center popup over parent/owner client area
 
-            Rectangle ownerBounds = this.OwningControl == null ?
-                this.Owner == null ?
-                Screen.FromControl(this).WorkingArea :
-                this.Owner.DesktopBounds :
-                OwningControl.Parent==null ?
-                this.Owner.DesktopBounds : 
-                OwningControl.Parent.RectangleToScreen(OwningControl.Bounds);
+            var ownerClientRetangle = this.OwningControl == null ? Screen.FromControl(this).WorkingArea : OwningControl.RectangleToScreen(OwningControl.ClientRectangle);
 
-            Rectangle ownerClientRetangle = this.OwningControl == null ?
-                this.Owner == null ?
-                Screen.FromControl(this).WorkingArea :
-                this.Owner.ClientRectangle :
-                OwningControl.ClientRectangle;
+            var locationX = (ownerClientRetangle.Width - this.DesktopBounds.Width) / 2 + ownerClientRetangle.X;
+            var locationY = (ownerClientRetangle.Height - this.DesktopBounds.Height) / 2 + ownerClientRetangle.Y;
 
-            this.Location = new Point(
-                (ownerBounds.Width - this.DesktopBounds.Width) / 2 + ownerBounds.X,
-                (ownerBounds.Height - this.DesktopBounds.Height) / 2 + ownerBounds.Y - ownerClientRetangle.Height / 6);
+            //Shift messagebox up if the owner is bigger than the messagebox for user visualization,
+            //otherwise shift it down if the owner is smaller so the user can still see the control.
+            if (ownerClientRetangle.Height > this.Height)
+                locationY -= ownerClientRetangle.Height / 6;
+            else
+                locationY += ownerClientRetangle.Height / 2;
 
+            this.Location = new Point(locationX, locationY);
             this.ResumeLayout(false);
             base.OnLoad(e);
         }
@@ -751,7 +749,12 @@ namespace VideoLibrarian
             return new Size(width + 1, ceil(sizef.Height));
         }
 
-        private static IWin32Window GetOwner(IWin32Window owner)
+        /// <summary>
+        ///  Unwind window stack to the first visible form.
+        /// </summary>
+        /// <param name="owner">owner control or null</param>
+        /// <returns></returns>
+        private static Form GetOwner(IWin32Window owner)
         {
             //Bullit-proof that we have an owner. Default null == desktop.
             // 'owner' can be any Win32 windows-based control, but only the first *visible* Form may host another form (e.g. this popup).
@@ -787,7 +790,7 @@ namespace VideoLibrarian
                 FormCollection fc = System.Windows.Forms.Application.OpenForms;
                 if (fc != null && fc.Count > 0) owner = fc[fc.Count-1];
             }
-            return owner;
+            return owner as Form;
         }
 
         /// <summary>
