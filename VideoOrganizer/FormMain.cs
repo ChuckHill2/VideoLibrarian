@@ -618,24 +618,13 @@ namespace VideoOrganizer
             return null;
         }
 
-        private static readonly Regex reFindResult = RegexCache.RegEx(@"class='result_text'><a href='\/?title\/(?<TT>tt[0-9]+)\/[^>]+>(?<NAME>[^<]+)<\/a>.*?(?<YEAR>\([0-9]{4,4}[^\)]*\))(?:[^<]*(?<SERIES>Series))?", RegexOptions.IgnoreCase);
+        private static readonly Regex reFindResult = RegexCache.RegEx(@"href='/title/(?<TT>tt[0-9]+)/[^>]+>(?<NAME>[^<]+).+?<label[^>]+>(?<YEAR>[0-9]{4,4})", RegexOptions.IgnoreCase);
         private static readonly Regex reInvalidFileNameChars = RegexCache.RegEx($@"\s*[{Regex.Escape(new String(Path.GetInvalidFileNameChars()))}]\s*", RegexOptions.IgnoreCase);
         private static Dictionary<string, string> ParseHtml(string html, bool series)
         {
-            //Find first found of series or non-series type:
-            //Examples:
-            //<td class='result_text'><a href='/title/tt8787802/?ref_=fn_tt_tt_1'>Away</a>(2020) (TV Series)</td>
-            //<td class='result_text'><a href='/title/tt8288450/?ref_=fn_tt_tt_2'>Away</a>(I) (2019)</td>
-            //<td class='result_text'><a href='/title/tt8288450/?ref_=fn_tt_tt_3'>Away</a>(2019)</td>
-            //<td class='result_text'><a href='/title/tt8288450/?ref_=fn_tt_tt_4'>Away</a>(2019- )</td>
-            //<td class='result_text'><a href='/title/tt12905120/?ref_=fn_tt_tt_5'>Away</a>(IV) (2019) (Short)</td>
-            //<td class='result_text'><a href='/title/tt3696720/?ref_=fn_tt_tt_1'>Ascension</a>(2014)(TV Mini-Series)</td>
-
             var mc = reFindResult.Matches(html);
             foreach(Match m in mc)
             {
-                if (series && m.Groups["SERIES"].Value == string.Empty) continue;
-                if (!series && m.Groups["SERIES"].Value != string.Empty) continue;
                 return new Dictionary<string, string>()
                 {
                     { "TT", m.Groups["TT"].Value },
