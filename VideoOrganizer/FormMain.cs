@@ -557,7 +557,9 @@ namespace VideoOrganizer
 
         private static string ToMovieName(string name, string year)
         {
-            //'year' is already enclosed in parentheses (e.g. "(2020)") 
+            //'year' may or may not be enclosed in parentheses (e.g. "(2020)") 
+            if (year.Length < 4) return name;
+            if (year.Length == 4) return string.Concat(name, " (", year, ")");
             return string.Concat(name, " ", year);
         }
         private static string ToFolderName(string name, string year)
@@ -565,7 +567,10 @@ namespace VideoOrganizer
             //Put articles to the back so sorting is more sensible.
             if (name.StartsWith("The ", StringComparison.OrdinalIgnoreCase)) name = name.Substring(4) + ", The";
             else if (name.StartsWith("A ", StringComparison.OrdinalIgnoreCase)) name = name.Substring(2) + ", A";
-            //'year' is already enclosed in parentheses (e.g. "(2020)") 
+
+            //'year' may or may not be enclosed in parentheses (e.g. "(2020)") 
+            if (year.Length < 4) return name;
+            if (year.Length == 4) return string.Concat(name, " (", year, ")");
             return string.Concat(name, " ", year);
         }
 
