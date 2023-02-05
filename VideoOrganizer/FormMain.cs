@@ -632,7 +632,7 @@ namespace VideoOrganizer
                 return new Dictionary<string, string>()
                 {
                     { "TT", m.Groups["TT"].Value },
-                    { "NAME", reInvalidFileNameChars.Replace(m.Groups["NAME"].Value, "-") },
+                    { "NAME", reInvalidFileNameChars.Replace(System.Net.WebUtility.HtmlDecode(m.Groups["NAME"].Value), "-") },
                     { "YEAR", m.Groups["YEAR"].Value }
                 };
             }
