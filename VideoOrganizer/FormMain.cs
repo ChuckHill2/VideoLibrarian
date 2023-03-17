@@ -622,12 +622,14 @@ namespace VideoOrganizer
             return null;
         }
 
-        private static readonly Regex reFindResult = RegexCache.RegEx(@"href='/title/(?<TT>tt[0-9]+)/[^>]+>(?<NAME>[^<]+).+?<label[^>]+>(?<YEAR>[0-9]{4,4})", RegexOptions.IgnoreCase);
+        private static readonly Regex reFindResult1 = RegexCache.RegEx(@"href='/title/(?<TT>tt[0-9]+)/[^>]+>(?<NAME>[^<]+).+?<label[^>]+>(?<YEAR>[0-9]{4,4})", RegexOptions.IgnoreCase);
+        private static readonly Regex reFindResult2 = RegexCache.RegEx(@"href='/title/(?<TT>tt[0-9]+)/[^>]+>(?<NAME>[^<]+).+?<span [^>]+>(?<YEAR>[0-9]{4,4})", RegexOptions.IgnoreCase);
         private static readonly Regex reInvalidFileNameChars = RegexCache.RegEx($@"\s*[{Regex.Escape(new String(Path.GetInvalidFileNameChars()))}]\s*", RegexOptions.IgnoreCase);
         private static Dictionary<string, string> ParseHtml(string html, bool series)
         {
-            var mc = reFindResult.Matches(html);
-            foreach(Match m in mc)
+            var mc = reFindResult1.Matches(html);
+            if (mc.Count==0) mc = reFindResult2.Matches(html);
+            foreach (Match m in mc)
             {
                 return new Dictionary<string, string>()
                 {
