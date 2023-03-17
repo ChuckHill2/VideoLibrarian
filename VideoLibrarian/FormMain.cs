@@ -439,6 +439,8 @@ namespace VideoLibrarian
             //This may take awhile. Don't lock up the UI.
             PleaseWait.Show(this, "Finding, extracting, loading movie info...  Be patient. This may take awhile.", (state) =>
             {
+                var dupeCheck = new Dictionary<string, MovieProperties>(); //check for duplicate movies and warn but do not remove from list.
+
                 foreach (var mf in Settings.MediaFolders)
                 {
                     if (!Directory.Exists(mf))
@@ -509,6 +511,10 @@ namespace VideoLibrarian
                             {
                                 MoviePropertiesList.Add(p);
                                 added++;
+
+                                if (dupeCheck.TryGetValue(p.TitleId,out var dupeProp))
+                                    Log.Write(Severity.Warning, $"Duplicate titleID for \"{p.FullMovieName}\" found in both \"{Path.GetDirectoryName(dupeProp.PropertiesPath)}\" and \"{Path.GetDirectoryName(p.PropertiesPath)}\"");
+                                else dupeCheck.Add(p.TitleId, p);
                             }
 
                             if (needsCacheRebuild) TileBase.PurgeTileImages(folder); //DPI changed
@@ -522,6 +528,7 @@ namespace VideoLibrarian
                     Log.Write(Severity.Info, $"{added} video properties loaded from {mf}");
                 }
                 if (MoviePropertiesList.Count == 0) return;
+                dupeCheck.Clear();
 
                 needsCacheRebuild = false;
                 forcePropertiesUpdate = false;
