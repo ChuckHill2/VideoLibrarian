@@ -622,8 +622,10 @@ namespace VideoOrganizer
             return null;
         }
 
+        //Parse the Search/Find results
         private static readonly Regex reFindResult1 = RegexCache.RegEx(@"href='/title/(?<TT>tt[0-9]+)/[^>]+>(?<NAME>[^<]+).+?<label[^>]+>(?<YEAR>[0-9]{4,4})", RegexOptions.IgnoreCase);
-        private static readonly Regex reFindResult2 = RegexCache.RegEx(@"href='/title/(?<TT>tt[0-9]+)/[^>]+>(?<NAME>[^<]+).+?<span [^>]+>(?<YEAR>[0-9]{4,4})", RegexOptions.IgnoreCase);
+        //private static readonly Regex reFindResult2 = RegexCache.RegEx(@"href='/title/(?<TT>tt[0-9]+)/[^>]+>(?<NAME>[^<]+).+?<span [^>]+>(?<YEAR>[0-9]{4,4})", RegexOptions.IgnoreCase); 
+        private static readonly Regex reFindResult2 = RegexCache.RegEx(@"href='/title/(?<TT>tt[0-9]+)/[^>]+>(?<NAME>[^<]+).+?<span [^>]+>(?<YEAR>[0-9]{4,4}).+?<span [^>]+>(?<CLASS>[^<]+)", RegexOptions.IgnoreCase);
         private static readonly Regex reInvalidFileNameChars = RegexCache.RegEx($@"\s*[{Regex.Escape(new String(Path.GetInvalidFileNameChars()))}]\s*", RegexOptions.IgnoreCase);
         private static Dictionary<string, string> ParseHtml(string html, bool series)
         {
@@ -631,6 +633,7 @@ namespace VideoOrganizer
             if (mc.Count==0) mc = reFindResult2.Matches(html);
             foreach (Match m in mc)
             {
+                if (series && !m.Groups["CLASS"].Value.ContainsI("Series")) return null; //We expect the video to be a TV Series or TV Mini-Series
                 return new Dictionary<string, string>()
                 {
                     { "TT", m.Groups["TT"].Value },
