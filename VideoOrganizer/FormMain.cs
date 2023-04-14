@@ -590,7 +590,7 @@ namespace VideoOrganizer
             {
                 html = FileEx.ReadHtml(job.Filename, true);
                 FileEx.Delete(job.Filename); //no longer needed.
-                var items = ParseHtml(html, series);
+                var items = ParseHtml(html, name, series);
                 if (items != null) return items;
             }
             else
@@ -609,7 +609,7 @@ namespace VideoOrganizer
             {
                 html = FileEx.ReadHtml(job.Filename, true);
                 FileEx.Delete(job.Filename); //no longer needed.
-                var items = ParseHtml(html, series);
+                var items = ParseHtml(html, name, series);
                 if (items != null) return items;
             }
             else
@@ -627,13 +627,22 @@ namespace VideoOrganizer
         //private static readonly Regex reFindResult2 = RegexCache.RegEx(@"href='/title/(?<TT>tt[0-9]+)/[^>]+>(?<NAME>[^<]+).+?<span [^>]+>(?<YEAR>[0-9]{4,4})", RegexOptions.IgnoreCase); 
         private static readonly Regex reFindResult2 = RegexCache.RegEx(@"href='/title/(?<TT>tt[0-9]+)/[^>]+>(?<NAME>[^<]+).+?<span [^>]+>(?<YEAR>[0-9]{4,4}).+?<span [^>]+>(?<CLASS>[^<]+)", RegexOptions.IgnoreCase);
         private static readonly Regex reInvalidFileNameChars = RegexCache.RegEx($@"\s*[{Regex.Escape(new String(Path.GetInvalidFileNameChars()))}]\s*", RegexOptions.IgnoreCase);
-        private static Dictionary<string, string> ParseHtml(string html, bool series)
+        private static Dictionary<string, string> ParseHtml(string html, string name, bool series)
         {
+            var i = name.IndexOf('(');
+            string year = i == -1 ? null : name.Substring(i + 1, 4);
+            name = i == -1 ? name : name.Substring(0, i).TrimEnd(); //movie name without trailing '(year)'
+
             var mc = reFindResult1.Matches(html);
             if (mc.Count==0) mc = reFindResult2.Matches(html);
-            foreach (Match m in mc)
+            foreach (Match m in mc) 
             {
-                if (series && !m.Groups["CLASS"].Value.ContainsI("Series")) return null; //We expect the video to be a TV Series or TV Mini-Series
+                //debugging: mc.OfType<Match>().Select(x=>new {NAME=x.Groups["NAME"].Value, CLASS=x.Groups["CLASS"].Value, YEAR=x.Groups["YEAR"].Value, TT=x.Groups["TT"].Value}).ToArray()
+
+                if (year != null && !m.Groups["YEAR"].Value.IsNullOrEmpty() && m.Groups["YEAR"].Value != year) continue;
+                if (series && !m.Groups["CLASS"].Value.ContainsI("Series")) continue; //We expect the video to be a TV Series or TV Mini-Series
+                //Since we search by name, closest match will always be first. in the list.
+
                 return new Dictionary<string, string>()
                 {
                     { "TT", m.Groups["TT"].Value },
