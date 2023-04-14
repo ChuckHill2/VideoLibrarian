@@ -66,7 +66,6 @@ namespace VideoOrganizer
             _tt = new ToolTipHelp(this); //must be after InitializeComponent()
 
             m_pnlAllProperties.Enabled = false;
-            m_btnSave.Enabled = false;
             m_grpEpisode.Visible = false;
             m_grpSeries.Visible = false;
             m_dtWatched.MaxDate = DateTime.Now.AddDays(1).Date;
@@ -729,8 +728,6 @@ namespace VideoOrganizer
                     m_txtCustomGroups.Text.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries)
                     .Select(s => s.Trim())
                     .Where(m => !m.EqualsI(FilterProperties.CustomGroup_Any)));
-
-            m_btnSave.Enabled = true;
         }
 
         /// <summary>
