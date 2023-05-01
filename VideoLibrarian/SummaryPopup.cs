@@ -75,7 +75,7 @@ namespace VideoLibrarian
             lblSummary.UseMnemonic = false;
             lblSummary.Name = "lblSummary"; //for debugging
             lblSummary.Tag = parent;        //set for FormMain.FindTile
-            lblSummary.Text = text;
+            lblSummary.Text = text.Length < 4096 ? text : text.Substring(0, 4095) + "\u2026"; //ellipsis
 
             Control Owner = parent;  //Find owning form
             while (Owner.Parent != null) Owner = Owner.Parent;
