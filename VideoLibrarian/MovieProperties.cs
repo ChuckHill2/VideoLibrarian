@@ -534,23 +534,26 @@ namespace VideoLibrarian
 
             //if (Summary.IsNullOrEmpty())     // Json summary is typically the plot or nothing so we always try to get a better summary.
             {
-                var job = new Downloader.Job(UrlLink + "plotsummary", PathPrefix + "-Summary.htm");
+                var job = new Downloader.Job(UrlLink + "plotsummary/", PathPrefix + "-Summary.htm");
                 if (Downloader.Download(job))
                 {
-                    var summaryhtml = FileEx.ReadHtml(job.Filename, true);
+                    var summaryhtml = FileEx.ReadHtml(job.Filename, noScript:true);
                     FileEx.Delete(job.Filename);
 
-                    //Summaries may have crew names embedded in the summaries so we remove the hyperlink.
+                    //Summaries may have crew name references embedded in the summaries so we remove the hyperlink.
                     //E.g. replace "<a href='/name/nm0000631/'>Ridley Scott</a>" with " Ridley Scott"
                     summaryhtml = RegexCache.RegEx(@"<a href='/name[^>]+>(?<NAME>[^<]+)</a>", RE_options).Replace(summaryhtml,m=>" "+m.Groups["NAME"].Value);
 
-                    mc = RegexCache.RegEx(@"<li class='ipl-zebra-list__item' id='summary-[^>]+><p>(?<SUMMARY>[^<]+)", RE_options).Matches(summaryhtml);
+                    //Find all the different summaries. They may have entities and/or newlines (e.g. "<br/>") embedded.
+                    mc = RegexCache.RegEx(@"<div class='ipc-html-content ipc-html-content--base' role='presentation'>\s*<div class='ipc-html-content-inner-div'>(?<SUMMARY>.+?)(?:</div>|<span)", RE_options).Matches(summaryhtml);
                     if (mc.Count > 0)
                     {
                         var summaries = mc.Cast<Match>().Select(m => m.Groups["SUMMARY"].Value).Append(this.Summary??string.Empty);
-                        Summary = summaries.Aggregate("", (max, cur) => max.Length > cur.Length ? max : cur);  //Pick the most verbose summary.
+                        Summary = summaries.Aggregate("", (longest, next) => next.Length < 4096 && next.Length > longest.Length ? next : longest);  //Pick the most verbose summary < 4096 chars;
                         if (Summary.Contains('&')) Summary = WebUtility.HtmlDecode(Summary);
+                        if (Summary.Contains('<')) Summary = Summary.Replace("<br/>", Environment.NewLine);
                         Parser.Found(Summary, "SummaryW");
+                        if (Summary.EqualsI(Plot)) Summary = string.Empty; //Don't duplicate plot. The UI summary popup handles this properly.
                     }
                 }
             }
