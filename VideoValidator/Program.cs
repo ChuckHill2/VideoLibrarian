@@ -47,6 +47,7 @@ namespace VideoValidator
 
         static void Main(string[] args)
         {
+            Console.OutputEncoding = System.Text.Encoding.UTF8; //Allow ellipsis (\u2026) to be written to console window. The system default is System.Text.SBCSCodePageEncoding (e.g. 256 chars. No unicode)
 #if !DEBUG
             if (isDoubleClicked)
             {
