@@ -20,6 +20,7 @@ namespace UpdateXml
 
         static void Main(string[] args)
         {
+            Console.OutputEncoding = System.Text.Encoding.UTF8; //Allow ellipsis (\u2026) to be written to console window. The system default is System.Text.SBCSCodePageEncoding (e.g. 256 chars. No unicode)
 #if !DEBUG
             //If starting directly from Windows Explorer (e.g. double-click), don't run without an explicit prompt.
             //This app may start things the caller is not ready to do. So just show help and then prompt to continue.
@@ -104,17 +105,19 @@ namespace UpdateXml
                 Console.WriteLine($"[Enumerating Movie Folders in {mf}]");
                 int added = 0;
 
+                var urllist = DirectoryEx.EnumerateAllFiles(mf, SearchOption.AllDirectories)
+                        .Where(m => m.EndsWith(".url", StringComparison.OrdinalIgnoreCase))
+                        .Select(m => Path.GetDirectoryName(m))
+                        .Where(m => m != mf & !MovieProperties.IgnoreFolder(m))
+                        .ToHashSet(StringComparer.OrdinalIgnoreCase)
+                        .OrderBy(x => x).ToArray();
+
                 //Need to restrict max threads if there are too many downloads needed (aka new
                 //MovieProperty xml files) because flooding the IMDB webserver will drop downloads.
                 //Testing showed that the web server started failing after 500 concurrent downloads.
                 var options = new ParallelOptions() { MaxDegreeOfParallelism = 50 };
 
-                Parallel.ForEach(DirectoryEx.EnumerateAllFiles(mf, SearchOption.AllDirectories)
-                        .Where(m => m.EndsWith(".url", StringComparison.OrdinalIgnoreCase))
-                        .Select(m => Path.GetDirectoryName(m))
-                        .Where(m => m != mf & !MovieProperties.IgnoreFolder(m))
-                        .ToHashSet(StringComparer.OrdinalIgnoreCase)
-                        .OrderBy(x => x),
+                Parallel.ForEach(urllist,
                         options,
                         folder =>
                         {
@@ -150,7 +153,8 @@ namespace UpdateXml
                                 {
                                     p2.Serialize();
                                     if (!backup.IsNullOrEmpty()) FileEx.Delete(backup);
-                                    var re = RegexCache.RegEx(@"\\tt[0-9]{6,9}\.png$", RegexOptions.IgnoreCase); //ex. tt0000000S.png, tt0000000M.png, tt0000000L.png
+
+                                    var re = RegexCache.RegEx(@"\\tt[0-9]{6,9}[SML].png$", RegexOptions.IgnoreCase); //ex. tt0000000S.png, tt0000000M.png, tt0000000L.png
                                     foreach (var f in DirectoryEx.EnumerateAllFiles(folder).Where(m => re.IsMatch(m))) FileEx.Delete(f);
                                     //We do not delete the poster image because it may have been manually modified. User can manually delete the poster image if they really want to re-download it.
                                 }
