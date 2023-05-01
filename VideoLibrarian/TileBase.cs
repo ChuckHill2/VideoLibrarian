@@ -36,6 +36,7 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Windows.Forms;
 
 namespace VideoLibrarian
@@ -684,20 +685,8 @@ namespace VideoLibrarian
         /// <param name="folder">path containing cached images to to delete</param>
         public static void PurgeTileImages(string folder)
         {
-            //Valid filenames: "tt[0-9]+(S|M|L).png" ex. tt0000000S.png, tt0000000M.png, tt0000000L.png
-            foreach (var f in Directory.GetFiles(folder, "tt*.png"))
-            {
-                var sml = char.ToUpperInvariant(f[f.Length - 5]);
-                try
-                {
-                    if ("SML".IndexOf(sml) == -1) continue; //faster than regex!
-                    FileEx.Delete(f);
-                }
-                catch (Exception ex)
-                {
-                    Log.Write(Severity.Error, $"Deleting {f}: {ex.Message}");
-                }
-            }
+            var re = RegexCache.RegEx(@"\\tt[0-9]{6,9}[SML].png$", RegexOptions.IgnoreCase); //ex. tt0000000S.png, tt0000000M.png, tt0000000L.png
+            foreach (var f in DirectoryEx.EnumerateAllFiles(folder).Where(m => re.IsMatch(m))) FileEx.Delete(f);
         }
     }
 }
