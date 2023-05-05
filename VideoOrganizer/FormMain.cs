@@ -585,7 +585,7 @@ namespace VideoOrganizer
             string html;
             var tempFileName = Path.Combine(Path.GetTempPath(), "FindUrl.htm");
 
-            var job = new Downloader.Job($"https://www.imdb.com/find/?q={Uri.EscapeUriString(name)}&s=tt&exact=true", tempFileName); //strict search
+            var job = new Downloader.Job($"https://www.imdb.com/find/?q={Uri.EscapeDataString(name)}&s=tt&exact=true", tempFileName); //strict search
             if (Downloader.Download(job))
             {
                 html = FileEx.ReadHtml(job.Filename, true);
@@ -604,7 +604,7 @@ namespace VideoOrganizer
             var i = name.IndexOf('(');
             var fuzzyName = i == -1 ? name : name.Substring(0, i).TrimEnd();
 
-            job = new Downloader.Job($"https://www.imdb.com/find/?q={Uri.EscapeUriString(fuzzyName)}&s=tt", tempFileName);  //try again, not so strict.
+            job = new Downloader.Job($"https://www.imdb.com/find/?q={Uri.EscapeDataString(fuzzyName)}&s=tt", tempFileName);  //try again, not so strict.
             if (Downloader.Download(job))
             {
                 html = FileEx.ReadHtml(job.Filename, true);
