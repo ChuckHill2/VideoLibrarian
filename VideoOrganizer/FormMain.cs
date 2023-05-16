@@ -389,7 +389,7 @@ namespace VideoOrganizer
                 (?:
                 (?:S(?<S1>[0-9]{1,2})E(?<E1>[0-9]{1,2}))|
                 (?:(?<S2>[0-9]{1,2})x(?<E2>[0-9]{1,2}))|
-                (?:[ \.-]+Episode[ \.](?<S3>[0-9]{1,2})\.(?<E3>[0-9]{1,2}))
+                (?:(?<E3>[0-9]{1,2})of[0-9]{1,2})
                 )
                 [^0-9]+(?<YEAR2>[0-9]{4,4})?
                 ";
@@ -402,13 +402,13 @@ namespace VideoOrganizer
                 if (int.TryParse(mc[0].Groups["YEAR1"].Value, out int year) && year <= DateTime.Now.Year && year > 1900) name = $"{name} ({year})";
                 else if (int.TryParse(mc[0].Groups["YEAR2"].Value, out year) && year <= DateTime.Now.Year && year > 1900) name = $"{name} ({year})";
 
-                if (!int.TryParse(mc[0].Groups["S1"].Value, out int season))
-                    if (!int.TryParse(mc[0].Groups["S2"].Value, out season))
-                        int.TryParse(mc[0].Groups["S3"].Value, out season);
-
                 if (!int.TryParse(mc[0].Groups["E1"].Value, out int episode))
                     if (!int.TryParse(mc[0].Groups["E2"].Value, out episode))
-                        int.TryParse(mc[0].Groups["E3"].Value, out episode);
+                            int.TryParse(mc[0].Groups["E3"].Value, out episode);
+
+                if (!int.TryParse(mc[0].Groups["S1"].Value, out int season))
+                    if (!int.TryParse(mc[0].Groups["S2"].Value, out season))
+                        season = 1;
 
                 var series = $"S{season:00}E{episode:00}";
                 string tt;
