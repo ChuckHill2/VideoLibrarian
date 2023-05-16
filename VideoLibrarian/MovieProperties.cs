@@ -541,8 +541,8 @@ namespace VideoLibrarian
                     FileEx.Delete(job.Filename);
 
                     //Summaries may have crew name references embedded in the summaries so we remove the hyperlink.
-                    //E.g. replace "<a href='/name/nm0000631/'>Ridley Scott</a>" with " Ridley Scott"
-                    summaryhtml = RegexCache.RegEx(@"<a href='/name[^>]+>(?<NAME>[^<]+)</a>", RE_options).Replace(summaryhtml,m=>" "+m.Groups["NAME"].Value);
+                    //E.g. replace "<a class='xoxoxo' href='/name/nm0000631/'>Ridley Scott</a>" with " Ridley Scott"
+                    summaryhtml = RegexCache.RegEx(@"<a .+?href='/name[^>]+>(?<NAME>[^<]+)</a>", RE_options).Replace(summaryhtml,m=>" "+m.Groups["NAME"].Value);
 
                     //Find all the different summaries. They may have entities and/or newlines (e.g. "<br/>") embedded.
                     mc = RegexCache.RegEx(@"<div class='ipc-html-content ipc-html-content--base' role='presentation'>\s*<div class='ipc-html-content-inner-div'>(?<SUMMARY>.+?)(?:</div>|<span)", RE_options).Matches(summaryhtml);
