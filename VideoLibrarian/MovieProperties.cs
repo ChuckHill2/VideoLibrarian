@@ -166,9 +166,9 @@ namespace VideoLibrarian
         [XmlElement(DataType = "date")]
         public DateTime Watched { get; set; }
 
-        /// <summary>Semicolon-delimited list of user-defined attribute/groups that this movie belongs to. Used for filtering but not sorting. This field is unused for tv episodes.</summary>
-        [DefaultValueAttribute("")]
-        public string CustomGroups { get; set; } = "";
+        /// <summary>Comma-delimited list of user-defined attribute/groups that this movie belongs to. Used for filtering but not sorting. This field is unused for tv episodes.</summary>
+        public string[] CustomGroups { get; set; } = new string[0];
+        [XmlIgnore] public bool CustomGroupsSpecified => CustomGroups!=null && CustomGroups.Length > 0; //.XmlSerializer: do not serialize if empty
 
         // Derived/Computed info.
 

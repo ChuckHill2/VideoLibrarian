@@ -40,8 +40,8 @@ namespace VideoLibrarian
         Anywhere,
         Title,
         Plot,  //+summary
-        Crew,
-        CustomGroups //user-defined attributes (not part of IMDB) 
+        Crew
+        //CustomGroups //user-defined attributes (not part of IMDB) 
     }
 
     [XmlInclude(typeof(ContainsLocation))]
@@ -121,7 +121,7 @@ namespace VideoLibrarian
                     else genres.Add(g, 1);
                 }
 
-                foreach (var g in m.CustomGroups?.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()))
+                foreach (var g in m.CustomGroups)
                 {
                     if (groups.TryGetValue(g, out k)) groups[g] = k + 1;
                     else groups.Add(g, 1);
@@ -141,7 +141,7 @@ namespace VideoLibrarian
 
             AvailableGenres = genres.Select(m => new FilterValue(m.Key, m.Value)).OrderBy(m => m.Name, StringComparer.OrdinalIgnoreCase).ToArray();
             AvailableClasses = classes.Select(m => new FilterValue(m.Key, m.Value)).OrderBy(m => m.Name, StringComparer.OrdinalIgnoreCase).ToArray();
-            AvailableGroups = groups.Where(m => !m.Key.EqualsI(CustomGroup_Any)).Select(m => new FilterValue(m.Key, m.Value)).OrderBy(m => m.Name, StringComparer.OrdinalIgnoreCase).Prepend(new FilterValue(CustomGroup_Any, 0)).ToArray();
+            AvailableGroups = groups.Where(m =>!m.Key.IsNullOrEmpty() && !m.Key.EqualsI(CustomGroup_Any)).Select(m => new FilterValue(m.Key, m.Value)).OrderBy(m => m.Name, StringComparer.OrdinalIgnoreCase).Prepend(new FilterValue(CustomGroup_Any, 0)).ToArray();
         }
 
         /// <summary>
@@ -163,38 +163,42 @@ namespace VideoLibrarian
                 return changed;
             }
 
-            Func<MovieProperties, bool> hasContainsValue = (m) => true;
+            Func<MovieProperties, bool> hasSubstring = (m) => true;
             if (!string.IsNullOrWhiteSpace(this.ContainsSubstring))
             {
                 switch (this.ContainsLocation)
                 {
                     case ContainsLocation.Anywhere:
-                        hasContainsValue = (m) => 
+                        hasSubstring = (m) => 
                             m.MovieName.ContainsI(this.ContainsSubstring) ||
                             m.Plot.ContainsI(this.ContainsSubstring) ||
                             m.Summary.ContainsI(this.ContainsSubstring) ||
                             m.Cast.ContainsI(this.ContainsSubstring) ||
                             m.Creators.ContainsI(this.ContainsSubstring) ||
-                            m.Directors.ContainsI(this.ContainsSubstring) ||
-                            m.CustomGroups.ContainsI(this.ContainsSubstring);
+                            m.Directors.ContainsI(this.ContainsSubstring);
                         break;
                     case ContainsLocation.Title:
-                        hasContainsValue = (m) => m.MovieName.ContainsI(this.ContainsSubstring);
+                        hasSubstring = (m) => m.MovieName.ContainsI(this.ContainsSubstring);
                         break;
                     case ContainsLocation.Plot:
-                        hasContainsValue = (m) => m.Plot.ContainsI(this.ContainsSubstring) ||
+                        hasSubstring = (m) => m.Plot.ContainsI(this.ContainsSubstring) ||
                             m.Summary.ContainsI(this.ContainsSubstring);
                         break;
                     case ContainsLocation.Crew:
-                        hasContainsValue = (m) => m.Cast.ContainsI(this.ContainsSubstring) ||
+                        hasSubstring = (m) => m.Cast.ContainsI(this.ContainsSubstring) ||
                             m.Creators.ContainsI(this.ContainsSubstring) ||
                             m.Directors.ContainsI(this.ContainsSubstring);
                         break;
-                    case ContainsLocation.CustomGroups:
-                        if (this.CustomGroup == "") hasContainsValue = (m) => true;
-                        else hasContainsValue = (m) => m.CustomGroups.ContainsI(this.ContainsSubstring);
-                        break;
+                    //case ContainsLocation.CustomGroups:
+                    //    hasSubstring = (m) => m.CustomGroups.ContainsI(this.ContainsSubstring);
+                    //    break;
                 }
+            }
+
+            Func<MovieProperties, bool> hasCustomGroup = (m) => true;
+            if (CustomGroup != CustomGroup_Any && CustomGroup != string.Empty)
+            {
+                hasCustomGroup = (m) => m.CustomGroups.Length == 0 ? false : m.CustomGroups.Contains(CustomGroup, StringComparer.OrdinalIgnoreCase);
             }
 
             Parallel.ForEach(tiles, tile =>
@@ -204,10 +208,9 @@ namespace VideoLibrarian
                 var hasYear = tile.MovieProps.Year >= StartYear && tile.MovieProps.Year <= EndYear;
                 var hasRating = tile.MovieProps.MovieRating >= Rating || (tile.MovieProps.MovieRating < 1 && IncludeUnrated);
                 var hasWatched = Watched == null || Watched == (tile.MovieProps.Watched != DateTime.MinValue);
-                var hasCustomGroup = this.CustomGroup == "" ? true : tile.MovieProps.CustomGroups.ContainsI(this.CustomGroup);
 
                 bool ch = tile.IsVisible;
-                tile.IsVisible = hasGenre && hasClass && hasYear && hasRating && hasWatched && hasCustomGroup && hasContainsValue(tile.MovieProps);
+                tile.IsVisible = hasGenre && hasClass && hasYear && hasRating && hasWatched && hasCustomGroup(tile.MovieProps) && hasSubstring(tile.MovieProps);
                 if (ch != tile.IsVisible) changed = true;
             });
 

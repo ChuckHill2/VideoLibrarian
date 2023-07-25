@@ -722,12 +722,7 @@ namespace VideoOrganizer
             MovieFileLength = _mp.MovieFileLength;
             MovieHash = _mp.MovieHash;
 
-            m_txtCustomGroups.Text = _mp.CustomGroups ?? "".Trim();
-            if (m_txtCustomGroups.Text.Length > 0)
-                m_txtCustomGroups.Text = string.Join(";",
-                    m_txtCustomGroups.Text.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries)
-                    .Select(s => s.Trim())
-                    .Where(m => !m.EqualsI(FilterProperties.CustomGroup_Any)));
+            m_txtCustomGroups.Text = string.Join(";", _mp.CustomGroups.Where(m => !m.EqualsI(FilterProperties.CustomGroup_Any)));
         }
 
         /// <summary>
@@ -821,7 +816,7 @@ namespace VideoOrganizer
             mp2.FolderName = Path.GetFileName(RootFolder);
 
             if (!mp2.MovieClass.EndsWith("Episode"))
-                mp2.CustomGroups = m_txtCustomGroups.Text;
+                mp2.CustomGroups = m_txtCustomGroups.Text.Split(new char[] { ';' },StringSplitOptions.RemoveEmptyEntries);
 
             if (!_mp.Equals(mp2))
             {
