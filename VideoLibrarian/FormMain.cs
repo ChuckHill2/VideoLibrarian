@@ -365,7 +365,7 @@ namespace VideoLibrarian
         {
             CurrentViewTiles.CurrentTile = (ITile)m_flowPanel.CurrentVisibleControl;
             CurrentViewTiles.ScrollPosition = m_flowPanel.VerticalScroll.Value;
-            PleaseWait.Show(this, "Creating/sorting/filtering tiles.  Be patient. This may take awhile.", (state) =>
+            PleaseWait.Show(this, "Creating, sorting, filtering tiles.  Be patient. This may take awhile.", (state) =>
             {
                 CurrentViewTiles = GetView(titleId, mp);
             });
@@ -437,7 +437,7 @@ namespace VideoLibrarian
             };
 
             //This may take awhile. Don't lock up the UI.
-            PleaseWait.Show(this, "Finding, extracting, loading movie info...  Be patient. This may take awhile.", (state) =>
+            PleaseWait.Show(this, "Finding, extracting, loading movie info. Be patient. This may take awhile.", (state) =>
             {
                 var dupeCheck = new Dictionary<string, MovieProperties>(); //check for duplicate movies and warn but do not remove from list.
 

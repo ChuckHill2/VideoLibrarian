@@ -150,6 +150,12 @@ namespace VideoLibrarian
 
         [ThreadStatic] private static MiniMessageBox MMDialog = null;
         [ThreadStatic] private static DialogResult MMResult = DialogResult.None;
+
+        /// <summary>
+        /// Notifies caller that this modeless dialog has closed. This is its button pressed state (maybe None if no button pushed).
+        /// </summary>
+        [ThreadStatic] public static Action<DialogResult> MMClicked = null;
+
         private Resources resx = new Resources();
         private System.Drawing.Icon CaptionIcon = GetAppIcon();
         private Control OwningControl;
@@ -193,7 +199,7 @@ namespace VideoLibrarian
             /// <summary>
             /// Font used for the caption text. Default is null, aka whatever is the window's default font.
             /// </summary>
-            public Font  CaptionFont { get; set; } = null;  //null == default font
+            public Font CaptionFont { get; set; } = null;  //null == default font
             /// <summary>
             /// Starting gradient color of the inactive caption.  Default is SystemColors.InactiveCaption (aka faded blue)
             /// </summary>
@@ -213,7 +219,7 @@ namespace VideoLibrarian
             /// <summary>
             /// Font used for the message text. Default is null, aka whatever is the window's default font.
             /// </summary>
-            public Font  MessageFont { get; set; } = null;  //null == default font
+            public Font MessageFont { get; set; } = null;  //null == default font
             /// <summary>
             /// Color of the message text background. Default is SystemColors.Window (aka White)
             /// </summary>
@@ -233,7 +239,7 @@ namespace VideoLibrarian
             public void Restore(MsgBoxColors backupProperties)
             {
                 if (backupProperties == null) throw new ArgumentNullException(nameof(backupProperties));
-                foreach(var p in typeof(MsgBoxColors).GetProperties())
+                foreach (var p in typeof(MsgBoxColors).GetProperties())
                 {
                     //if (p.PropertyType.IsClass && typeof(IDisposable).IsAssignableFrom(p.PropertyType)) ((IDisposable)p.GetValue(clr)).Dispose();
                     p.SetValue(this, p.GetValue(backupProperties));
@@ -369,7 +375,7 @@ namespace VideoLibrarian
         /// <returns>The final Dialog result value of the closed modalless dialog. Only meaningful for a modalless dialog. If dialog closed by user via a MessagBoxButton, this will return the last closing value.</returns>
         public static new DialogResult Hide()
         {
-            if (MMDialog !=null)
+            if (MMDialog != null)
             {
                 MMDialog.Close();
                 MMDialog.Dispose();
@@ -387,7 +393,7 @@ namespace VideoLibrarian
         {
             //This is for Modalless dialogs that return immediately upon calling Show()
             Button btn = (Button)sender;
-            switch(btn.Name)
+            switch (btn.Name)
             {
                 case "OK": MMResult = DialogResult.OK; break;
                 case "Cancel": MMResult = DialogResult.Cancel; break;
@@ -402,6 +408,12 @@ namespace VideoLibrarian
             MMDialog.Close();
             MMDialog.Dispose();
             MMDialog = null;
+
+            if (MMClicked != null)
+            {
+                MMClicked(MMResult);
+                MMClicked = null;
+            }
         }
 
         private void ButtonClick(object sender, EventArgs e)
@@ -434,7 +446,7 @@ namespace VideoLibrarian
             this.FormBorderStyle = FormBorderStyle.None;
             this.BackColor = Colors.Background;
             this.Name = "MiniMessageBox";
-            this.ShowInTaskbar = owningControl==null; //if 'owned' by desktop, show in taskbar.
+            this.ShowInTaskbar = owningControl == null; //if 'owned' by desktop, show in taskbar.
             //this.StartPosition = FormStartPosition.CenterParent;  //we center the popup location as *we* choose.
             this.StartPosition = FormStartPosition.Manual;
             this.Text = "MiniMessageBox";
@@ -442,7 +454,7 @@ namespace VideoLibrarian
 
             // With modalless dialogs, the calling code has control when to close the dialog via Hide(); but modal dialogs
             // need an action for the user to close the dialog as the calling code must wait. Thus a valid enum value is required.
-            if (isModal && buttons==Buttons.None)
+            if (isModal && buttons == Buttons.None)
             {
                 buttons = Buttons.OK;
             }
@@ -506,7 +518,7 @@ namespace VideoLibrarian
                 rcDivider = Rectangle.FromLTRB(0, rcCaption.Bottom + 1, rcCaption.Right + 1000, rcCaption.Bottom + 1 + 1);
             }
 
-            rcMessageIcon = new Rectangle(Border+Spacing, rcDivider.Bottom + Spacing, szMessageIcon.Width, szMessageIcon.Height);
+            rcMessageIcon = new Rectangle(Border + Spacing, rcDivider.Bottom + Spacing, szMessageIcon.Width, szMessageIcon.Height);
             rcMessage = new Rectangle((MessageIcon == null ? Border + Spacing : rcMessageIcon.Right + Spacing), rcMessageIcon.Top, szMessage.Width, szMessage.Height);
 
             //Compute size of popup
@@ -560,7 +572,7 @@ namespace VideoLibrarian
             base.Dispose(disposing);
         }
 
-        private bool IsActivated = true; 
+        private bool IsActivated = true;
         protected override void OnActivated(EventArgs e)
         {
             base.OnActivated(e);
@@ -600,7 +612,7 @@ namespace VideoLibrarian
                 e.Graphics.DrawLine(SystemPens.ActiveBorder, rcDivider.Left, rcDivider.Top, rcDivider.Right, rcDivider.Top);
             }
 
-            if (MessageIcon !=null)
+            if (MessageIcon != null)
             {
                 e.Graphics.DrawImage(MessageIcon, rcMessageIcon);
                 //e.Graphics.DrawRectangle(Pens.Red, rcMessageIcon.X, rcMessageIcon.Y, rcMessageIcon.Width-1, rcMessageIcon.Height-1);
@@ -621,23 +633,23 @@ namespace VideoLibrarian
             //of the form and Pens draw to the right/bottom of the pixel?
 
             e.Graphics.DrawLine(SystemPens.ControlLight, this.ClientRectangle.Left, this.ClientRectangle.Top, this.ClientRectangle.Right - 1, this.ClientRectangle.Top);
-            e.Graphics.DrawLine(SystemPens.ControlLightLight, this.ClientRectangle.Left + 1, this.ClientRectangle.Top+1, this.ClientRectangle.Right - 2, this.ClientRectangle.Top+1);
+            e.Graphics.DrawLine(SystemPens.ControlLightLight, this.ClientRectangle.Left + 1, this.ClientRectangle.Top + 1, this.ClientRectangle.Right - 2, this.ClientRectangle.Top + 1);
 
             e.Graphics.DrawLine(SystemPens.ControlLight, this.ClientRectangle.Left, this.ClientRectangle.Top, this.ClientRectangle.Left, this.ClientRectangle.Bottom - 1);
-            e.Graphics.DrawLine(SystemPens.ControlLightLight, this.ClientRectangle.Left+1, this.ClientRectangle.Top+1, this.ClientRectangle.Left+1, this.ClientRectangle.Bottom - 2);
+            e.Graphics.DrawLine(SystemPens.ControlLightLight, this.ClientRectangle.Left + 1, this.ClientRectangle.Top + 1, this.ClientRectangle.Left + 1, this.ClientRectangle.Bottom - 2);
 
             e.Graphics.DrawLine(SystemPens.ControlDarkDark, this.ClientRectangle.Right - 1, this.ClientRectangle.Top, this.ClientRectangle.Right - 1, this.ClientRectangle.Bottom);
-            e.Graphics.DrawLine(SystemPens.ControlDark, this.ClientRectangle.Right - 2, this.ClientRectangle.Top+1, this.ClientRectangle.Right - 2, this.ClientRectangle.Bottom);
+            e.Graphics.DrawLine(SystemPens.ControlDark, this.ClientRectangle.Right - 2, this.ClientRectangle.Top + 1, this.ClientRectangle.Right - 2, this.ClientRectangle.Bottom);
 
-            e.Graphics.DrawLine(SystemPens.ControlDark, this.ClientRectangle.Left + 1, this.ClientRectangle.Bottom -2, this.ClientRectangle.Right - 2, this.ClientRectangle.Bottom-2);
-            e.Graphics.DrawLine(SystemPens.ControlDarkDark, this.ClientRectangle.Left, this.ClientRectangle.Bottom-1, this.ClientRectangle.Right, this.ClientRectangle.Bottom-1);
+            e.Graphics.DrawLine(SystemPens.ControlDark, this.ClientRectangle.Left + 1, this.ClientRectangle.Bottom - 2, this.ClientRectangle.Right - 2, this.ClientRectangle.Bottom - 2);
+            e.Graphics.DrawLine(SystemPens.ControlDarkDark, this.ClientRectangle.Left, this.ClientRectangle.Bottom - 1, this.ClientRectangle.Right, this.ClientRectangle.Bottom - 1);
         }
 
         //Copy n' Paste content to the clipboard
         protected override void OnKeyUp(KeyEventArgs e)
         {
-            if (e.KeyData == (Keys.C|Keys.Control))
-                Clipboard.SetData(DataFormats.Text, $"{(Caption==null?"":Caption+"\r\n")}{(MessageIcon==null?"": MessageIconString+" ")}{Message??""}");
+            if (e.KeyData == (Keys.C | Keys.Control))
+                Clipboard.SetData(DataFormats.Text, $"{(Caption == null ? "" : Caption + "\r\n")}{(MessageIcon == null ? "" : MessageIconString + " ")}{Message ?? ""}");
 
             base.OnKeyUp(e);
         }
@@ -760,21 +772,21 @@ namespace VideoLibrarian
             // 'owner' can be any Win32 windows-based control, but only the first *visible* Form may host another form (e.g. this popup).
             // In the end, 'owner' may still be null, but that just refers to the desktop.
 
-            if (owner!=null)
+            if (owner != null)
             {
                 var ctrl = owner as Control;
-                if (ctrl!=null)
+                if (ctrl != null)
                 {
                     Control p = ctrl;
-                    while(!(p is Form))
+                    while (!(p is Form))
                     {
                         p = p.Parent;
                         if (p == null) break;
                     }
-                    if (p!=null)
+                    if (p != null)
                     {
                         var f = (Form)p;
-                        while(!f.Visible)  //MiniMessageBox called in a Form constructor
+                        while (!f.Visible)  //MiniMessageBox called in a Form constructor
                         {
                             f = f.Owner;
                             if (f == null) break;
@@ -788,7 +800,7 @@ namespace VideoLibrarian
             if (owner == null)
             {
                 FormCollection fc = System.Windows.Forms.Application.OpenForms;
-                if (fc != null && fc.Count > 0) owner = fc[fc.Count-1];
+                if (fc != null && fc.Count > 0) owner = fc[fc.Count - 1];
             }
             return owner as Form;
         }
