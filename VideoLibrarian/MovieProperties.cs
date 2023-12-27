@@ -471,7 +471,7 @@ namespace VideoLibrarian
             if (Cast.IsNullOrEmpty()) Cast = null;
             Parser.Clear();
 
-            // Extract JSON properties. Whatever we can't find, we scrape from web page.
+            //Extract JSON properties.Whatever we can't find, we scrape from web page.
             mc = RegexCache.RegEx(@"<script id=""__NEXT_DATA__"" type=""application/json"">(?<JSON>.+?)</script>", RE_options).Matches(html);
             if (mc.Count > 0)
             {
@@ -545,7 +545,7 @@ namespace VideoLibrarian
                     summaryhtml = RegexCache.RegEx(@"<a .+?href='/name[^>]+>(?<NAME>[^<]+)</a>", RE_options).Replace(summaryhtml,m=>" "+m.Groups["NAME"].Value);
 
                     //Find all the different summaries. They may have entities and/or newlines (e.g. "<br/>") embedded.
-                    mc = RegexCache.RegEx(@"<div class='ipc-html-content ipc-html-content--base' role='presentation'>\s*<div class='ipc-html-content-inner-div'>(?<SUMMARY>.+?)(?:</div>|<span)", RE_options).Matches(summaryhtml);
+                    mc = RegexCache.RegEx(@"<div class='ipc-html-content ipc-html-content--base[^']*' role='presentation'>\s*<div class='ipc-html-content-inner-div'>(?<SUMMARY>.+?)(?:</div>|<span)", RE_options).Matches(summaryhtml);
                     if (mc.Count > 0)
                     {
                         var summaries = mc.Cast<Match>().Select(m => m.Groups["SUMMARY"].Value).Append(this.Summary??string.Empty);
@@ -581,7 +581,7 @@ namespace VideoLibrarian
 
             if (Genre.IsNullOrEmpty())
             {
-                mc = RegexCache.RegEx(@"<a class=.*?href='\/search\/title\/\?genres[^>]+>(?<GENRE>[^<]+)<\/a>", RE_options).Matches(html);
+                mc = RegexCache.RegEx(@"<a class=.*?href='\/search\/title\/?\?genres[^>]+><span[^>]+>(?<GENRE>[^<]+)", RE_options).Matches(html);
                 if (mc.Count > 0)
                 {
                     Genre = mc.Cast<Match>().Select(p => p.Groups["GENRE"].Value).ToArray();
@@ -592,10 +592,10 @@ namespace VideoLibrarian
             if (ReleaseDate == DateTime.MinValue)
             {
                 mc = RegexCache.RegEx(@"<a class='ipc-metadata.+?ref_=tt_dt_rdat'>(?<RDATE>[^\(<]+)", RE_options).Matches(html);
-                if (mc.Count > 0)
+                foreach(Match m in mc)
                 {
-                    ReleaseDate = DateTime.TryParse(mc[0].Groups["RDATE"].Value, out var dt) ? dt : DateTime.MinValue;
-                    Parser.Found(ReleaseDate, "ReleaseDateW");
+                    ReleaseDate = DateTime.TryParse(m.Groups["RDATE"].Value, out var dt) ? dt : DateTime.MinValue;
+                    if (ReleaseDate != DateTime.MinValue) break;
                 }
             }
 
@@ -759,6 +759,7 @@ namespace VideoLibrarian
                 if (Summary.IsNullOrEmpty()) Summary = props2["outlines"]?["edges"]?[0]?["node"]?["plotText"]?["plaidHtml"]?.Value;
                 Parser.Found(Summary, "SummaryJ3");
 
+                if ((Summary == null ? 0 : Summary.Length) <= (Plot == null ? 0 : Plot.Length)) Summary = string.Empty; //When summary=="Trailer 1" || summary==plot
                 if (!Summary.IsNullOrEmpty() && Summary.Contains('&')) Summary = WebUtility.HtmlDecode(Summary);
             }
 
