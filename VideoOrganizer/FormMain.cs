@@ -431,7 +431,7 @@ namespace VideoOrganizer
                 TVSeries[name + ".FOLDERNAME"] = ToFolderName(items["NAME"], items["YEAR"]);
                 TVSeries[name] = items["TT"];
 
-                var job = new Downloader.Job($"https://www.imdb.com/title/{items["TT"]}/episodes?season={season}", tempFileName);
+                var job = new Downloader.Job($"https://www.imdb.com/title/{items["TT"]}/episodes/?season={season}", tempFileName);
                 if (Downloader.Download(job))
                 {
                     var html = FileEx.ReadHtml(job.Filename, true);
