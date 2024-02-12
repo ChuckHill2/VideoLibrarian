@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             this.m_clbVideoType = new System.Windows.Forms.CheckedListBox();
             this.m_btnVtypeSelectNone = new System.Windows.Forms.Button();
             this.m_btnVtypeSelectAll = new System.Windows.Forms.Button();
@@ -58,6 +59,7 @@
             this.m_cbIn = new System.Windows.Forms.ComboBox();
             this.m_grpCustomGroup = new System.Windows.Forms.GroupBox();
             this.m_cbCustomGroup = new System.Windows.Forms.ComboBox();
+            this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
             this.m_grpGenre.SuspendLayout();
             this.m_grpVideoType.SuspendLayout();
             this.m_grpRating.SuspendLayout();
@@ -127,22 +129,14 @@
             this.m_cbRating.BackColor = System.Drawing.Color.AliceBlue;
             this.m_cbRating.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.m_cbRating.FormattingEnabled = true;
-            this.m_cbRating.Items.AddRange(new object[] {
-            "9+",
-            "8+",
-            "7+",
-            "6+",
-            "5+",
-            "4+",
-            "3+",
-            "2+",
-            "1+",
-            ""});
             this.m_cbRating.Location = new System.Drawing.Point(9, 29);
             this.m_cbRating.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
+            this.m_cbRating.MaxDropDownItems = 16;
             this.m_cbRating.Name = "m_cbRating";
             this.m_cbRating.Size = new System.Drawing.Size(134, 28);
             this.m_cbRating.TabIndex = 9;
+            this.toolTip1.SetToolTip(this.m_cbRating, "Filter for all movies with a rating >= to this number (+)\r\nor filter all movies w" +
+        "ith a rating <= to this number (-)");
             // 
             // m_chkUnrated
             // 
@@ -157,6 +151,7 @@
             this.m_chkUnrated.Size = new System.Drawing.Size(127, 21);
             this.m_chkUnrated.TabIndex = 10;
             this.m_chkUnrated.Text = "Include Unrated";
+            this.toolTip1.SetToolTip(this.m_chkUnrated, "Include unrated (aka \r\nrating=0) in the filter.");
             this.m_chkUnrated.UseVisualStyleBackColor = false;
             // 
             // m_radWatched
@@ -210,6 +205,8 @@
             this.m_grpGenre.TabIndex = 15;
             this.m_grpGenre.TabStop = false;
             this.m_grpGenre.Text = "Genre";
+            this.toolTip1.SetToolTip(this.m_grpGenre, "Filter by genre. The number in parentheses \r\nis the count of movies included in t" +
+        "his genre. \r\nMovies may have multiple generes.");
             // 
             // m_btnGenreSelectNone
             // 
@@ -292,6 +289,8 @@
             this.m_grpVideoType.TabIndex = 16;
             this.m_grpVideoType.TabStop = false;
             this.m_grpVideoType.Text = "Video Type";
+            this.toolTip1.SetToolTip(this.m_grpVideoType, "Filter by video type. The number in parentheses \r\nis the count of movies included" +
+        " in this video type. ");
             // 
             // m_grpRating
             // 
@@ -305,6 +304,7 @@
             this.m_grpRating.TabIndex = 17;
             this.m_grpRating.TabStop = false;
             this.m_grpRating.Text = "Rating";
+            this.toolTip1.SetToolTip(this.m_grpRating, "The popularity/quality/how \r\nwell liked, this movie is.");
             // 
             // m_grpWatch
             // 
@@ -319,6 +319,7 @@
             this.m_grpWatch.TabIndex = 18;
             this.m_grpWatch.TabStop = false;
             this.m_grpWatch.Text = "Watch";
+            this.toolTip1.SetToolTip(this.m_grpWatch, "Filter by the watched flag.");
             // 
             // m_grpReleaseYear
             // 
@@ -334,6 +335,7 @@
             this.m_grpReleaseYear.TabIndex = 19;
             this.m_grpReleaseYear.TabStop = false;
             this.m_grpReleaseYear.Text = "Release Year";
+            this.toolTip1.SetToolTip(this.m_grpReleaseYear, "Filter by the movie \r\nrelease year range.");
             // 
             // m_numReleaseTo
             // 
@@ -442,6 +444,8 @@
             this.m_chkDisabled.Size = new System.Drawing.Size(153, 30);
             this.m_chkDisabled.TabIndex = 22;
             this.m_chkDisabled.Text = "Disable All Filtering";
+            this.toolTip1.SetToolTip(this.m_chkDisabled, "Enable/Disable all filtering. Easier than manually \r\nclearing all of the above. E" +
+        "ven when disabled, the \r\nlast values are maintained until program exit.");
             this.m_chkDisabled.UseVisualStyleBackColor = true;
             this.m_chkDisabled.CheckedChanged += new System.EventHandler(this.m_chkDisabled_CheckedChanged);
             // 
@@ -473,6 +477,7 @@
             this.m_btnContainsClear.Name = "m_btnContainsClear";
             this.m_btnContainsClear.Size = new System.Drawing.Size(24, 24);
             this.m_btnContainsClear.TabIndex = 12;
+            this.toolTip1.SetToolTip(this.m_btnContainsClear, "Clear the text \r\nin this field.");
             this.m_btnContainsClear.UseVisualStyleBackColor = false;
             this.m_btnContainsClear.Click += new System.EventHandler(this.m_btnContainsClear_Click);
             // 
@@ -483,6 +488,8 @@
             this.m_txtContains.Name = "m_txtContains";
             this.m_txtContains.Size = new System.Drawing.Size(427, 26);
             this.m_txtContains.TabIndex = 11;
+            this.toolTip1.SetToolTip(this.m_txtContains, "Filter on this case-insensitive text found in one\r\nof the movie properties listed" +
+        " to the right.");
             // 
             // m_lbIn
             // 
@@ -505,6 +512,7 @@
             this.m_cbIn.Name = "m_cbIn";
             this.m_cbIn.Size = new System.Drawing.Size(134, 28);
             this.m_cbIn.TabIndex = 9;
+            this.toolTip1.SetToolTip(this.m_cbIn, "The movie properties to search.");
             // 
             // m_grpCustomGroup
             // 
@@ -517,6 +525,8 @@
             this.m_grpCustomGroup.TabIndex = 24;
             this.m_grpCustomGroup.TabStop = false;
             this.m_grpCustomGroup.Text = "Custom Group";
+            this.toolTip1.SetToolTip(this.m_grpCustomGroup, "Filter by custom user-defined groups. These \r\ngroups are manually defined in \"Edi" +
+        "t Video \r\nProperties\" within the VideoOrganizer app.");
             // 
             // m_cbCustomGroup
             // 
@@ -607,5 +617,6 @@
         private System.Windows.Forms.Button m_btnContainsClear;
         private System.Windows.Forms.GroupBox m_grpCustomGroup;
         private System.Windows.Forms.ComboBox m_cbCustomGroup;
+        private System.Windows.Forms.ToolTip toolTip1;
     }
 }

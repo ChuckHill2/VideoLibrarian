@@ -85,7 +85,7 @@ namespace VideoLibrarian
             }
 
             m_clbGenre.Items.Clear();
-            m_clbGenre.Items.AddRange(FilterProperties.AvailableGenres.Select(m=>(object)m).ToArray());
+            m_clbGenre.Items.AddRange(FilterProperties.AvailableGenres.Select(m => (object)m).ToArray());
             m_clbGenre.DisplayMember = "FriendlyName";
 
             m_clbVideoType.Items.Clear();
@@ -100,17 +100,12 @@ namespace VideoLibrarian
                 for (int i = 0; i < m_clbGenre.Items.Count; i++) m_clbGenre.SetItemChecked(i, true);
                 for (int i = 0; i < m_clbVideoType.Items.Count; i++) m_clbVideoType.SetItemChecked(i, true);
 
-                m_cbRating.Items.Clear();
-                for (int i = FilterProperties.MaxRating-1; i >= FilterProperties.MinRating; i--)
-                {
-                    if (i==0) continue;
-                    m_cbRating.Items.Add(string.Concat(i,"+"));
-                }
-                m_cbRating.SelectedIndex = m_cbRating.Items.Count-1;
-                m_chkUnrated.Checked = (FilterProperties.MinRating==0);
+                PopulateRatingCB();
+                m_cbRating.SelectedIndex = m_cbRating.Items.Cast<RatingComboItem>().IndexOf(m => m.Value == FilterProperties.MinRating);
+                m_chkUnrated.Checked = (FilterProperties.MinRating == 0);
 
                 m_numReleaseFrom.Value = m_numReleaseTo.Minimum = m_numReleaseFrom.Minimum = FilterProperties.MinYear;
-                m_numReleaseTo.Value = m_numReleaseFrom.Maximum = m_numReleaseTo.Maximum = FilterProperties.MaxYear; 
+                m_numReleaseTo.Value = m_numReleaseFrom.Maximum = m_numReleaseTo.Maximum = FilterProperties.MaxYear;
 
                 m_radBothWatched.Select();
 
@@ -152,13 +147,13 @@ namespace VideoLibrarian
             }
             if (!isChecked) for (int i = 0; i < m_clbVideoType.Items.Count; i++) m_clbVideoType.SetItemChecked(i, true);
 
-            m_cbRating.Items.Clear();
-            for (int i = FilterProperties.MaxRating - 1; i >= FilterProperties.MinRating; i--)
-            {
-                if (i == 0) continue;
-                m_cbRating.Items.Add(string.Concat(i, "+"));
-            }
-            m_cbRating.SelectedItem = (filter.Rating >= FilterProperties.MinRating && filter.Rating <= FilterProperties.MaxRating ? filter.Rating : FilterProperties.MinRating) + "+";
+            PopulateRatingCB();
+            var r = filter.Rating;
+            var isNeg = false;
+            if (filter.Rating < 0) { r = -filter.Rating; isNeg = true; }
+            if (r == 0 || r > FilterProperties.MaxRating || r < FilterProperties.MinRating) { r = FilterProperties.MinRating; isNeg = false; }
+            if (isNeg) r = -r;
+            m_cbRating.SelectedIndex = m_cbRating.Items.Cast<RatingComboItem>().IndexOf(m => m.Value == r);
             m_chkUnrated.Checked = filter.IncludeUnrated;
 
             m_numReleaseTo.Minimum = m_numReleaseFrom.Minimum = FilterProperties.MinYear;
@@ -247,8 +242,7 @@ namespace VideoLibrarian
             }
             fp.Classes = list.ToArray();
 
-            var szRating = (string)m_cbRating.SelectedItem ?? (FilterProperties.MinRating.ToString() + "+");
-            fp.Rating = int.Parse(szRating.Replace("+",""));
+            fp.Rating = ((RatingComboItem)m_cbRating.SelectedItem).Value;
             fp.IncludeUnrated = m_chkUnrated.Checked;
 
             fp.StartYear = (int)m_numReleaseFrom.Value;
@@ -278,6 +272,38 @@ namespace VideoLibrarian
         private void m_btnContainsClear_Click(object sender, EventArgs e)
         {
             m_txtContains.Clear();
+        }
+
+        private void PopulateRatingCB()
+        {
+            List<RatingComboItem> list = new List<RatingComboItem>();
+
+            int ratingCount = FilterProperties.MaxRating - FilterProperties.MinRating;
+
+            for (int i = FilterProperties.MaxRating - 1; i >= FilterProperties.MinRating; i--)
+            {
+                int val = i;
+                if (val == 0) continue;
+                list.Add(new RatingComboItem(val + "+", val));
+            }
+            for (int i = 0; i <= ratingCount-1; i++)
+            {
+                int val = FilterProperties.MinRating + i;
+                if (val == 0) continue;
+                list.Add(new RatingComboItem(val + "-", -val));
+            }
+
+            m_cbRating.DisplayMember = "Name";
+            m_cbRating.ValueMember = "Value";
+            m_cbRating.Items.AddRange(list.ToArray());
+        }
+
+        private class RatingComboItem
+        {
+            public string Name { get; private set; }
+            public int Value { get; private set; }
+            public RatingComboItem(string n, int v) { Name = n; Value = v; }
+            public override string ToString() => Name;
         }
     }
 }

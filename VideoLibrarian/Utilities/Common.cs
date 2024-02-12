@@ -304,6 +304,17 @@ namespace VideoLibrarian
             return -1;
         }
 
+        public static int IndexOf<T>(this IEnumerable<T> source, Func<T, bool> match) where T : class
+        {
+            var index = 0;
+            foreach (var item in source)
+            {
+                if (match.Invoke(item)) return index;
+                index++;
+            }
+            return -1;
+        }
+
         public static bool EqualsI(this string s, string value)
         {
             if (s == null && value == null) return true;
