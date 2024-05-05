@@ -133,9 +133,11 @@ namespace VideoLibrarian
                 if (m.Year > MaxYear) MaxYear = m.Year;
                 if (m.Year < MinYear) MinYear = m.Year;
                 int r = Ceil(m.MovieRating);
-                if (r > MaxRating) MaxRating = r;
+                if (r > MaxRating) MaxRating = r; //Must be a value between 1 and 9
                 r = Floor(m.MovieRating);
-                if (r < MinRating) MinRating = r;
+                //Movie rating cannot be zero because the filter dialog rating combo box does not have an entry for 0 and throw an exception.
+                if (r < 1) { Log.Write(Severity.Warning, $"Invalid movie rating for {System.IO.Path.GetDirectoryName(m.ShortcutPath)}"); r = 1; }
+                if (r < MinRating) MinRating = r; //Must be a value between 1 and 9
                 if (m.Watched!=DateTime.MinValue) HasWatched = true;
             }
 
