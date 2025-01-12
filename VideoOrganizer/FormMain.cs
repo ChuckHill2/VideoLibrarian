@@ -441,18 +441,18 @@ namespace VideoOrganizer
                     //Warning: =ttep_ep([0-9]+) does not 100% always refer to episode with same number.
 
                     //Retrieve tt id and episode# properties from episode image and "S1, Ep1" image overlay.
-                    mc = RegexCache.RegEx(@"<div data-const='(?<TT>tt[0-9]+)[^>]+><img[^>]+><div>S(?<S>[0-9]+), Ep(?<E>[0-9]+)", RegexOptions.IgnoreCase).Matches(html);
+                    //mc = RegexCache.RegEx(@"<div data-const='(?<TT>tt[0-9]+)[^>]+><img[^>]+><div>S(?<S>[0-9]+), Ep(?<E>[0-9]+)", RegexOptions.IgnoreCase).Matches(html);
                     int episodesFound = 0;
-                    foreach (Match m in mc)
-                    {
-                        var tt2 = m.Groups["TT"].Value;
-                        int.TryParse(m.Groups["E"].Value, out int ep);
-                        TVSeries[$"{name}.S{season:00}E{ep:00}"] = tt2;
-                        episodesFound++;
-                    }
+                    //foreach (Match m in mc)
+                    //{
+                    //    var tt2 = m.Groups["TT"].Value;
+                    //    int.TryParse(m.Groups["E"].Value, out int ep);
+                    //    TVSeries[$"{name}.S{season:00}E{ep:00}"] = tt2;
+                    //    episodesFound++;
+                    //}
 
                     //fallback if there is no episode image.
-                    mc = RegexCache.RegEx(@"<a href='\/title\/(?<TT>tt[0-9]+)\/\?ref_=ttep_ep(?<E>[0-9]+)", RegexOptions.IgnoreCase).Matches(html);
+                    mc = RegexCache.RegEx(@"<a href='\/title\/(?<TT>tt[0-9]+)\/\?ref_=ttep_ep_(?<E>[0-9]+)", RegexOptions.IgnoreCase).Matches(html);
                     foreach (Match m in mc)
                     {
                         var tt2 = m.Groups["TT"].Value;
