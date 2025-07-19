@@ -73,6 +73,9 @@
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="NReco.VideoInfo">
@@ -214,6 +217,7 @@
     <Compile Include="Utilities\ToolTipHelp.cs" />
     <Compile Include="Utilities\VersionRW.cs" />
     <Compile Include="Utilities\XmlIO.cs" />
+    <None Include="app.manifest" />
     <None Include="Utilities\ZoomHandler.cs" />
     <Compile Include="Watched.cs">
       <SubType>Component</SubType>
