@@ -343,7 +343,7 @@
             this.m_numReleaseTo.Location = new System.Drawing.Point(60, 69);
             this.m_numReleaseTo.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.m_numReleaseTo.Maximum = new decimal(new int[] {
-            2018,
+            3000,
             0,
             0,
             0});
@@ -356,7 +356,7 @@
             this.m_numReleaseTo.Size = new System.Drawing.Size(78, 26);
             this.m_numReleaseTo.TabIndex = 1;
             this.m_numReleaseTo.Value = new decimal(new int[] {
-            2018,
+            2025,
             0,
             0,
             0});
@@ -545,7 +545,7 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.CancelButton = this.m_btnCancel;
-            this.ClientSize = new System.Drawing.Size(644, 530);
+            this.ClientSize = new System.Drawing.Size(644, 535);
             this.Controls.Add(this.m_grpCustomGroup);
             this.Controls.Add(this.m_grpContains);
             this.Controls.Add(this.m_chkDisabled);
